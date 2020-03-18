@@ -1,5 +1,5 @@
 // exitCode: 0
--- Migration Warning: tests/Call.p2m_m.scala:2:26 ------------------------------
+-- Migration Warning: tests/Call.switch/Call.p2m_m.scala:2:26 ------------------
 2 |class P2M extends P { def d() = "" }
   |                          ^
   |               error overriding method d in trait P of type => String;
