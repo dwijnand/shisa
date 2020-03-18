@@ -13,6 +13,9 @@ object Main {
       case _                 => sys.error(s"expected file, got $args")
     }
 
+    if (!Files.exists(sourceFile))
+      sys.error(s"File $sourceFile doesn't exist")
+
     val scalac2 = "scalac -deprecation"
     val scalac3 = "dotc -migration -color:never -explain"
 
