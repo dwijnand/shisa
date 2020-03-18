@@ -7,16 +7,19 @@ import scala.jdk.CollectionConverters._
 import scala.sys.process._
 
 object Main {
-  val scalac2 = "scalac"
-  val scalac3 = "/d/dotty/bin/dotc"
+  val scalac2 = "scalac -deprecation"
+  val scalac3 = "dotc"
 
+  // More combinations?
+  // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
+  // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
   val combinations = Seq(
-    Invoke("base",     s"$scalac2 -2.13.1"),
-    Invoke("2.13",     s"$scalac2 -2.13.head"),
-    Invoke("2.13-new", s"$scalac2 -2.13.head -Xsource:3"),
-    Invoke("3.0-old",  s"$scalac3 -language:Scala2Compat"),
-    Invoke("3.0",      s"$scalac3"),
-    Invoke("3.1",      s"$scalac3 -strict"),
+    Invoke("2.13-base", s"$scalac2 -2.13.1"),
+    Invoke("2.13-head", s"$scalac2 -2.13.head"),
+    Invoke("2.13-new",  s"$scalac2 -2.13.head -Xsource:3"),
+    Invoke("3.0-old",   s"$scalac3 -language:Scala2Compat"),
+    Invoke("3.0",       s"$scalac3"),
+    Invoke("3.1",       s"$scalac3 -strict"),
   )
 
   def main(args: Array[String]): Unit = args match {
