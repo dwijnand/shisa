@@ -16,7 +16,7 @@ object Main {
   val combinations = Seq(
     Invoke("2.13-base", s"$scalac2 -2.13.1"),
     Invoke("2.13-head", s"$scalac2 -2.13.head"),
-    Invoke("2.13-new",  s"$scalac2 -2.13.head -Xsource:3"),
+    Invoke("2.13-new",  s"$scalac2 -2.13.head -Xsource:2.14"),
     Invoke("3.0-old",   s"$scalac3 -language:Scala2Compat"),
     Invoke("3.0",       s"$scalac3"),
     Invoke("3.1",       s"$scalac3 -strict"),
