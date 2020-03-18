@@ -14,11 +14,6 @@ case class VCCR(x: String) extends AnyVal
 case class VCCS(x: String) extends AnyVal { override def toString   = "" }
 case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
 
-trait P { def d   : String }
-trait M { def d() : String }
-class P2M extends P { def d() = "" }
-class M2P extends M { def d   = "" }
-
 trait PU extends Any { def d   : String }
 trait MU extends Any { def d() : String }
 class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
@@ -44,10 +39,8 @@ class Test {
   val vccs = VCCS("")
   val vccj = VCCJ("")
 
-  val p2m = new P2M
-  val m2p = new P2M
   val p2m_vc = new P2M_VC("")
-  val m2p_vc = new P2M_VC("")
+  val m2p_vc = new M2P_VC("")
 
   any.getClass
   any.getClass()
@@ -94,11 +87,6 @@ class Test {
   vccs.toString()
   vccj.toString
   vccj.toString()
-
-  p2m.d
-  p2m.d()
-  m2p.d
-  m2p.d()
 
   p2m_vc.d
   p2m_vc.d()
