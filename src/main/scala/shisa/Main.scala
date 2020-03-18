@@ -41,10 +41,10 @@ object Main {
       Invoke("3.1",       s"$scalac3 -strict"),
     )
 
-    for {
-      sourceFile <- sourceFiles
-      Invoke(id, cmd) <- combinations
-    } run(id, cmd, sourceFile)
+    sourceFiles.foreach { sourceFile =>
+      if (sourceFiles.sizeIs > 1) println(s"  Testing $sourceFile")
+      combinations.foreach { case Invoke(id, cmd) => run(id, cmd, sourceFile) }
+    }
   }
 
   def run(id: String, cmd: String, sourceFile: Path) = {
