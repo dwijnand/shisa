@@ -4,12 +4,18 @@ import java.nio.file.{ Files, Path, Paths }
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import scala.jdk.StreamConverters._
 import scala.sys.process._
 import scala.util.chaining._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val sourceFiles = args.toSeq.map(Paths.get(_))
+    val sourceFiles = args.toSeq match {
+      case Seq() => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
+        .toScala(Seq)
+        .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
+      case argv  => argv.map(Paths.get(_))
+    }
 
     val missing = sourceFiles.filter(!Files.exists(_))
     if (missing.nonEmpty)
