@@ -5,6 +5,7 @@ import java.nio.file.{ Files, Path, Paths }
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.sys.process._
+import scala.util.chaining._
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -36,15 +37,14 @@ object Main {
       Invoke("3.1",       s"$scalac3 -strict"),
     )
 
-    combinations.foreach(run(_, sourceFile))
+    combinations.foreach { case Invoke(id, cmd) => run(id, cmd, sourceFile) }
   }
 
-  def run(inv: Invoke, sourceFile: Path) = {
-    import inv.{ id, cmd }
-    val checkFile = sourceFile.resolveSibling(sourceFile.getFileName.toString.stripSuffix(".scala") + s".$id.check")
-    val res = execStr(s"$cmd $sourceFile")
-    println(res)
-    import res.{ exitCode, lines }
+  def run(id: String, cmd: String, sourceFile: Path) = {
+    val ExecResult(_, exitCode, lines) = execStr(s"$cmd $sourceFile").tap(println)
+    val name = sourceFile.getFileName.toString.stripSuffix(".scala")
+    val dir = Files.createDirectories(sourceFile.resolveSibling(name))
+    val checkFile = dir.resolve(s"$name.$id.check")
     Files.write(checkFile, (s"// exitCode: $exitCode" +: lines).asJava)
   }
 
