@@ -21,8 +21,8 @@ class M2P extends M { def d   = "" }
 
 trait PU extends Any { def d   : String }
 trait MU extends Any { def d() : String }
-class P2M_VC(x: String) extends AnyVal with P { def d() = "" }
-class M2P_VC(x: String) extends AnyVal with M { def d   = "" }
+class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
+class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }
 
 class Test {
   def meth() = ""
@@ -33,29 +33,29 @@ class Test {
   prop
   prop()
 
-  val any = new Any
-  val ref = new AnyRef
+  val any: Any    = ""
+  val ref: AnyRef = ""
 
   val cr = new CR
   val cs = new CS
   val cj = new CJ
 
-  val vcr = new VCR
-  val vcs = new VCS
-  val vcj = new VCJ
+  val vcr = new VCR("")
+  val vcs = new VCS("")
+  val vcj = new VCJ("")
 
   val ccr = CCR()
   val ccs = CCS()
   val ccj = CCJ()
 
-  val vccr = VCCR()
-  val vccs = VCCS()
-  val vccj = VCCJ()
+  val vccr = VCCR("")
+  val vccs = VCCS("")
+  val vccj = VCCJ("")
 
   val p2m = new P2M
   val m2p = new P2M
-  val p2m_vc = new P2M_VC
-  val m2p_vc = new P2M_VC
+  val p2m_vc = new P2M_VC("")
+  val m2p_vc = new P2M_VC("")
 
   any.##
   any.##()
@@ -79,46 +79,31 @@ class Test {
   cr.run()
   cr.toString
   cr.toString()
-
   cs.toString
   cs.toString()
-
   cj.toString
   cj.toString()
 
-
-  vcr.run
-  vcr.run()
   vcr.toString
   vcr.toString()
-
   vcs.toString
   vcs.toString()
-
   vcj.toString
   vcj.toString()
-
 
   ccr.run
   ccr.run()
   ccr.toString
   ccr.toString()
-
   ccs.toString
   ccs.toString()
-
   ccj.toString
   ccj.toString()
 
-
-  vccr.run
-  vccr.run()
   vccr.toString
   vccr.toString()
-
   vccs.toString
   vccs.toString()
-
   vccj.toString
   vccj.toString()
 
