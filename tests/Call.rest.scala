@@ -49,8 +49,6 @@ class Test {
   val p2m_vc = new P2M_VC("")
   val m2p_vc = new P2M_VC("")
 
-  any.##
-  any.##()
   any.getClass
   any.getClass()
   any.hashCode
@@ -58,8 +56,6 @@ class Test {
   any.toString
   any.toString()
 
-  ref.##
-  ref.##()
   ref.getClass
   ref.getClass()
   ref.hashCode
