@@ -9,13 +9,11 @@ import scala.util.chaining._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val sourceFile = args match {
-      case Array(sourceFile) => Paths.get(sourceFile)
-      case _                 => sys.error(s"expected file, got $args")
-    }
+    val sourceFiles = args.toSeq.map(Paths.get(_))
 
-    if (!Files.exists(sourceFile))
-      sys.error(s"File $sourceFile doesn't exist")
+    val missing = sourceFiles.filter(!Files.exists(_))
+    if (missing.nonEmpty)
+      sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
     val _2_13_head = execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)") match {
       case ExecResult(_, 0, Seq(s)) => s
@@ -37,7 +35,10 @@ object Main {
       Invoke("3.1",       s"$scalac3 -strict"),
     )
 
-    combinations.foreach { case Invoke(id, cmd) => run(id, cmd, sourceFile) }
+    for {
+      sourceFile <- sourceFiles
+      Invoke(id, cmd) <- combinations
+    } run(id, cmd, sourceFile)
   }
 
   def run(id: String, cmd: String, sourceFile: Path) = {
