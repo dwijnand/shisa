@@ -17,13 +17,13 @@ object Main {
     if (!Files.exists(sourceFile))
       sys.error(s"File $sourceFile doesn't exist")
 
-    val scalac2 = "scalac -deprecation"
-    val scalac3 = "dotc -migration -color:never -explain"
-
     val _2_13_head = execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)") match {
       case ExecResult(_, 0, Seq(s)) => s
       case res                      => sys.error(s"Fail: $res")
     }
+
+    val scalac2 = "scalac -deprecation"
+    val scalac3 = "dotc -migration -color:never -explain"
 
     // More combinations?
     // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
@@ -41,11 +41,12 @@ object Main {
   }
 
   def run(id: String, cmd: String, sourceFile: Path) = {
-    val ExecResult(_, exitCode, lines) = execStr(s"$cmd $sourceFile").tap(println)
     val name = sourceFile.getFileName.toString.stripSuffix(".scala")
     val dir = Files.createDirectories(sourceFile.resolveSibling(name))
-    val checkFile = dir.resolve(s"$name.$id.check")
-    Files.write(checkFile, (s"// exitCode: $exitCode" +: lines).asJava)
+    val out = Files.createDirectories(dir.resolve(s"$name.$id.out"))
+    val chk = dir.resolve(s"$name.$id.check")
+    val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $sourceFile").tap(println)
+    Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
   }
 
   def tokenise(s: String) = s.split(' ').toSeq
