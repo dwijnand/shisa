@@ -1,0 +1,6 @@
+// exitCode: 1
+-- Error: tests/Call.prop.scala:4:6 --------------------------------------------
+4 |  prop()
+  |  ^^^^^^
+  |  missing argument for parameter i of method apply: (i: Int): Char
+1 error found

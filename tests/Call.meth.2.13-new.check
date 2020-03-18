@@ -1,0 +1,7 @@
+// exitCode: 0
+tests/Call.meth.scala:3: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
+or remove the empty argument list from its definition (Java-defined methods are exempt).
+In Scala 3, an unapplied method like this will be eta-expanded into a function.
+  meth
+  ^
+1 warning

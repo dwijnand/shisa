@@ -1,0 +1,17 @@
+// exitCode: 1
+-- [E100] Syntax Error: tests/Call.meth.scala:3:2 ------------------------------
+3 |  meth
+  |  ^^^^
+  |  method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found
