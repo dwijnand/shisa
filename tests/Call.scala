@@ -25,14 +25,6 @@ class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
 class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }
 
 class Test {
-  def meth() = ""
-  def prop   = ""
-
-  meth
-  meth()
-  prop
-  prop()
-
   val any: Any    = ""
   val ref: AnyRef = ""
 
