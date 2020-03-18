@@ -1,6 +1,0 @@
-// exitCode: 1
-tests/Call.prop.scala:4: error: not enough arguments for method apply: (i: Int)Char in class StringOps.
-Unspecified value parameter i.
-  prop()
-      ^
-one error found
