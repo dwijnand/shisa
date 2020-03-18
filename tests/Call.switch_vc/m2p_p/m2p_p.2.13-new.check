@@ -1,0 +1,7 @@
+// exitCode: 0
+tests/Call.switch_vc/m2p_p.scala:6: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
+or remove the empty argument list from its definition (Java-defined methods are exempt).
+In Scala 3, an unapplied method like this will be eta-expanded into a function.
+  m2p_vc.d
+         ^
+1 warning
