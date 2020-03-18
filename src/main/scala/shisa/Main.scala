@@ -32,6 +32,7 @@ object Main {
     // More combinations?
     // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
     // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
+    // https://github.com/lampepfl/dotty/issues/8571 dotty options
     val combinations = Seq(
       Invoke("2.13-base", s"$scalac2 -2.13.1"),
       Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
