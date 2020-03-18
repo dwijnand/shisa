@@ -51,7 +51,7 @@ object Main {
   def run(id: String, cmd: String, sourceFile: Path) = {
     val name = sourceFile.getFileName.toString.stripSuffix(".scala")
     val dir = Files.createDirectories(sourceFile.resolveSibling(name))
-    val out = Files.createDirectories(dir.resolve(s"$name.$id.out"))
+    val out = Files.createDirectories(Paths.get("target").resolve(dir).resolve(s"$name.$id"))
     val chk = dir.resolve(s"$name.$id.check")
     val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $sourceFile").tap(println)
     Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
