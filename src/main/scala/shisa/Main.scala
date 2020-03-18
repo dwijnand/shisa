@@ -8,7 +8,7 @@ import scala.sys.process._
 
 object Main {
   val scalac2 = "scalac -deprecation"
-  val scalac3 = "dotc -color:never -explain"
+  val scalac3 = "dotc -migration -color:never -explain"
 
   // More combinations?
   // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
