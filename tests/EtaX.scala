@@ -51,8 +51,8 @@ class EtaExpandZeroArg { // scalac: -Xlint:eta-zero -Xlint:eta-sam
 class EtaExpand214 { // -Xsource:2.14 -Xlint:eta-zero -Xlint:eta-sam
   val t1: () => Any  = m1   // error
   val t2: () => Any  = m2   // eta-expanded with lint warning
-  val t2AcciSam: Sam0S = m2   // eta-expanded with lint warning + sam warning
-  val t2Sam: Sam0J = m2   // eta-expanded with lint warning
+  val t2Sam0S: Sam0S = m2   // eta-expanded with lint warning + sam warning
+  val t2Sam0J: Sam0J = m2   // eta-expanded with lint warning
   val t3: Int => Any = m3   // ok
 
   val t4 = m1 // apply
