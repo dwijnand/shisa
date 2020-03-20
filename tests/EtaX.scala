@@ -1,26 +1,18 @@
-                     trait Sam0S { def apply(): Int }
-@FunctionalInterface trait Sam0J { def apply(): Int }
+                     trait Sam0S { def apply(): Any }
+@FunctionalInterface trait Sam0J { def apply(): Any }
 
-                     trait Sam1S { def apply(x: Int): Int }
-@FunctionalInterface trait Sam1J { def apply(x: Int): Int }
+                     trait Sam1S { def apply(x: Any): Any }
+@FunctionalInterface trait Sam1J { def apply(x: Any): Any }
 
 class A { def boom(): Unit }
 
-object Defs {
+class EtaExpandZeroArg { // -Xlint:eta-zero -Xlint:eta-sam
   def foo()       = () => ""
   def bar         = ""
   def baz()       = ""
   def zap()()     = ""
-  def zup(x: Int) = x
+  def zup(x: Any) = ""
 
-  def m1         = 1
-  def m2()       = 1
-  def m3(x: Int) = x
-
-  val a = new A
-}; import Defs._
-
-class EtaExpandZeroArg { // -Xlint:eta-zero -Xlint:eta-sam
   val t1a: () => Any = foo()              // ok (obviously)
   val t1b: () => Any = foo                // eta-expansion, but lint warning
   val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
@@ -45,36 +37,31 @@ class EtaExpandZeroArg { // -Xlint:eta-zero -Xlint:eta-sam
   val t4d: () => Any = zap() _ // ok
 
   val t5a               = zup // error in 2.13, eta-expansion in 2.14
-  val t5Fun: Int => Int = zup // ok
+  val t5Fun: Any => Any = zup // ok
   val t5Sam1S: Sam1S    = zup // ok, but warning
   val t5Sam1J: Sam1J    = zup // ok
 }
 
 class EtaExpand214 { // -Xsource:2.14 {-Xlint:eta-zero -Xlint:eta-sam,-deprecation -Werror}
-  val t2: () => Any  = m2   // warn/succ: eta-expanded (-Xlint:eta-zero)
-  val t2Sam0S: Sam0S = m2   // warn/succ: eta-expanded (-Xlint:eta-zero + -Xlint:eta-sam)
-  val t2Sam0J: Sam0J = m2   // warn/succ: eta-expanded (-Xlint:eta-zero)
-  val t3: Int => Any = m3   // ok
+  def bar         = ""
+  def baz()       = ""
+  def zup(x: Any) = x
 
-  val t4 = m1 // apply
-  val t5 = m2 // succ/warn: apply, ()-insertion
-  val t6 = m3 // eta-expansion in 2.14
+  val t2: () => Any  = bar                  // warn/succ: eta-expanded (-Xlint:eta-zero)
+  val t2Sam0S: Sam0S = bar                  // warn/succ: eta-expanded (-Xlint:eta-zero + -Xlint:eta-sam)
+  val t2Sam0J: Sam0J = bar                  // warn/succ: eta-expanded (-Xlint:eta-zero)
+  val t3: Any => Any = zup                  // ok
+  val t4: Any        = { val t = bar; t }   // ok: apply
+  val t5: Any        = { val t = baz; t }   // succ/warn: apply, ()-insertion
+  val t6: Any => Any = { val t = zup; t }   // eta-expansion in 2.14
+  val t7: () => Any  = { val t = bar _; t } // ok
+  val t8: () => Any  = { val t = baz _; t } // ok
+  val t9: Any => Any = { val t = zup _; t } // ok
 
-  val t4a: Int        = t4 // ok
-  val t5a: Int        = t5 // ok
-  val t6a: Int => Any = t6 // ok
-
-  val t7 = m1 _
-  val t8 = m2 _
-  val t9 = m3 _
-
-  val t7a: () => Any  = t7 // ok
-  val t8a: () => Any  = t8 // ok
-  val t9a: Int => Any = t9 // ok
-
+  val a = new A
   a.boom // ?/err: apply, ()-insertion
 
   import scala.collection.mutable.Map
   val xs = Map(1 -> "foo")
-  val ys = xs.clone // ?/ok
+  val ys = xs.clone // ok
 }
