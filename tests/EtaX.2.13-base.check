@@ -1,0 +1,142 @@
+// 2.13-base exitCode: 0
+Welcome to Scala 2.13.1 (OpenJDK 64-Bit Server VM, Java 11.0.6).
+Type in expressions for evaluation. Or try :help.
+
+scala> trait Sam0S { def apply(): Any }
+defined trait Sam0S
+
+scala> @FunctionalInterface trait Sam0J { def apply(): Any }
+defined trait Sam0J
+
+scala> trait Sam1S { def apply(x: Any): Any }
+defined trait Sam1S
+
+scala> @FunctionalInterface trait Sam1J { def apply(x: Any): Any }
+defined trait Sam1J
+
+scala> trait A { def boom(): Unit }
+defined trait A
+
+scala> def foo()       = () => ""
+foo: ()() => String
+
+scala> def bar         = ""
+bar: String
+
+scala> def baz()       = ""
+baz: ()String
+
+scala> def zap()()     = ""
+zap: ()()String
+
+scala> def zup(x: Any) = ""
+zup: (x: Any)String
+
+scala> val t1b: () => Any = foo                // warn/?: eta-expansion
+t1b: () => Any = $$Lambda$833/0x00000008405f8840@53fb3e1b
+
+scala> val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
+t1c: () => Any = $$Lambda$835/0x00000008405f9040@7695184b
+
+scala> val t1d: () => Any = foo _              // ok, explicit eta-expansion requested
+t1d: () => Any = $$Lambda$836/0x00000008405f9440@3fb920d9
+
+scala> val t1e: Any       = foo _              // ok, explicit eta-expansion requested
+t1e: Any = $$Lambda$837/0x00000008405f9840@49c74506
+
+scala> val t1f: Any       = foo() _            // error: _ must follow method
+                               ^
+       error: _ must follow method; cannot follow () => String
+
+scala> val t20: Any       = { val t = bar   ; t } // ?/ok: apply
+t20: Any = ""
+
+scala> val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
+                            ^
+       error: type mismatch;
+        found   : String
+        required: () => Any
+
+scala> val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+                            ^
+       error: type mismatch;
+        found   : String
+        required: Sam0S
+
+scala> val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+                            ^
+       error: type mismatch;
+        found   : String
+        required: Sam0J
+
+scala> val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+                               ^
+       error: not enough arguments for method apply: (i: Int)Char in class StringOps.
+       Unspecified value parameter i.
+
+scala> val t2c: () => Any = bar _                 // ok
+t2c: () => Any = $$Lambda$899/0x000000084062d840@61b3de5b
+
+scala> val t2d: () => Any = { val t = bar _ ; t } // ?/ok
+t2d: () => Any = $$Lambda$900/0x000000084062dc40@2a6f3ac7
+
+scala> val t2e: Any       = bar _                 // ok
+t2e: Any = $$Lambda$901/0x000000084062f840@25a2702c
+
+scala> val t2f: Any       = bar() _               // error: not enough arguments for method apply
+                               ^
+       error: not enough arguments for method apply: (i: Int)Char in class StringOps.
+       Unspecified value parameter i.
+
+scala> val t3a: () => Any = baz                   // eta-expansion, but lint warning
+t3a: () => Any = $$Lambda$902/0x000000084062fc40@370bd951
+
+scala> val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
+t3b: Any = ""
+
+scala> val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
+t3c: () => Any = $$Lambda$903/0x000000084062f040@2165828d
+
+scala> val t3d: Any       = baz() _               // error: _ must follow method
+                               ^
+       error: _ must follow method; cannot follow String
+
+scala> val t4a: () => Any = zap     // eta-expansion, but lint warning
+t4a: () => Any = $$Lambda$906/0x000000084062ec40@607524ff
+
+scala> val t4b: () => Any = zap()   // ditto
+t4b: () => Any = $$Lambda$907/0x0000000840638040@6d82a9bb
+
+scala> val t4c: () => Any = zap _   // ok
+t4c: () => Any = $$Lambda$908/0x0000000840638440@753cc26d
+
+scala> val t4d: () => Any = zap() _ // ok
+t4d: () => Any = $$Lambda$909/0x0000000840638840@7b84d8ef
+
+scala> val t5a: Any => Any = zup                   // ok
+t5a: Any => Any = $$Lambda$910/0x0000000840639040@1a100769
+
+scala> val t5b: Sam1S      = zup                   // ok, but warning
+t5b: Sam1S = $$Lambda$912/0x0000000840639c40@7af5cf2a
+
+scala> val t5c: Sam1J      = zup                   // ok
+t5c: Sam1J = $$Lambda$913/0x000000084063a840@6593f4fd
+
+scala> val t5d: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
+                                       ^
+       error: missing argument list for method zup
+       Unapplied methods are only converted to functions when a function type is expected.
+       You can make this conversion explicit by writing `zup _` or `zup(_)` instead of `zup`.
+
+scala> val t5e: Any => Any = { val t = zup _ ; t } // ?/ok
+t5e: Any => Any = $$Lambda$914/0x000000084063b040@6581ee8
+
+scala> new A().boom // ?/?/err: apply, ()-insertion
+       ^
+       error: trait A is abstract; cannot be instantiated
+
+scala> val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+                                                                    ^
+       error: not found: value xs
+
+scala> :quit

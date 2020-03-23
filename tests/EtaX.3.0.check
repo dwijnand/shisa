@@ -1,0 +1,121 @@
+// 3.0 exitCode: 0
+Starting dotty REPL...
+Mar 23, 2020 10:24:05 PM org.jline.utils.Log logr
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+scala> // defined trait Sam0S
+
+scala> // defined trait Sam0J
+
+scala> // defined trait Sam1S
+
+scala> // defined trait Sam1J
+
+scala> // defined trait A
+
+scala> def foo(): () => String
+
+scala> def bar: String
+
+scala> def baz(): String
+
+scala> def zap()(): String
+
+scala> def zup(x: Any): String
+
+scala> val t1b: () => Any = Lambda$1299/0x0000000840df0c40@18b40fe6
+
+scala> 1 |val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
+  |                               ^^^
+  |                               method foo must be called with () argument
+
+scala> val t1d: () => Any = Lambda$1324/0x0000000840e4c040@61957d9c
+
+scala> val t1e: Any = Lambda$1325/0x0000000840e4c440@44976b08
+
+scala> 1 |val t1f: Any       = foo() _            // error: _ must follow method
+  |                     ^^^^^^^
+  |Only function types can be followed by _ but the current expression has type () => String
+
+scala> val t20: Any = ""
+
+scala> 1 |val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
+  |                     ^^^
+  |                     Found:    String
+  |                     Required: () => Any
+
+scala> 1 |val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+  |                     ^^^
+  |                     Found:    String
+  |                     Required: Sam0S
+
+scala> 1 |val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+  |                     ^^^
+  |                     Found:    String
+  |                     Required: Sam0J
+
+scala> 1 |val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+  |                     ^^^^^
+  |          missing argument for parameter i of method apply: (i: Int): Char
+
+scala> 1 |val t2c: () => Any = bar _                 // ok
+  |                     ^^^^^
+  |Only function types can be followed by _ but the current expression has type String
+
+scala> 1 |val t2d: () => Any = { val t = bar _ ; t } // ?/ok
+  |                               ^^^^^
+  |Only function types can be followed by _ but the current expression has type String
+1 |val t2d: () => Any = { val t = bar _ ; t } // ?/ok
+  |                                       ^
+  |                                       Found:    (t : String)
+  |                                       Required: () => Any
+
+scala> 1 |val t2e: Any       = bar _                 // ok
+  |                     ^^^^^
+  |Only function types can be followed by _ but the current expression has type String
+
+scala> 1 |val t2f: Any       = bar() _               // error: not enough arguments for method apply
+  |                     ^^^^^^^
+  |Only function types can be followed by _ but the current expression has type <nonsensical><error unspecified error></nonsensical>
+
+scala> val t3a: () => Any = Lambda$1510/0x0000000841010440@4bba628
+
+scala> 1 |val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
+  |                               ^^^
+  |                               method baz must be called with () argument
+
+scala> val t3c: () => Any = Lambda$1511/0x0000000841017840@3831fb48
+
+scala> 1 |val t3d: Any       = baz() _               // error: _ must follow method
+  |                     ^^^^^^^
+  |Only function types can be followed by _ but the current expression has type String
+
+scala> val t4a: () => Any = Lambda$1514/0x0000000841016c40@6e18bc2f
+
+scala> val t4b: () => Any = Lambda$1515/0x0000000841016040@2fad470b
+
+scala> val t4c: () => Any = Lambda$1516/0x0000000841016440@53bf791
+
+scala> val t4d: () => Any = Lambda$1517/0x0000000841015840@12bb3666
+
+scala> val t5a: Any => Any = Lambda$1521/0x0000000841013040@69e3caa1
+
+scala> 1 |val t5b: Sam1S      = zup                   // ok, but warning
+  |                      ^^^
+  |method zup is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+val t5b: Sam1S = Lambda$1526/0x0000000841011c40@2a03b87
+
+scala> val t5c: Sam1J = Lambda$1527/0x0000000841020840@11c95035
+
+scala> val t5d: Any => Any = Lambda$1530/0x0000000841022840@3db84bfa
+
+scala> val t5e: Any => Any = Lambda$1531/0x0000000841023840@49e3b86b
+
+scala> 1 |new A().boom // ?/?/err: apply, ()-insertion
+  |^^^^^^^^^^^^
+  |method boom must be called with () argument
+
+scala> 1 |val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+  |                                                             ^^
+  |                                                             Not found: xs
+
+scala> 

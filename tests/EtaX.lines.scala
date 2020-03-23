@@ -4,9 +4,9 @@
                      trait Sam1S { def apply(x: Any): Any }
 @FunctionalInterface trait Sam1J { def apply(x: Any): Any }
 
-class A { def boom(): Unit }
+trait A { def boom(): Unit }
 
-class EtaExpandZeroArg { // 
+class Test {
   // [1]:               -Xlint:eta-zero -Xlint:eta-sam
   // [2]: -Xsource:2.14 -Xlint:eta-zero -Xlint:eta-sam
   // [3]: -Xsource:2.14 -deprecation -Werror
