@@ -61,7 +61,8 @@ scala> val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta
         found   : String
         required: () => Any
 
-scala> val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+scala> val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 
+ 2.14?
                             ^
        error: type mismatch;
         found   : String
@@ -73,7 +74,8 @@ scala> val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta
         found   : String
         required: Sam0J
 
-scala> val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+scala> val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which mi 
+sses an argument
                                ^
        error: not enough arguments for method apply: (i: Int): Char in class StringOps.
        Unspecified value parameter i.

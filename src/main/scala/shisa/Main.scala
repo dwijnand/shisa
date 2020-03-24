@@ -1,7 +1,7 @@
 package shisa
 
-import java.io.{ OutputStream, PrintWriter }
-import java.nio.file.{ Files, Path, Paths }
+import java.io._
+import java.nio.file._
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
@@ -24,7 +24,7 @@ object Main {
       sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
     val getVersion = "scala -2.13.head -e println(scala.util.Properties.versionNumberString)"
-    val _2_13_head = execStr(getVersion).tap(println) match {
+    lazy val _2_13_head = execStr(getVersion).tap(println) match {
       case ExecResult(_, 0, Seq(s)) => s
       case ExecResult(_, 0, _)      => execStr(getVersion).tap(println) match { // got extra lines from Coursier, run again
         case ExecResult(_, 0, Seq(s)) => s
@@ -83,7 +83,11 @@ object Main {
     }
     val input = text.linesIterator.map(_.trim).filter(s => s.nonEmpty && !s.startsWith("//")).toList
     val buff  = new ListBuffer[String]
-    val writeIn = (out: OutputStream) => Using.resource(new PrintWriter(out))(pw => input.foreach(pw.println(_)))
+    val isDotty = !cmd.startsWith("scala")
+    val writeIn = (out: OutputStream) => Using.resource(new PrintWriter(out))(pw => input.foreach { s =>
+      if (isDotty) buff += s // dotr doesn't print input, unlike intp
+      pw.println(s)
+    })
     val saveLines = BasicIO.processFully(s => buff += normalize(s))
     val argv = tokenise(s"$cmd")
     val exit = Process(argv).run(new ProcessIO(writeIn, saveLines, saveLines)).exitValue()
