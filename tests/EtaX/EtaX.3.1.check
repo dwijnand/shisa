@@ -1,7 +1,5 @@
-// 3.1 exitCode: 0
+// exitCode: 0
 Starting dotty REPL...
-Mar 23, 2020 10:24:10 PM org.jline.utils.Log logr
-WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
 scala> // defined trait Sam0S
 
 scala> // defined trait Sam0J
@@ -22,7 +20,7 @@ scala> def zap()(): String
 
 scala> def zup(x: Any): String
 
-scala> val t1b: () => Any = Lambda$1299/0x0000000840df0c40@79cdf2d4
+scala> val t1b: () => Any = <function>
 
 scala> 1 |val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
   |                               ^^^
@@ -83,7 +81,7 @@ scala> 1 |val t2f: Any       = bar() _               // error: not enough argume
   |                     ^^^^^^^
   |Only function types can be followed by _ but the current expression has type <nonsensical><error unspecified error></nonsensical>
 
-scala> val t3a: () => Any = Lambda$1509/0x0000000841010840@6be6cb16
+scala> val t3a: () => Any = <function>
 
 scala> 1 |val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
   |                               ^^^
@@ -103,7 +101,7 @@ scala> 1 |val t4a: () => Any = zap     // eta-expansion, but lint warning
   |                     The syntax `<function> _` is no longer supported;
   |                     you can use `(() => <function>())` instead
 
-scala> val t4b: () => Any = Lambda$1512/0x0000000841011c40@56da2437
+scala> val t4b: () => Any = <function>
 
 scala> 1 |val t4c: () => Any = zap _   // ok
   |                     ^^^
@@ -115,16 +113,16 @@ scala> 1 |val t4d: () => Any = zap() _ // ok
   |                     The syntax `<function> _` is no longer supported;
   |                     you can use `(() => <function>())` instead
 
-scala> val t5a: Any => Any = Lambda$1516/0x0000000841014840@9223122
+scala> val t5a: Any => Any = <function>
 
 scala> 1 |val t5b: Sam1S      = zup                   // ok, but warning
   |                      ^^^
   |method zup is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
-val t5b: Sam1S = Lambda$1522/0x0000000841017c40@c581e65
+val t5b: Sam1S = <function>
 
-scala> val t5c: Sam1J = Lambda$1523/0x0000000841016840@6354a50a
+scala> val t5c: Sam1J = <function>
 
-scala> val t5d: Any => Any = Lambda$1526/0x0000000841029840@33c5d3e
+scala> val t5d: Any => Any = <function>
 
 scala> 1 |val t5e: Any => Any = { val t = zup _ ; t } // ?/ok
   |                                ^^^^^

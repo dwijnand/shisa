@@ -1,7 +1,6 @@
 package shisa
 
 import java.io.{ OutputStream, PrintWriter }
-import java.nio.file.StandardOpenOption._
 import java.nio.file.{ Files, Path, Paths }
 
 import scala.collection.mutable.ListBuffer
@@ -24,17 +23,20 @@ object Main {
     if (missing.nonEmpty)
       sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
-//    val _2_13_head = execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)") match {
-//      case ExecResult(_, 0, Seq(s))      => s
-//      case res @ ExecResult(_, _, lines) => sys.error(s"Fail: $res, lines:\n  ${lines.mkString("\n  ")}")
-//    }
-
-    val _2_13_head = "2.13.2-bin-ff662eb"
+    val getVersion = "scala -2.13.head -e println(scala.util.Properties.versionNumberString)"
+    val _2_13_head = execStr(getVersion).tap(println) match {
+      case ExecResult(_, 0, Seq(s)) => s
+      case ExecResult(_, 0, _)      => execStr(getVersion).tap(println) match { // got extra lines from Coursier, run again
+        case ExecResult(_, 0, Seq(s)) => s
+        case res                      => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+      }
+      case res                      => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+    }
 
     val scalac2 = "scalac"
     val scalac3 = "dotc"
     val scala2  = "scala"
-    val scala3  = "dotr"
+    val scala3  = "dotr -Djava.util.logging.config.file=log.properties"
     val opts2   = "-deprecation"
     val opts3   = "-migration -color:never -explain"
 
@@ -73,7 +75,8 @@ object Main {
 
   def doInterpret(id: String, cmd: String, sourceFile: Path) = {
     val name = sourceFile.getFileName.toString.stripSuffix(".lines.scala")
-    val chk  = sourceFile.resolveSibling(s"$name.$id.check")
+    val dir  = Files.createDirectories(sourceFile.resolveSibling(name))
+    val chk  = dir.resolve(s"$name.$id.check")
     val Regex = """(?s)(.*)class Test \{(.*)}\n""".r
     val text = Files.readString(sourceFile) match {
       case Regex(setup, cases) => s"$setup\n$cases"
@@ -81,11 +84,11 @@ object Main {
     val input = text.linesIterator.map(_.trim).filter(s => s.nonEmpty && !s.startsWith("//")).toList
     val buff  = new ListBuffer[String]
     val writeIn = (out: OutputStream) => Using.resource(new PrintWriter(out))(pw => input.foreach(pw.println(_)))
-    val saveLines = BasicIO.processFully(buff += _)
+    val saveLines = BasicIO.processFully(s => buff += normalize(s))
     val argv = tokenise(s"$cmd")
     val exit = Process(argv).run(new ProcessIO(writeIn, saveLines, saveLines)).exitValue()
     val ExecResult(_, exitCode, lines) = ExecResult(argv, exit, buff.toList).tap(println)
-    Files.write(chk, (s"// $id exitCode: $exitCode" +: lines).asJava)
+    Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
   }
 
   def tokenise(s: String) = s.split(' ').toSeq
@@ -96,6 +99,17 @@ object Main {
     val exit = Process(argv) ! ProcessLogger(buff += _, buff += _)
     ExecResult(argv, exit, buff.toList)
   }
+
+  val normalize = Function.chain(Seq(
+    stripLambdaClassName(_),
+    stripIdentityHashCode(_),
+  ))
+
+  def stripIdentityHashCode(s: String) =   hashless.replaceAllIn(s, "$1@XXXXXXXX")
+  def stripLambdaClassName(s: String)  = lambdaless.replaceAllIn(s, "<function>")
+
+  val   hashless = "([^ ])@[a-fA-F0-9]+".r
+  val lambdaless = """Lambda\$\d+/(?:0x[a-f0-9]{16}|\d+)(@[a-fA-F0-9]+)?""".r
 }
 
 final case class Invoke(id: String, compile: String, interpret: String)

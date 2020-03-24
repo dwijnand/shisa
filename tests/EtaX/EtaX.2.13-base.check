@@ -1,59 +1,55 @@
-// 2.13-new exitCode: 0
-Welcome to Scala 2.13.2-bin-ff662eb (OpenJDK 64-Bit Server VM, Java 11.0.6).
+// exitCode: 0
+Welcome to Scala 2.13.1 (OpenJDK 64-Bit Server VM, Java 11.0.6).
 Type in expressions for evaluation. Or try :help.
 
 scala> trait Sam0S { def apply(): Any }
-trait Sam0S
+defined trait Sam0S
 
 scala> @FunctionalInterface trait Sam0J { def apply(): Any }
-trait Sam0J
+defined trait Sam0J
 
 scala> trait Sam1S { def apply(x: Any): Any }
-trait Sam1S
+defined trait Sam1S
 
 scala> @FunctionalInterface trait Sam1J { def apply(x: Any): Any }
-trait Sam1J
+defined trait Sam1J
 
 scala> trait A { def boom(): Unit }
-trait A
+defined trait A
 
 scala> def foo()       = () => ""
-def foo(): () => String
+foo: ()() => String
 
 scala> def bar         = ""
-def bar: String
+bar: String
 
 scala> def baz()       = ""
-def baz(): String
+baz: ()String
 
 scala> def zap()()     = ""
-def zap()(): String
+zap: ()()String
 
 scala> def zup(x: Any) = ""
-def zup(x: Any): String
+zup: (x: Any)String
 
 scala> val t1b: () => Any = foo                // warn/?: eta-expansion
-val t1b: () => Any = $Lambda$871/0x0000000840641840@125c03d3
+t1b: () => Any = $$<function>
 
 scala> val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
-                                      ^
-       warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method foo,
-       or remove the empty argument list from its definition (Java-defined methods are exempt).
-       In Scala 3, an unapplied method like this will be eta-expanded into a function.
-val t1c: () => Any = $Lambda$874/0x0000000840642440@98c4a8b
+t1c: () => Any = $$<function>
 
 scala> val t1d: () => Any = foo _              // ok, explicit eta-expansion requested
-val t1d: () => Any = $Lambda$875/0x0000000840642840@66790851
+t1d: () => Any = $$<function>
 
 scala> val t1e: Any       = foo _              // ok, explicit eta-expansion requested
-val t1e: Any = $Lambda$876/0x0000000840642c40@53d3ae89
+t1e: Any = $$<function>
 
 scala> val t1f: Any       = foo() _            // error: _ must follow method
                                ^
        error: _ must follow method; cannot follow () => String
 
 scala> val t20: Any       = { val t = bar   ; t } // ?/ok: apply
-val t20: Any = ""
+t20: Any = ""
 
 scala> val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
                             ^
@@ -75,66 +71,65 @@ scala> val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta
 
 scala> val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
                                ^
-       error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+       error: not enough arguments for method apply: (i: Int)Char in class StringOps.
        Unspecified value parameter i.
 
 scala> val t2c: () => Any = bar _                 // ok
-val t2c: () => Any = $Lambda$932/0x000000084067ac40@17f43f4a
+t2c: () => Any = $$<function>
 
 scala> val t2d: () => Any = { val t = bar _ ; t } // ?/ok
-val t2d: () => Any = $Lambda$933/0x000000084067b840@219aab91
+t2d: () => Any = $$<function>
 
 scala> val t2e: Any       = bar _                 // ok
-val t2e: Any = $Lambda$934/0x000000084067bc40@752957da
+t2e: Any = $$<function>
 
 scala> val t2f: Any       = bar() _               // error: not enough arguments for method apply
                                ^
-       error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+       error: not enough arguments for method apply: (i: Int)Char in class StringOps.
        Unspecified value parameter i.
 
 scala> val t3a: () => Any = baz                   // eta-expansion, but lint warning
-val t3a: () => Any = $Lambda$935/0x000000084067c040@7a11426a
+t3a: () => Any = $$<function>
 
 scala> val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
-                                      ^
-       warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method baz,
-       or remove the empty argument list from its definition (Java-defined methods are exempt).
-       In Scala 3, an unapplied method like this will be eta-expanded into a function.
-val t3b: Any = ""
+t3b: Any = ""
 
 scala> val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
-val t3c: () => Any = $Lambda$936/0x000000084067c440@46bd6c87
+t3c: () => Any = $$<function>
 
 scala> val t3d: Any       = baz() _               // error: _ must follow method
                                ^
        error: _ must follow method; cannot follow String
 
 scala> val t4a: () => Any = zap     // eta-expansion, but lint warning
-val t4a: () => Any = $Lambda$939/0x000000084067d840@464a1895
+t4a: () => Any = $$<function>
 
 scala> val t4b: () => Any = zap()   // ditto
-val t4b: () => Any = $Lambda$940/0x000000084067dc40@7190b5ce
+t4b: () => Any = $$<function>
 
 scala> val t4c: () => Any = zap _   // ok
-val t4c: () => Any = $Lambda$941/0x000000084067e040@2bd9b7cc
+t4c: () => Any = $$<function>
 
 scala> val t4d: () => Any = zap() _ // ok
-val t4d: () => Any = $Lambda$942/0x000000084067e440@186f51bb
+t4d: () => Any = $$<function>
 
 scala> val t5a: Any => Any = zup                   // ok
-val t5a: Any => Any = $Lambda$943/0x000000084067f040@4142586b
+t5a: Any => Any = $$<function>
 
 scala> val t5b: Sam1S      = zup                   // ok, but warning
-val t5b: Sam1S = $anonfun$1@4d5665bb
+t5b: Sam1S = $$<function>
 
 scala> val t5c: Sam1J      = zup                   // ok
-val t5c: Sam1J = $anonfun$1@192da968
+t5c: Sam1J = $$<function>
 
 scala> val t5d: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
-val t5d: Any => Any = $Lambda$949/0x000000084068b840@10d8beb5
+                                       ^
+       error: missing argument list for method zup
+       Unapplied methods are only converted to functions when a function type is expected.
+       You can make this conversion explicit by writing `zup _` or `zup(_)` instead of `zup`.
 
 scala> val t5e: Any => Any = { val t = zup _ ; t } // ?/ok
-val t5e: Any => Any = $Lambda$950/0x000000084068c040@63098ef4
+t5e: Any => Any = $$<function>
 
 scala> new A().boom // ?/?/err: apply, ()-insertion
        ^
