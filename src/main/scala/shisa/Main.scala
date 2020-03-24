@@ -83,11 +83,7 @@ object Main {
     }
     val input = text.linesIterator.map(_.trim).filter(s => s.nonEmpty && !s.startsWith("//")).toList
     val buff  = new ListBuffer[String]
-    val isDotty = !cmd.startsWith("scala")
-    val writeIn = (out: OutputStream) => Using.resource(new PrintWriter(out))(pw => input.foreach { s =>
-      if (isDotty) buff += s // dotr doesn't print input, unlike intp
-      pw.println(s)
-    })
+    val writeIn = (out: OutputStream) => Using.resource(new PrintWriter(out))(pw => input.foreach(pw.println(_)))
     val saveLines = BasicIO.processFully(s => buff += normalize(s))
     val argv = tokenise(s"$cmd")
     val exit = Process(argv).run(new ProcessIO(writeIn, saveLines, saveLines)).exitValue()

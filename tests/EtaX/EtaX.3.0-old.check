@@ -1,166 +1,166 @@
 // exitCode: 0
-trait Sam0S { def apply(): Any }
-@FunctionalInterface trait Sam0J { def apply(): Any }
-trait Sam1S { def apply(x: Any): Any }
-@FunctionalInterface trait Sam1J { def apply(x: Any): Any }
-trait A { def boom(): Unit }
-def foo()       = () => ""
-def bar         = ""
-def baz()       = ""
-def zap()()     = ""
-def zup(x: Any) = ""
-val t1b: () => Any = foo                // warn/?: eta-expansion
-val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
-val t1d: () => Any = foo _              // ok, explicit eta-expansion requested
-val t1e: Any       = foo _              // ok, explicit eta-expansion requested
-val t1f: Any       = foo() _            // error: _ must follow method
-val t20: Any       = { val t = bar   ; t } // ?/ok: apply
-val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
-val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
-val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
-val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
-val t2c: () => Any = bar _                 // ok
-val t2d: () => Any = { val t = bar _ ; t } // ?/ok
-val t2e: Any       = bar _                 // ok
-val t2f: Any       = bar() _               // error: not enough arguments for method apply
-val t3a: () => Any = baz                   // eta-expansion, but lint warning
-val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
-val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
-val t3d: Any       = baz() _               // error: _ must follow method
-val t4a: () => Any = zap     // eta-expansion, but lint warning
-val t4b: () => Any = zap()   // ditto
-val t4c: () => Any = zap _   // ok
-val t4d: () => Any = zap() _ // ok
-val t5a: Any => Any = zup                   // ok
-val t5b: Sam1S      = zup                   // ok, but warning
-val t5c: Sam1J      = zup                   // ok
-val t5d: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
-val t5e: Any => Any = { val t = zup _ ; t } // ?/ok
-new A().boom // ?/?/err: apply, ()-insertion
-val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
 Starting dotty REPL...
-scala> // defined trait Sam0S
+scala> trait Sam0S { def apply(): Any }
+// defined trait Sam0S
 
-scala> // defined trait Sam0J
+scala> @FunctionalInterface trait Sam0J { def apply(): Any }
+// defined trait Sam0J
 
-scala> // defined trait Sam1S
+scala> trait Sam1S { def apply(x: Any): Any }
+// defined trait Sam1S
 
-scala> // defined trait Sam1J
+scala> @FunctionalInterface trait Sam1J { def apply(x: Any): Any }
+// defined trait Sam1J
 
-scala> // defined trait A
+scala> trait A { def boom(): Unit }
+// defined trait A
 
-scala> def foo(): () => String
+scala> def foo()       = () => ""
+def foo(): () => String
 
-scala> def bar: String
+scala> def bar         = ""
+def bar: String
 
-scala> def baz(): String
+scala> def baz()       = ""
+def baz(): String
 
-scala> def zap()(): String
+scala> def zap()()     = ""
+def zap()(): String
 
-scala> def zup(x: Any): String
+scala> def zup(x: Any) = ""
+def zup(x: Any): String
 
-scala> val t1b: () => Any = <function>
+scala> val t1b: () => Any = foo                // warn/?: eta-expansion
+val t1b: () => Any = <function>
 
-scala> 1 |val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
+scala> val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
+1 |val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
   |                               ^^^
   |                               method foo must be called with () argument
 val t1c: () => Any = <function>
 
-scala> val t1d: () => Any = <function>
+scala> val t1d: () => Any = foo _              // ok, explicit eta-expansion requested
+val t1d: () => Any = <function>
 
-scala> val t1e: Any = <function>
+scala> val t1e: Any       = foo _              // ok, explicit eta-expansion requested
+val t1e: Any = <function>
 
-scala> 1 |val t1f: Any       = foo() _            // error: _ must follow method
+scala> val t1f: Any       = foo() _            // error: _ must follow method
+1 |val t1f: Any       = foo() _            // error: _ must follow method
   |                     ^^^^^^^
   |Only function types can be followed by _ but the current expression has type () => String
 val t1f: Any = <function>
 
-scala> val t20: Any = ""
+scala> val t20: Any       = { val t = bar   ; t } // ?/ok: apply
+val t20: Any = ""
 
-scala> 1 |val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
+scala> val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
+1 |val t2a: () => Any = bar                   // error/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14
   |                     ^^^
   |                     Found:    String
   |                     Required: () => Any
 
-scala> 1 |val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+scala> val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+1 |val t2Sam0S: Sam0S = bar                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
   |                     ^^^
   |                     Found:    String
   |                     Required: Sam0S
 
-scala> 1 |val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+scala> val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+1 |val t2Sam0J: Sam0J = bar                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
   |                     ^^^
   |                     Found:    String
   |                     Required: Sam0J
 
-scala> 1 |val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+scala> val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+1 |val t2b: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
   |                     ^^^^^
   |          missing argument for parameter i of method apply: (i: Int): Char
 
-scala> 1 |val t2c: () => Any = bar _                 // ok
+scala> val t2c: () => Any = bar _                 // ok
+1 |val t2c: () => Any = bar _                 // ok
   |                     ^^^^^
   |Only function types can be followed by _ but the current expression has type String
 val t2c: () => Any = <function>
 
-scala> 1 |val t2d: () => Any = { val t = bar _ ; t } // ?/ok
+scala> val t2d: () => Any = { val t = bar _ ; t } // ?/ok
+1 |val t2d: () => Any = { val t = bar _ ; t } // ?/ok
   |                               ^^^^^
   |Only function types can be followed by _ but the current expression has type String
 val t2d: () => Any = <function>
 
-scala> 1 |val t2e: Any       = bar _                 // ok
+scala> val t2e: Any       = bar _                 // ok
+1 |val t2e: Any       = bar _                 // ok
   |                     ^^^^^
   |Only function types can be followed by _ but the current expression has type String
 val t2e: Any = <function>
 
-scala> 1 |val t2f: Any       = bar() _               // error: not enough arguments for method apply
+scala> val t2f: Any       = bar() _               // error: not enough arguments for method apply
+1 |val t2f: Any       = bar() _               // error: not enough arguments for method apply
   |                     ^^^^^^^
   |Only function types can be followed by _ but the current expression has type <nonsensical><error unspecified error></nonsensical>
 1 |val t2f: Any       = bar() _               // error: not enough arguments for method apply
   |                     ^^^^^
   |          missing argument for parameter i of method apply: (i: Int): Char
 
-scala> val t3a: () => Any = <function>
+scala> val t3a: () => Any = baz                   // eta-expansion, but lint warning
+val t3a: () => Any = <function>
 
-scala> 1 |val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
+scala> val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
+1 |val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
   |                               ^^^
   |                               method baz must be called with () argument
 val t3b: Any = ""
 
-scala> val t3c: () => Any = <function>
+scala> val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
+val t3c: () => Any = <function>
 
-scala> 1 |val t3d: Any       = baz() _               // error: _ must follow method
+scala> val t3d: Any       = baz() _               // error: _ must follow method
+1 |val t3d: Any       = baz() _               // error: _ must follow method
   |                     ^^^^^^^
   |Only function types can be followed by _ but the current expression has type String
 val t3d: Any = <function>
 
-scala> val t4a: () => Any = <function>
+scala> val t4a: () => Any = zap     // eta-expansion, but lint warning
+val t4a: () => Any = <function>
 
-scala> val t4b: () => Any = <function>
+scala> val t4b: () => Any = zap()   // ditto
+val t4b: () => Any = <function>
 
-scala> val t4c: () => Any = <function>
+scala> val t4c: () => Any = zap _   // ok
+val t4c: () => Any = <function>
 
-scala> val t4d: () => Any = <function>
+scala> val t4d: () => Any = zap() _ // ok
+val t4d: () => Any = <function>
 
-scala> val t5a: Any => Any = <function>
+scala> val t5a: Any => Any = zup                   // ok
+val t5a: Any => Any = <function>
 
-scala> 1 |val t5b: Sam1S      = zup                   // ok, but warning
+scala> val t5b: Sam1S      = zup                   // ok, but warning
+1 |val t5b: Sam1S      = zup                   // ok, but warning
   |                      ^^^
   |method zup is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
 val t5b: Sam1S = <function>
 
-scala> val t5c: Sam1J = <function>
+scala> val t5c: Sam1J      = zup                   // ok
+val t5c: Sam1J = <function>
 
-scala> val t5d: Any => Any = <function>
+scala> val t5d: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
+val t5d: Any => Any = <function>
 
-scala> val t5e: Any => Any = <function>
+scala> val t5e: Any => Any = { val t = zup _ ; t } // ?/ok
+val t5e: Any => Any = <function>
 
-scala> 1 |new A().boom // ?/?/err: apply, ()-insertion
+scala> new A().boom // ?/?/err: apply, ()-insertion
+1 |new A().boom // ?/?/err: apply, ()-insertion
   |^^^^^^^^^^^^
   |method boom must be called with () argument
 1 |new A().boom // ?/?/err: apply, ()-insertion
   |    ^
   |    A is a trait; it cannot be instantiated
 
-scala> 1 |val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+scala> val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+1 |val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
   |                                                             ^^
   |                                                             Not found: xs
 
