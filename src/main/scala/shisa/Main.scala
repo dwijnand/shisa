@@ -109,7 +109,7 @@ object Main {
   def stripLambdaClassName(s: String)  = lambdaless.replaceAllIn(s, "<function>")
 
   val   hashless = "([^ ])@[a-fA-F0-9]+".r
-  val lambdaless = """Lambda\$\d+/(?:0x[a-f0-9]{16}|\d+)(@[a-fA-F0-9]+)?""".r
+  val lambdaless = """[$]*Lambda\$\d+/(?:0x[a-f0-9]{16}|\d+)(@[a-fA-F0-9]+)?""".r
 }
 
 final case class Invoke(id: String, compile: String, interpret: String)

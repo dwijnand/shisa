@@ -33,16 +33,16 @@ scala> def zup(x: Any) = ""
 zup: (x: Any)String
 
 scala> val t1b: () => Any = foo                // warn/?: eta-expansion
-t1b: () => Any = $$<function>
+t1b: () => Any = <function>
 
 scala> val t1c: () => Any = { val t = foo; t } // `()`-insertion because no expected type
-t1c: () => Any = $$<function>
+t1c: () => Any = <function>
 
 scala> val t1d: () => Any = foo _              // ok, explicit eta-expansion requested
-t1d: () => Any = $$<function>
+t1d: () => Any = <function>
 
 scala> val t1e: Any       = foo _              // ok, explicit eta-expansion requested
-t1e: Any = $$<function>
+t1e: Any = <function>
 
 scala> val t1f: Any       = foo() _            // error: _ must follow method
                                ^
@@ -75,13 +75,13 @@ scala> val t2b: () => Any = bar()                 // error: bar doesn't take arg
        Unspecified value parameter i.
 
 scala> val t2c: () => Any = bar _                 // ok
-t2c: () => Any = $$<function>
+t2c: () => Any = <function>
 
 scala> val t2d: () => Any = { val t = bar _ ; t } // ?/ok
-t2d: () => Any = $$<function>
+t2d: () => Any = <function>
 
 scala> val t2e: Any       = bar _                 // ok
-t2e: Any = $$<function>
+t2e: Any = <function>
 
 scala> val t2f: Any       = bar() _               // error: not enough arguments for method apply
                                ^
@@ -89,38 +89,38 @@ scala> val t2f: Any       = bar() _               // error: not enough arguments
        Unspecified value parameter i.
 
 scala> val t3a: () => Any = baz                   // eta-expansion, but lint warning
-t3a: () => Any = $$<function>
+t3a: () => Any = <function>
 
 scala> val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
 t3b: Any = ""
 
 scala> val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
-t3c: () => Any = $$<function>
+t3c: () => Any = <function>
 
 scala> val t3d: Any       = baz() _               // error: _ must follow method
                                ^
        error: _ must follow method; cannot follow String
 
 scala> val t4a: () => Any = zap     // eta-expansion, but lint warning
-t4a: () => Any = $$<function>
+t4a: () => Any = <function>
 
 scala> val t4b: () => Any = zap()   // ditto
-t4b: () => Any = $$<function>
+t4b: () => Any = <function>
 
 scala> val t4c: () => Any = zap _   // ok
-t4c: () => Any = $$<function>
+t4c: () => Any = <function>
 
 scala> val t4d: () => Any = zap() _ // ok
-t4d: () => Any = $$<function>
+t4d: () => Any = <function>
 
 scala> val t5a: Any => Any = zup                   // ok
-t5a: Any => Any = $$<function>
+t5a: Any => Any = <function>
 
 scala> val t5b: Sam1S      = zup                   // ok, but warning
-t5b: Sam1S = $$<function>
+t5b: Sam1S = <function>
 
 scala> val t5c: Sam1J      = zup                   // ok
-t5c: Sam1J = $$<function>
+t5c: Sam1J = <function>
 
 scala> val t5d: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
                                        ^
@@ -129,7 +129,7 @@ scala> val t5d: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansi
        You can make this conversion explicit by writing `zup _` or `zup(_)` instead of `zup`.
 
 scala> val t5e: Any => Any = { val t = zup _ ; t } // ?/ok
-t5e: Any => Any = $$<function>
+t5e: Any => Any = <function>
 
 scala> new A().boom // ?/?/err: apply, ()-insertion
        ^
