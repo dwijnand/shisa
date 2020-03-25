@@ -1,65 +1,28 @@
-// exitCode: 0   def foo()       = () => ""
-// exitCode: 0   def bar         = ""
-// exitCode: 0   def baz()       = ""
-// exitCode: 0   def zap()()     = ""
-// exitCode: 0   def zup(x: Any) = ""
-// exitCode: 1   val t1a: () => Any = foo                // ok, eta-expansion
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.10.scala:19:23 -
-19 |  val t1a: () => Any = foo                // ok, eta-expansion
-   |                       ^^^
-   |                       Not found: foo
-
-Explanation
-===========
-The identifier for `foo` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `foo` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
+// exitCode: 0   val t1a: () => Any = foo                // ok, eta-expansion
 // exitCode: 1   val t1b: () => Any = { val t = foo; t } // `()`-insert b/c no expected type
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.11.scala:20:33 -
-20 |  val t1b: () => Any = { val t = foo; t } // `()`-insert b/c no expected type
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.05.scala:23:33 ----
+23 |  val t1b: () => Any = { val t = foo; t } // `()`-insert b/c no expected type
    |                                 ^^^
-   |                                 Not found: foo
+   |                              method foo must be called with () argument
 
 Explanation
 ===========
-The identifier for `foo` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `foo` or its declaration has either been
-misspelt or if an import is missing.
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 error found
-// exitCode: 1   val t1c: () => Any = foo _              // ok, explicit eta-expansion requested
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.12.scala:21:27 -------------
-21 |  val t1c: () => Any = foo _              // ok, explicit eta-expansion requested
-   |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: foo></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
-// exitCode: 1   val t1d: Any       = foo _              // ok, explicit eta-expansion requested
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.13.scala:22:27 -------------
-22 |  val t1d: Any       = foo _              // ok, explicit eta-expansion requested
-   |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: foo></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
+// exitCode: 0   val t1c: () => Any = foo _              // ok, explicit eta-expansion requested
+// exitCode: 0   val t1d: Any       = foo _              // ok, explicit eta-expansion requested
 // exitCode: 1   val t1e: Any       = foo() _            // error: _ must follow method
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.14.scala:23:29 -------------
-23 |  val t1e: Any       = foo() _            // error: _ must follow method
+-- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.08.scala:26:29 ----
+26 |  val t1e: Any       = foo() _            // error: _ must follow method
    |                       ^^^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: foo></nonsensical>
+   |Only function types can be followed by _ but the current expression has type () => String
 
 Explanation
 ===========
@@ -68,52 +31,24 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 // exitCode: 1   val t2a: () => Any = bar                   // error: no eta-expansion of nullary methods
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.16.scala:25:23 -
-25 |  val t2a: () => Any = bar                   // error: no eta-expansion of nullary methods
+-- [E007] Type Mismatch Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.10.scala:28:23 
+28 |  val t2a: () => Any = bar                   // error: no eta-expansion of nullary methods
    |                       ^^^
-   |                       Not found: bar
-
-Explanation
-===========
-The identifier for `bar` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `bar` or its declaration has either been
-misspelt or if an import is missing.
-
+   |                       Found:    String
+   |                       Required: () => Any
 1 error found
-// exitCode: 1   val t2b: Any       = { val t = bar   ; t } // ok: apply
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.17.scala:26:33 -
-26 |  val t2b: Any       = { val t = bar   ; t } // ok: apply
-   |                                 ^^^
-   |                                 Not found: bar
-
-Explanation
-===========
-The identifier for `bar` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `bar` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
+// exitCode: 0   val t2b: Any       = { val t = bar   ; t } // ok: apply
 // exitCode: 1   val t2c: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.18.scala:27:23 -
-27 |  val t2c: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
-   |                       ^^^
-   |                       Not found: bar
-
-Explanation
-===========
-The identifier for `bar` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `bar` or its declaration has either been
-misspelt or if an import is missing.
-
+-- Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.12.scala:30:26 ------------------
+30 |  val t2c: () => Any = bar()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+   |                       ^^^^^
+   |        missing argument for parameter i of method apply: (i: Int): Char
 1 error found
 // exitCode: 1   val t2d: () => Any = bar _                 // ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.19.scala:28:27 -------------
-28 |  val t2d: () => Any = bar _                 // ok
+-- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.13.scala:31:27 ----
+31 |  val t2d: () => Any = bar _                 // ok
    |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: bar></nonsensical>
+   |Only function types can be followed by _ but the current expression has type String
 
 Explanation
 ===========
@@ -122,22 +57,27 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 // exitCode: 1   val t2e: () => Any = { val t = bar _ ; t } // ?/ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.20.scala:29:37 -------------
-29 |  val t2e: () => Any = { val t = bar _ ; t } // ?/ok
+-- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.14.scala:32:37 ----
+32 |  val t2e: () => Any = { val t = bar _ ; t } // ?/ok
    |                                 ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: bar></nonsensical>
+   |Only function types can be followed by _ but the current expression has type String
 
 Explanation
 ===========
 The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
-1 error found
+-- [E007] Type Mismatch Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.14.scala:32:41 
+32 |  val t2e: () => Any = { val t = bar _ ; t } // ?/ok
+   |                                         ^
+   |                                         Found:    (t : String)
+   |                                         Required: () => Any
+2 errors found
 // exitCode: 1   val t2f: Any       = bar _                 // ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.21.scala:30:27 -------------
-30 |  val t2f: Any       = bar _                 // ok
+-- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.15.scala:33:27 ----
+33 |  val t2f: Any       = bar _                 // ok
    |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: bar></nonsensical>
+   |Only function types can be followed by _ but the current expression has type String
 
 Explanation
 ===========
@@ -146,10 +86,10 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 // exitCode: 1   val t2g: Any       = bar() _               // error: not enough arguments for method apply
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.22.scala:31:29 -------------
-31 |  val t2g: Any       = bar() _               // error: not enough arguments for method apply
+-- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.16.scala:34:29 ----
+34 |  val t2g: Any       = bar() _               // error: not enough arguments for method apply
    |                       ^^^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: bar></nonsensical>
+   |Only function types can be followed by _ but the current expression has type <nonsensical><error unspecified error></nonsensical>
 
 Explanation
 ===========
@@ -157,103 +97,66 @@ The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
 1 error found
-// exitCode: 1   val t3a: () => Any = baz                   // eta-expansion, but lint warning
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.24.scala:33:23 -
-33 |  val t3a: () => Any = baz                   // eta-expansion, but lint warning
-   |                       ^^^
-   |                       Not found: baz
-
-Explanation
-===========
-The identifier for `baz` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `baz` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
+// exitCode: 0   val t3a: () => Any = baz                   // eta-expansion, but lint warning
 // exitCode: 1   val t2Sam0S: Sam0S = baz                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.25.scala:34:23 -
-34 |  val t2Sam0S: Sam0S = baz                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.19.scala:37:23 ----
+37 |  val t2Sam0S: Sam0S = baz                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
    |                       ^^^
-   |                       Not found: baz
+   |                       method baz must be called with () argument
 
 Explanation
 ===========
-The identifier for `baz` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `baz` or its declaration has either been
-misspelt or if an import is missing.
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 error found
 // exitCode: 1   val t2Sam0J: Sam0J = baz                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.26.scala:35:23 -
-35 |  val t2Sam0J: Sam0J = baz                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.20.scala:38:23 ----
+38 |  val t2Sam0J: Sam0J = baz                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
    |                       ^^^
-   |                       Not found: baz
+   |                       method baz must be called with () argument
 
 Explanation
 ===========
-The identifier for `baz` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `baz` or its declaration has either been
-misspelt or if an import is missing.
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 error found
 // exitCode: 1   val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.27.scala:36:33 -
-36 |  val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.21.scala:39:33 ----
+39 |  val t3b: Any       = { val t = baz   ; t } // ?/succ/warn: apply, ()-insertion
    |                                 ^^^
-   |                                 Not found: baz
+   |                              method baz must be called with () argument
 
 Explanation
 ===========
-The identifier for `baz` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `baz` or its declaration has either been
-misspelt or if an import is missing.
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 error found
-// exitCode: 1   val t3a: () => Any = baz _                 // ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.28.scala:37:27 -------------
-37 |  val t3a: () => Any = baz _                 // ok
-   |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: baz></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
-// exitCode: 1   val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.29.scala:38:37 -------------
-38 |  val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
-   |                                 ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: baz></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
-// exitCode: 1   val t3a: Any       = baz _                 // ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.30.scala:39:27 -------------
-39 |  val t3a: Any       = baz _                 // ok
-   |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: baz></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
+// exitCode: 0   val t3a: () => Any = baz _                 // ok
+// exitCode: 0   val t3c: () => Any = { val t = baz _ ; t } // ok?/ok
+// exitCode: 0   val t3a: Any       = baz _                 // ok
 // exitCode: 1   val t3d: Any       = baz() _               // error: _ must follow method
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.31.scala:40:29 -------------
-40 |  val t3d: Any       = baz() _               // error: _ must follow method
+-- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.25.scala:43:29 ----
+43 |  val t3d: Any       = baz() _               // error: _ must follow method
    |                       ^^^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: baz></nonsensical>
+   |Only function types can be followed by _ but the current expression has type String
 
 Explanation
 ===========
@@ -261,129 +164,23 @@ The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
 1 error found
-// exitCode: 1   val t4a: () => Any = zap     // eta-expansion, but lint warning
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.33.scala:42:23 -
-42 |  val t4a: () => Any = zap     // eta-expansion, but lint warning
-   |                       ^^^
-   |                       Not found: zap
-
-Explanation
-===========
-The identifier for `zap` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `zap` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
-// exitCode: 1   val t4b: () => Any = zap()   // ditto
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.34.scala:43:23 -
-43 |  val t4b: () => Any = zap()   // ditto
-   |                       ^^^
-   |                       Not found: zap
-
-Explanation
-===========
-The identifier for `zap` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `zap` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
-// exitCode: 1   val t4c: () => Any = zap _   // ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.35.scala:44:27 -------------
-44 |  val t4c: () => Any = zap _   // ok
-   |                       ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: zap></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
-// exitCode: 1   val t4d: () => Any = zap() _ // ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.36.scala:45:29 -------------
-45 |  val t4d: () => Any = zap() _ // ok
-   |                       ^^^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: zap></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
-// exitCode: 1   val t5b: Any => Any = zup                   // ok
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.38.scala:47:24 -
-47 |  val t5b: Any => Any = zup                   // ok
+// exitCode: 0   val t4a: () => Any = zap     // eta-expansion, but lint warning
+// exitCode: 0   val t4b: () => Any = zap()   // ditto
+// exitCode: 0   val t4c: () => Any = zap _   // ok
+// exitCode: 0   val t4d: () => Any = zap() _ // ok
+// exitCode: 0   val t5b: Any => Any = zup                   // ok
+// exitCode: 0   val t5c: Sam1S      = zup                   // ok, but warning
+-- Warning: /d/shisa/target/tests/EtaX/EtaX/EtaX.33.scala:51:24 ----------------
+51 |  val t5c: Sam1S      = zup                   // ok, but warning
    |                        ^^^
-   |                        Not found: zup
-
-Explanation
-===========
-The identifier for `zup` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `zup` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
-// exitCode: 1   val t5c: Sam1S      = zup                   // ok, but warning
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.39.scala:48:24 -
-48 |  val t5c: Sam1S      = zup                   // ok, but warning
-   |                        ^^^
-   |                        Not found: zup
-
-Explanation
-===========
-The identifier for `zup` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `zup` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
-// exitCode: 1   val t5d: Sam1J      = zup                   // ok
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.40.scala:49:24 -
-49 |  val t5d: Sam1J      = zup                   // ok
-   |                        ^^^
-   |                        Not found: zup
-
-Explanation
-===========
-The identifier for `zup` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `zup` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
-// exitCode: 1   val t5e: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.41.scala:50:34 -
-50 |  val t5e: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
-   |                                  ^^^
-   |                                  Not found: zup
-
-Explanation
-===========
-The identifier for `zup` is not bound, that is,
-no declaration for this identifier can be found.
-That can happen, for example, if `zup` or its declaration has either been
-misspelt or if an import is missing.
-
-1 error found
-// exitCode: 1   val t5f: Any => Any = { val t = zup _ ; t } // ?/ok
--- [E099] Syntax Error: target/tests/EtaX/EtaX/EtaX.42.scala:51:38 -------------
-51 |  val t5f: Any => Any = { val t = zup _ ; t } // ?/ok
-   |                                  ^^^^^
-   |Only function types can be followed by _ but the current expression has type <nonsensical><error Not found: zup></nonsensical>
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
+   |method zup is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+1 warning found
+// exitCode: 0   val t5d: Sam1J      = zup                   // ok
+// exitCode: 0   val t5e: Any => Any = { val t = zup   ; t } // error in 2.13, eta-expansion in 2.14
+// exitCode: 0   val t5f: Any => Any = { val t = zup _ ; t } // ?/ok
 // exitCode: 1   new A().boom // ?/?/err: apply, ()-insertion
--- [E100] Syntax Error: target/tests/EtaX/EtaX/EtaX.44.scala:53:10 -------------
-53 |  new A().boom // ?/?/err: apply, ()-insertion
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.38.scala:56:10 ----
+56 |  new A().boom // ?/?/err: apply, ()-insertion
    |  ^^^^^^^^^^^^
    |  method boom must be called with () argument
 
@@ -399,8 +196,8 @@ Excluded from this rule are methods that are defined in Java or that override me
 
 1 error found
 // exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
--- [E006] Unbound Identifier Error: target/tests/EtaX/EtaX/EtaX.46.scala:55:63 -
-55 |  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+-- [E006] Unbound Identifier Error: /d/shisa/target/tests/EtaX/EtaX/EtaX.40.scala:58:63 
+58 |  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
    |                                                               ^^
    |                                                           Not found: xs
 

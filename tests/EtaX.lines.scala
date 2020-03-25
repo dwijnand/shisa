@@ -6,16 +6,18 @@
 
 trait A { def boom(): Unit }
 
-class Test {
-  // [1]:               -Xlint:eta-zero -Xlint:eta-sam
-  // [2]: -Xsource:2.14 -Xlint:eta-zero -Xlint:eta-sam
-  // [3]: -Xsource:2.14 -deprecation -Werror
-
+class TestBase {
   def foo()       = () => ""
   def bar         = ""
   def baz()       = ""
   def zap()()     = ""
   def zup(x: Any) = ""
+}
+
+class Test extends TestBase {
+  // [1]:               -Xlint:eta-zero -Xlint:eta-sam
+  // [2]: -Xsource:2.14 -Xlint:eta-zero -Xlint:eta-sam
+  // [3]: -Xsource:2.14 -deprecation -Werror
 
   val t1a: () => Any = foo                // ok, eta-expansion
   val t1b: () => Any = { val t = foo; t } // `()`-insert b/c no expected type

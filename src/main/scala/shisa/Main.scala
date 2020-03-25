@@ -71,8 +71,10 @@ object Main {
     val name = sourceFile.getFileName.toString.stripSuffix(".lines.scala")
     val dir  = Files.createDirectories(sourceFile.resolveSibling(name))
     val outD = Files.createDirectories(Paths.get("target").resolve(dir).resolve(name))
-    val re   = """(?s)(.*)class Test \{\n(.*)\n}\n""".r
-    val (setup0, cases) = Files.readString(sourceFile) match { case re(setup, cases) => (setup, cases) }
+    val re   = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+    val (setup0, base, cases) = Files.readString(sourceFile) match {
+      case re(setup, base, cases) => (setup, base, cases)
+    }
     val setup = setup0.linesIterator.map(_.trim).mkString("\n")
     val input = cases.linesIterator.toList
     val count = input.size
@@ -81,7 +83,7 @@ object Main {
       body(_idx) = line
       val idx = if (_idx < 10) s"0${_idx}" else s"${_idx}"
       val src = outD.resolve(s"$name.$idx.scala")
-      Files.writeString(src, s"${setup}class Test {\n${body.mkString("\n")}\n}\n")
+      Files.writeString(src, s"${setup}\nclass Test $base{\n${body.mkString("\n")}\n}\n")
       combinations.foreach { case Invoke(id, cmd) =>
         val out = Files.createDirectories(outD.resolve(s"$name.$id.$idx"))
         val chk = dir.resolve(s"$name.$id.check")
