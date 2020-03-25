@@ -1,0 +1,23 @@
+// exitCode: 1   val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods
+target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.00.scala:6: error: type mismatch;
+ found   : String
+ required: () => Any
+  val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods
+                       ^
+one error found
+// exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8: error: not enough arguments for method apply: (i: Int)Char in class StringOps.
+Unspecified value parameter i.
+  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+                           ^
+one error found
+// exitCode: 0   val t2d: () => Any = prop _                 // ok
+// exitCode: 0   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
+// exitCode: 0   val t2f: Any       = prop _                 // ok
+// exitCode: 1   val t2g: Any       = prop() _               // error: not enough arguments for method apply
+target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.06.scala:12: error: not enough arguments for method apply: (i: Int)Char in class StringOps.
+Unspecified value parameter i.
+  val t2g: Any       = prop() _               // error: not enough arguments for method apply
+                           ^
+one error found

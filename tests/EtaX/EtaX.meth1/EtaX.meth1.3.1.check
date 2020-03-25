@@ -1,0 +1,16 @@
+// exitCode: 0   val t5a: Any => Any = meth1                   // ok
+// exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+-- Warning: /d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.01.scala:10:24 
+10 |  val t5b: Sam1S      = meth1                   // ok, but warning
+   |                        ^^^^^
+   |method meth1 is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+1 warning found
+// exitCode: 0   val t5c: Sam1J      = meth1                   // ok
+// exitCode: 0   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+// exitCode: 1   val t5e: Any => Any = { val t = meth1 _ ; t } // ?/ok
+-- Error: /d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.04.scala:13:40 
+13 |  val t5e: Any => Any = { val t = meth1 _ ; t } // ?/ok
+   |                                  ^^^^^^^
+   |                       The syntax `<function> _` is no longer supported;
+   |                       you can simply leave out the trailing ` _`
+1 error found

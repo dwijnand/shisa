@@ -1,0 +1,24 @@
+// exitCode: 0   val t3a: () => Any = meth                   // eta-expansion, but lint warning
+// exitCode: 1   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatch;
+ found   : String
+ required: Sam0S
+  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+                       ^
+one error found
+// exitCode: 1   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
+ found   : String
+ required: Sam0J
+  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+                       ^
+one error found
+// exitCode: 0   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+// exitCode: 0   val t3c: () => Any = meth _                 // ok
+// exitCode: 0   val t3d: () => Any = { val t = meth _ ; t } // ok?/ok
+// exitCode: 0   val t3e: Any       = meth _                 // ok
+// exitCode: 1   val t3f: Any       = meth() _               // error: _ must follow method
+target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.07.scala:16: error: _ must follow method; cannot follow String
+  val t3f: Any       = meth() _               // error: _ must follow method
+                           ^
+one error found

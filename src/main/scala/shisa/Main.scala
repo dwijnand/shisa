@@ -88,7 +88,7 @@ object Main {
         val out = Files.createDirectories(outD.resolve(s"$name.$id.$idx"))
         val chk = dir.resolve(s"$name.$id.check")
         val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
-        if (_idx == 0) Files.write(chk, Nil.asJava, TRUNCATE_EXISTING)
+        if (_idx == 0) Files.write(chk, Nil.asJava, CREATE, TRUNCATE_EXISTING)
         Files.write(chk, (s"// exitCode: $exitCode $line" +: lines).asJava, CREATE, APPEND)
       }
     }

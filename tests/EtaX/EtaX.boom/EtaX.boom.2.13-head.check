@@ -1,0 +1,5 @@
+// exitCode: 1   new A().boom // ?/?/err: apply, ()-insertion
+/d/shisa/target/tests/EtaX/EtaX.boom/EtaX.boom/EtaX.boom.00.scala:4: error: trait A is abstract; cannot be instantiated
+  new A().boom // ?/?/err: apply, ()-insertion
+  ^
+1 error

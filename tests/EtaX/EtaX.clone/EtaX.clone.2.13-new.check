@@ -1,0 +1,5 @@
+// exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+/d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3: error: not found: value xs
+  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+                                                               ^
+1 error

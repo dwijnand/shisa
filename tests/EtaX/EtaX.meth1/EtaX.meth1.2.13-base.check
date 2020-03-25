@@ -1,0 +1,11 @@
+// exitCode: 0   val t5a: Any => Any = meth1                   // ok
+// exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+// exitCode: 0   val t5c: Sam1J      = meth1                   // ok
+// exitCode: 1   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+/d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.03.scala:12: error: missing argument list for method meth1 in class TestBase
+Unapplied methods are only converted to functions when a function type is expected.
+You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead of `meth1`.
+  val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+                                  ^
+one error found
+// exitCode: 0   val t5e: Any => Any = { val t = meth1 _ ; t } // ?/ok

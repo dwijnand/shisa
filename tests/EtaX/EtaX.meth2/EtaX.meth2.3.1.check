@@ -1,0 +1,22 @@
+// exitCode: 1   val t4a: () => Any = meth2     // eta-expansion, but lint warning
+-- Error: /d/shisa/target/tests/EtaX/EtaX.meth2/EtaX.meth2/EtaX.meth2.00.scala:6:23 
+6 |  val t4a: () => Any = meth2     // eta-expansion, but lint warning
+  |                       ^^^^^
+  |                       The syntax `<function> _` is no longer supported;
+  |                       you can use `(() => <function>())` instead
+1 error found
+// exitCode: 0   val t4b: () => Any = meth2()   // ditto
+// exitCode: 1   val t4c: () => Any = meth2 _   // ok
+-- Error: /d/shisa/target/tests/EtaX/EtaX.meth2/EtaX.meth2/EtaX.meth2.02.scala:8:23 
+8 |  val t4c: () => Any = meth2 _   // ok
+  |                       ^^^^^
+  |                       The syntax `<function> _` is no longer supported;
+  |                       you can use `(() => <function>())` instead
+1 error found
+// exitCode: 1   val t4d: () => Any = meth2() _ // ok
+-- Error: /d/shisa/target/tests/EtaX/EtaX.meth2/EtaX.meth2/EtaX.meth2.03.scala:9:31 
+9 |  val t4d: () => Any = meth2() _ // ok
+  |                       ^^^^^^^^^
+  |                       The syntax `<function> _` is no longer supported;
+  |                       you can use `(() => <function>())` instead
+1 error found
