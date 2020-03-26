@@ -1,4 +1,5 @@
-// src:   val t2b: Any       = { val t = prop   ; t } // ok: apply// 2.13-base ok   
+// src:   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// 2.13-base ok   
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>
 // 3.0-old   ok    <no change>

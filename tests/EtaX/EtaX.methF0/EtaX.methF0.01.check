@@ -1,4 +1,5 @@
-// src:   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type// 2.13-base ok   
+// src:   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
+// 2.13-base ok   
 // 2.13-head ok    <no change>
 // 2.13-new  warn 
 target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.01.scala:7: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method methF0,

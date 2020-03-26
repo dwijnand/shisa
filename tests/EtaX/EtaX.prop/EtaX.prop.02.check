@@ -1,4 +1,5 @@
-// src:   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument// 2.13-base error
+// src:   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+// 2.13-base error
 target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8: error: not enough arguments for method apply: (i: Int)Char in class StringOps.
 Unspecified value parameter i.
   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument

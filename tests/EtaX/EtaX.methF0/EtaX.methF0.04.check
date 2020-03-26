@@ -1,4 +1,5 @@
-// src:   val t1e: Any       = methF0() _            // error: _ must follow method// 2.13-base error
+// src:   val t1e: Any       = methF0() _            // error: _ must follow method
+// 2.13-base error
 target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.04.scala:10: error: _ must follow method; cannot follow () => String
   val t1e: Any       = methF0() _            // error: _ must follow method
                              ^
