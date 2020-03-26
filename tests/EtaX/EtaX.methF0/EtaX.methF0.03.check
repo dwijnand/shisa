@@ -1,0 +1,12 @@
+// 2.13-base exitCode: 0   val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+// 2.13-head exitCode: 0   val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+// 2.13-new exitCode: 0   val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+// 3.0-old exitCode: 0   val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+// 3.0 exitCode: 0   val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+// 3.1 exitCode: 1   val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+-- Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.03.scala:9:30 --
+9 |  val t1d: Any       = methF0 _              // ok, explicit eta-expansion requested
+  |                       ^^^^^^^^
+  |                       The syntax `<function> _` is no longer supported;
+  |                       you can use `(() => <function>())` instead
+1 error found

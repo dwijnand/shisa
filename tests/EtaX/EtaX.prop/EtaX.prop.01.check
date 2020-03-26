@@ -1,0 +1,6 @@
+// 2.13-base exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// 2.13-head exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// 2.13-new exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// 3.0-old exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// 3.0 exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply
+// 3.1 exitCode: 0   val t2b: Any       = { val t = prop   ; t } // ok: apply

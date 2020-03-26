@@ -1,0 +1,6 @@
+// 2.13-base exitCode: 0   val t4b: () => Any = meth2()   // ditto
+// 2.13-head exitCode: 0   val t4b: () => Any = meth2()   // ditto
+// 2.13-new exitCode: 0   val t4b: () => Any = meth2()   // ditto
+// 3.0-old exitCode: 0   val t4b: () => Any = meth2()   // ditto
+// 3.0 exitCode: 0   val t4b: () => Any = meth2()   // ditto
+// 3.1 exitCode: 0   val t4b: () => Any = meth2()   // ditto

@@ -1,0 +1,36 @@
+// 2.13-base exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+/d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8: error: not enough arguments for method apply: (i: Int)Char in class StringOps.
+Unspecified value parameter i.
+  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+                           ^
+one error found
+// 2.13-head exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+/d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+Unspecified value parameter i.
+  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+                           ^
+1 error
+// 2.13-new exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+/d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+Unspecified value parameter i.
+  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+                           ^
+1 error
+// 3.0-old exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+-- Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8:27 
+8 |  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+  |                       ^^^^^^
+  |          missing argument for parameter i of method apply: (i: Int): Char
+1 error found
+// 3.0 exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+-- Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8:27 
+8 |  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+  |                       ^^^^^^
+  |          missing argument for parameter i of method apply: (i: Int): Char
+1 error found
+// 3.1 exitCode: 1   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+-- Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.02.scala:8:27 
+8 |  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+  |                       ^^^^^^
+  |          missing argument for parameter i of method apply: (i: Int): Char
+1 error found

@@ -1,0 +1,57 @@
+// 2.13-base exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+/d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3: error: not found: value xs
+  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+                                                               ^
+one error found
+// 2.13-head exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+/d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3: error: not found: value xs
+  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+                                                               ^
+1 error
+// 2.13-new exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+/d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3: error: not found: value xs
+  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+                                                               ^
+1 error
+// 3.0-old exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+-- [E006] Unbound Identifier Error: /d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3:63 
+3 |  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+  |                                                               ^^
+  |                                                             Not found: xs
+
+Explanation
+===========
+The identifier for `xs` is not bound, that is,
+no declaration for this identifier can be found.
+That can happen, for example, if `xs` or its declaration has either been
+misspelt or if an import is missing.
+
+1 error found
+// 3.0 exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+-- [E006] Unbound Identifier Error: /d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3:63 
+3 |  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+  |                                                               ^^
+  |                                                             Not found: xs
+
+Explanation
+===========
+The identifier for `xs` is not bound, that is,
+no declaration for this identifier can be found.
+That can happen, for example, if `xs` or its declaration has either been
+misspelt or if an import is missing.
+
+1 error found
+// 3.1 exitCode: 1   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+-- [E006] Unbound Identifier Error: /d/shisa/target/tests/EtaX/EtaX.clone/EtaX.clone/EtaX.clone.00.scala:3:63 
+3 |  val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); xs.clone } // ?/?/ok
+  |                                                               ^^
+  |                                                             Not found: xs
+
+Explanation
+===========
+The identifier for `xs` is not bound, that is,
+no declaration for this identifier can be found.
+That can happen, for example, if `xs` or its declaration has either been
+misspelt or if an import is missing.
+
+1 error found

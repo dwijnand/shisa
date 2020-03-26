@@ -1,0 +1,21 @@
+// 2.13-base exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+// 2.13-head exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+// 2.13-new exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+// 3.0-old exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+-- Warning: /d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.01.scala:10:24 
+10 |  val t5b: Sam1S      = meth1                   // ok, but warning
+   |                        ^^^^^
+   |method meth1 is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+1 warning found
+// 3.0 exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+-- Warning: /d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.01.scala:10:24 
+10 |  val t5b: Sam1S      = meth1                   // ok, but warning
+   |                        ^^^^^
+   |method meth1 is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+1 warning found
+// 3.1 exitCode: 0   val t5b: Sam1S      = meth1                   // ok, but warning
+-- Warning: /d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.01.scala:10:24 
+10 |  val t5b: Sam1S      = meth1                   // ok, but warning
+   |                        ^^^^^
+   |method meth1 is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+1 warning found

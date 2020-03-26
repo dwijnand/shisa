@@ -1,0 +1,18 @@
+// 2.13-base exitCode: 1   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+/d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.03.scala:12: error: missing argument list for method meth1 in class TestBase
+Unapplied methods are only converted to functions when a function type is expected.
+You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead of `meth1`.
+  val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+                                  ^
+one error found
+// 2.13-head exitCode: 1   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+/d/shisa/target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.03.scala:12: error: missing argument list for method meth1 in class TestBase
+Unapplied methods are only converted to functions when a function type is expected.
+You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead of `meth1`.
+  val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+                                  ^
+1 error
+// 2.13-new exitCode: 0   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+// 3.0-old exitCode: 0   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+// 3.0 exitCode: 0   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14
+// 3.1 exitCode: 0   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 2.14

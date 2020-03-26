@@ -1,0 +1,12 @@
+// 2.13-base exitCode: 0   val t3e: Any       = meth _                 // ok
+// 2.13-head exitCode: 0   val t3e: Any       = meth _                 // ok
+// 2.13-new exitCode: 0   val t3e: Any       = meth _                 // ok
+// 3.0-old exitCode: 0   val t3e: Any       = meth _                 // ok
+// 3.0 exitCode: 0   val t3e: Any       = meth _                 // ok
+// 3.1 exitCode: 1   val t3e: Any       = meth _                 // ok
+-- Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.06.scala:15:28 
+15 |  val t3e: Any       = meth _                 // ok
+   |                       ^^^^^^
+   |                       The syntax `<function> _` is no longer supported;
+   |                       you can use `(() => <function>())` instead
+1 error found

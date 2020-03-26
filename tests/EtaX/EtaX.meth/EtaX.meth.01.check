@@ -1,0 +1,72 @@
+// 2.13-base exitCode: 1   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+/d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatch;
+ found   : String
+ required: Sam0S
+  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+                       ^
+one error found
+// 2.13-head exitCode: 1   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+/d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatch;
+ found   : String
+ required: Sam0S
+  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+                       ^
+1 error
+// 2.13-new exitCode: 0   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+// 3.0-old exitCode: 1   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+-- [E100] Syntax Migration Warning: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
+10 |  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+   |                       ^^^^
+   |                       method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+-- [E007] Type Mismatch Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
+10 |  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+   |                       ^^^^
+   |                       Found:    String
+   |                       Required: Sam0S
+1 warning found
+1 error found
+// 3.0 exitCode: 1   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
+10 |  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+   |                       ^^^^
+   |                       method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found
+// 3.1 exitCode: 1   val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
+10 |  val t3Sam0S: Sam0S = meth                   // err??/warn/succ: -Xlint:eta-zero + -Xlint:eta-sam, no eta-expansion w/o 2.14?
+   |                       ^^^^
+   |                       method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found

@@ -1,0 +1,56 @@
+// 2.13-base exitCode: 0   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+// 2.13-head exitCode: 127   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+/usr/local/bin/scalac: line 150: cs: command not found
+// 2.13-new exitCode: 127   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+/usr/local/bin/scalac: line 150: cs: command not found
+// 3.0-old exitCode: 0   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+-- [E100] Syntax Migration Warning: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.03.scala:12:33 
+12 |  val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+   |                                 ^^^^
+   |                             method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 warning found
+// 3.0 exitCode: 1   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.03.scala:12:33 
+12 |  val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+   |                                 ^^^^
+   |                             method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found
+// 3.1 exitCode: 1   val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+-- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.03.scala:12:33 
+12 |  val t3b: Any       = { val t = meth   ; t } // ?/succ/warn: apply, ()-insertion
+   |                                 ^^^^
+   |                             method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found

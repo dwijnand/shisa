@@ -1,4 +1,0 @@
-// exitCode: 0   val t4a: () => Any = meth2     // eta-expansion, but lint warning
-// exitCode: 0   val t4b: () => Any = meth2()   // ditto
-// exitCode: 0   val t4c: () => Any = meth2 _   // ok
-// exitCode: 0   val t4d: () => Any = meth2() _ // ok
