@@ -1,20 +1,23 @@
-// 2.13-base exitCode: 1   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
-/d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
+// src:   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+// 2.13-base error
+target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
  found   : String
  required: Sam0J
   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
                        ^
 one error found
-// 2.13-head exitCode: 1   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
-/d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
+
+// 2.13-head error
+target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
  found   : String
  required: Sam0J
   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
                        ^
 1 error
-// 2.13-new exitCode: 0   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
-// 3.0-old exitCode: 1   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
--- [E100] Syntax Migration Warning: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
+
+// 2.13-new  ok   
+// 3.0-old   error
+-- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
 11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
    |                       ^^^^
    |                       method meth must be called with () argument
@@ -29,15 +32,16 @@ def next(): T = ...
 In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
--- [E007] Type Mismatch Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
+-- [E007] Type Mismatch Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
 11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
    |                       ^^^^
    |                       Found:    String
    |                       Required: Sam0J
 1 warning found
 1 error found
-// 3.0 exitCode: 1   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
--- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
+
+// 3.0       error
+-- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
 11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
    |                       ^^^^
    |                       method meth must be called with () argument
@@ -53,20 +57,7 @@ In Dotty, this idiom is an error. The application syntax has to follow exactly t
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 error found
-// 3.1 exitCode: 1   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
--- [E100] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
-11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
-   |                       ^^^^
-   |                       method meth must be called with () argument
 
-Explanation
-===========
-Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+// 3.1       error <no change>
 
-def next(): T = ...
-          |next     // is expanded to next()
-
-In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
-Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
-
-1 error found
+error error ok    error error error

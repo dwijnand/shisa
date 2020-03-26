@@ -1,15 +1,16 @@
-// 2.13-base exitCode: 127   val t3c: () => Any = meth _                 // ok
-/usr/local/bin/scalac: line 150: cs: command not found
-// 2.13-head exitCode: 127   val t3c: () => Any = meth _                 // ok
-/usr/local/bin/scalac: line 150: cs: command not found
-// 2.13-new exitCode: 127   val t3c: () => Any = meth _                 // ok
-/usr/local/bin/scalac: line 150: cs: command not found
-// 3.0-old exitCode: 0   val t3c: () => Any = meth _                 // ok
-// 3.0 exitCode: 0   val t3c: () => Any = meth _                 // ok
-// 3.1 exitCode: 1   val t3c: () => Any = meth _                 // ok
--- Error: /d/shisa/target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.04.scala:13:28 
+// src:   val t3c: () => Any = meth _                 // ok
+// 2.13-base ok   
+// 2.13-head ok    <no change>
+// 2.13-new  ok    <no change>
+// 3.0-old   ok    <no change>
+// 3.0       ok    <no change>
+// 3.1       error
+-- Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.04.scala:13:28 -------
 13 |  val t3c: () => Any = meth _                 // ok
    |                       ^^^^^^
    |                       The syntax `<function> _` is no longer supported;
    |                       you can use `(() => <function>())` instead
 1 error found
+
+
+ok    ok    ok    ok    ok    error

@@ -1,8 +1,8 @@
-// 2.13-base exitCode: 0   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
-// 2.13-head exitCode: 0   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
-// 2.13-new exitCode: 0   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
-// 3.0-old exitCode: 0   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
--- [E099] Syntax Migration Warning: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:38 
+// src:   val t2e: () => Any = { val t = prop _ ; t } // ?/ok// 2.13-base ok   
+// 2.13-head ok    <no change>
+// 2.13-new  ok    <no change>
+// 3.0-old   warn 
+-- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:38 
 10 |  val t2e: () => Any = { val t = prop _ ; t } // ?/ok
    |                                 ^^^^^^
    |Only function types can be followed by _ but the current expression has type String
@@ -13,8 +13,9 @@ The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
 1 warning found
-// 3.0 exitCode: 1   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
--- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:38 
+
+// 3.0       error
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:38 
 10 |  val t2e: () => Any = { val t = prop _ ; t } // ?/ok
    |                                 ^^^^^^
    |Only function types can be followed by _ but the current expression has type String
@@ -24,26 +25,13 @@ Explanation
 The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
--- [E007] Type Mismatch Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:42 
+-- [E007] Type Mismatch Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:42 
 10 |  val t2e: () => Any = { val t = prop _ ; t } // ?/ok
    |                                          ^
    |                                          Found:    (t : String)
    |                                          Required: () => Any
 2 errors found
-// 3.1 exitCode: 1   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
--- [E099] Syntax Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:38 
-10 |  val t2e: () => Any = { val t = prop _ ; t } // ?/ok
-   |                                 ^^^^^^
-   |Only function types can be followed by _ but the current expression has type String
 
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
+// 3.1       error <no change>
 
--- [E007] Type Mismatch Error: /d/shisa/target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.04.scala:10:42 
-10 |  val t2e: () => Any = { val t = prop _ ; t } // ?/ok
-   |                                          ^
-   |                                          Found:    (t : String)
-   |                                          Required: () => Any
-2 errors found
+ok    ok    ok    warn  error error

@@ -1,13 +1,14 @@
-// 2.13-base exitCode: 0   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
-// 2.13-head exitCode: 0   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
-// 2.13-new exitCode: 0   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
+// src:   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type// 2.13-base ok   
+// 2.13-head ok    <no change>
+// 2.13-new  warn 
 target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.01.scala:7: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method methF0,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
                                  ^
 1 warning
-// 3.0-old exitCode: 0   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
+
+// 3.0-old   warn 
 -- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.01.scala:7:33 
 7 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
   |                                 ^^^^^^
@@ -24,7 +25,8 @@ In Dotty, this idiom is an error. The application syntax has to follow exactly t
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 warning found
-// 3.0 exitCode: 1   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
+
+// 3.0       error
 -- [E100] Syntax Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.01.scala:7:33 
 7 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
   |                                 ^^^^^^
@@ -41,20 +43,7 @@ In Dotty, this idiom is an error. The application syntax has to follow exactly t
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 1 error found
-// 3.1 exitCode: 1   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
--- [E100] Syntax Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0/EtaX.methF0.01.scala:7:33 
-7 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
-  |                                 ^^^^^^
-  |                             method methF0 must be called with () argument
 
-Explanation
-===========
-Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+// 3.1       error <no change>
 
-def next(): T = ...
-          |next     // is expanded to next()
-
-In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
-Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
-
-1 error found
+ok    ok    warn  warn  error error

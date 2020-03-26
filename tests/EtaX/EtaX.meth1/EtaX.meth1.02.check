@@ -1,6 +1,9 @@
-// 2.13-base exitCode: 0   val t5c: Sam1J      = meth1                   // ok
-// 2.13-head exitCode: 0   val t5c: Sam1J      = meth1                   // ok
-// 2.13-new exitCode: 0   val t5c: Sam1J      = meth1                   // ok
-// 3.0-old exitCode: 0   val t5c: Sam1J      = meth1                   // ok
-// 3.0 exitCode: 0   val t5c: Sam1J      = meth1                   // ok
-// 3.1 exitCode: 0   val t5c: Sam1J      = meth1                   // ok
+// src:   val t5c: Sam1J      = meth1                   // ok
+// 2.13-base ok   
+// 2.13-head ok    <no change>
+// 2.13-new  ok    <no change>
+// 3.0-old   ok    <no change>
+// 3.0       ok    <no change>
+// 3.1       ok    <no change>
+
+ok    ok    ok    ok    ok    ok   
