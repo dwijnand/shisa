@@ -89,7 +89,7 @@ object Main {
         val chk = dir.resolve(s"$name.$idx.check")
         val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
         if (combIdx == 0) Files.write(chk, Nil.asJava, CREATE, TRUNCATE_EXISTING)
-        Files.write(chk, (s"// $id exitCode: $exitCode $line" +: lines).asJava, CREATE, APPEND)
+        Files.write(chk, (f"// $id%-9s exitCode: $exitCode $line" +: lines).asJava, CREATE, APPEND)
       }
     }
   }
