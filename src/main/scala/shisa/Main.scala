@@ -33,7 +33,13 @@ object Main {
     }
 
     val scalac2 = "scalac -deprecation"
-    val scalac3 = "dotc -migration -color:never -explain"
+    lazy val scalac3 = {
+      execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
+        case ExecResult(_, 0, _) => ()
+        case res                 => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+      }
+      "dotc -migration -color:never -explain"
+    }
 
     // More combinations?
     // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
