@@ -85,7 +85,7 @@ object Main {
       val src = outD.resolve(s"$name.$idx.scala")
       val chk = dir.resolve(s"$name.$idx.check")
       Files.writeString(src, s"${setup}\nclass Test $base{\n${body.mkString("\n")}\n}\n")
-      Files.writeString(chk, s"// src: $line", CREATE, TRUNCATE_EXISTING)
+      Files.writeString(chk, s"// src: $line\n", CREATE, TRUNCATE_EXISTING)
       var prevExitCode = -127
       var prevLines    = Seq.empty[String]
       val summary      = ListBuffer.empty[String]
