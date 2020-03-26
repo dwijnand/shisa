@@ -84,19 +84,21 @@ object Main {
       val idx = if (_idx < 10) s"0${_idx}" else s"${_idx}"
       val src = outD.resolve(s"$name.$idx.scala")
       Files.writeString(src, s"${setup}\nclass Test $base{\n${body.mkString("\n")}\n}\n")
-      var prevExitCode = Option.empty[Int]
+      var prevExitCode = 0
       var prevLines    = Seq.empty[String]
       combinations.zipWithIndex.foreach { case (Invoke(id, cmd), combIdx) =>
         val out = Files.createDirectories(outD.resolve(s"$name.$id.$idx"))
         val chk = dir.resolve(s"$name.$idx.check")
         val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
-        if (combIdx == 0) Files.write(chk, Nil.asJava, CREATE, TRUNCATE_EXISTING)
-        val chkBody   = f"// $id%-9s exitCode: $exitCode $line" +: lines :+ ""
+        val result      = if (exitCode == 0) if (lines.isEmpty) "ok   " else "warn " else "error"
+        val linesAndPad = if (lines.isEmpty) Nil else lines :+ ""
+        val first       = combIdx == 0
         val writeBody =
-          if (prevExitCode.forall(_ != exitCode) || prevLines != lines) chkBody
-          else Seq(f"// $id%-9s <no change>")
+          if (first || prevExitCode != exitCode || prevLines != lines) f"// $id%-9s $result" +: linesAndPad
+          else Seq(f"// $id%-9s $result <no change>")
+        if (first) Files.write(chk, (Seq(s"// src: $line")).asJava, CREATE, TRUNCATE_EXISTING)
         Files.write(chk, writeBody.asJava, CREATE, APPEND)
-        prevExitCode = Option(exitCode)
+        prevExitCode = exitCode
         prevLines    = lines
       }
     }
