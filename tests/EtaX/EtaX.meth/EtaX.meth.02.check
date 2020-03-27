@@ -1,9 +1,9 @@
-// src:   val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+// src:   val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero
 // 2.13-base error
 target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
  found   : String
  required: Sam0J
-  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+  val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero
                        ^
 one error found
 
@@ -11,14 +11,14 @@ one error found
 target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11: error: type mismatch;
  found   : String
  required: Sam0J
-  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+  val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero
                        ^
 1 error
 
 // 2.13-new  ok   
 // 3.0-old   error
 -- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
-11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+11 |  val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero
    |                       ^^^^
    |                       method meth must be called with () argument
 
@@ -33,7 +33,7 @@ In Dotty, this idiom is an error. The application syntax has to follow exactly t
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
 -- [E007] Type Mismatch Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
-11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+11 |  val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero
    |                       ^^^^
    |                       Found:    String
    |                       Required: Sam0J
@@ -42,7 +42,7 @@ Excluded from this rule are methods that are defined in Java or that override me
 
 // 3.0       error
 -- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.02.scala:11:23 
-11 |  val t3Sam0J: Sam0J = meth                   // err??/warn/succ: -Xlint:eta-zero, no eta-expansion w/o 2.14?
+11 |  val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero
    |                       ^^^^
    |                       method meth must be called with () argument
 
