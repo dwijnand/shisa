@@ -1,5 +1,6 @@
 package shisa
 
+import java.io.PrintWriter
 import java.nio.file._
 import java.nio.file.StandardOpenOption._
 
@@ -90,9 +91,10 @@ object Main {
       body(_idx) = line
       val idx = if (_idx < 10) s"0${_idx}" else s"${_idx}"
       val src = outD.resolve(s"$name.$idx.scala")
-      val chk = dir.resolve(s"$name.$idx.check")
-      Files.writeString(src, s"${setup}\nclass Test $base{\n${body.mkString("\n")}\n}\n")
-      Files.writeString(chk, s"// src: $line\n", CREATE, TRUNCATE_EXISTING)
+      val chkP = dir.resolve(s"$name.$idx.check")
+      val chk = new PrintWriter(Files.newBufferedWriter(chkP), true)
+      Files.writeString(src, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
+      chk.println(s"// src: $line")
       var prevExitCode = -127
       var prevLines    = Seq.empty[String]
       val summary      = ListBuffer.empty[String]
@@ -104,12 +106,13 @@ object Main {
         val writeBody =
           if (prevExitCode != exitCode || prevLines != lines) f"// $id%-9s $result" +: linesAndPad
           else Seq(f"// $id%-9s $result <no change>")
-        Files.write(chk, writeBody.asJava, CREATE, APPEND)
+        writeBody.foreach(chk.println)
         prevExitCode = exitCode
         prevLines    = lines
         summary     += result
       }
-      Files.write(chk, Seq("", summary.mkString(" ")).asJava, CREATE, APPEND)
+      chk.println()
+      chk.println(summary.mkString(" "))
     }
   }
 
