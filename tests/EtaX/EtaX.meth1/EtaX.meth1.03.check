@@ -5,19 +5,13 @@ Unapplied methods are only converted to functions when a function type is expect
 You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead of `meth1`.
   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0
                                   ^
-one error found
-
-// 2.13-head error
-target/tests/EtaX/EtaX.meth1/EtaX.meth1/EtaX.meth1.03.scala:12: error: missing argument list for method meth1 in class TestBase
-Unapplied methods are only converted to functions when a function type is expected.
-You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead of `meth1`.
-  val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0
-                                  ^
 1 error
 
+// 2.13-head error <no change>
 // 2.13-new  ok   
 // 3.0-old   ok    <no change>
 // 3.0       ok    <no change>
+// 3.1-migr  ok    <no change>
 // 3.1       ok    <no change>
 
-error error ok    ok    ok    ok   
+error error ok    ok    ok    ok    ok   

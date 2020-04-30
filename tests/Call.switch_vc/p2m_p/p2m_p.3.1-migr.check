@@ -1,0 +1,17 @@
+// exitCode: 1
+-- [E100] Syntax Error: tests/Call.switch_vc/p2m_p.scala:6:9 -------------------
+6 |  p2m_vc.d
+  |  ^^^^^^^^
+  |  method d must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found

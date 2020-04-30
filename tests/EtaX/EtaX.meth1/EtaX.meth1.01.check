@@ -10,6 +10,7 @@
 1 warning found
 
 // 3.0       warn  <no change>
+// 3.1-migr  warn  <no change>
 // 3.1       warn  <no change>
 
-ok    ok    ok    warn  warn  warn 
+ok    ok    ok    warn  warn  warn  warn 

@@ -5,16 +5,9 @@ target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.00.scala:6: error: type mismatch
  required: () => Any
   val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods
                        ^
-one error found
-
-// 2.13-head error
-target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.00.scala:6: error: type mismatch;
- found   : String
- required: () => Any
-  val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods
-                       ^
 1 error
 
+// 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
 -- [E007] Type Mismatch Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.00.scala:6:23 
@@ -25,6 +18,7 @@ target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.00.scala:6: error: type mismatch
 1 error found
 
 // 3.0       error <no change>
+// 3.1-migr  error <no change>
 // 3.1       error <no change>
 
-error error error error error error
+error error error error error error error
