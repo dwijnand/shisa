@@ -9,58 +9,69 @@ import scala.jdk.StreamConverters._
 import scala.sys.process._
 import scala.util.chaining._
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    val sourceFiles = args.toSeq match {
-      case Seq() => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
-        .toScala(Seq)
-        .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
-      case argv  => argv.map(Paths.get(_))
+object Main extends App {
+  val sourceFiles = args.toSeq match {
+    case Seq() => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
+      .toScala(Seq)
+      .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
+    case argv  => argv.map(Paths.get(_))
+  }
+
+  val missing = sourceFiles.filter(!Files.exists(_))
+  if (missing.nonEmpty)
+    sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
+
+  final case class ExecResult(exitCode: Int, lines: Seq[String]) {
+    def orError(errorCondition: Boolean = exitCode != 0) = if (errorCondition) sys.error(s"Fail: $this")
+    override def toString = s"$exitCode: ${lines.map("\n  " + _).mkString}"
+  }
+
+  def exec(argv: Seq[String]): ExecResult = {
+    val buff = new ListBuffer[String]
+    val exit = Process(argv) ! ProcessLogger(buff += _, buff += _)
+    ExecResult(exit, buff.toList)
+  }
+
+  def tokenise(s: String) = s.split(' ').toSeq
+  def execStr(s: String)  = exec(tokenise(s))
+
+  def getVersion = execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)").tap(println)
+  lazy val _2_13_head = getVersion match {
+    case ExecResult(0, Seq(s)) => s
+    case ExecResult(0, _)      => getVersion match { // got extra lines from Coursier, run again
+      case ExecResult(0, Seq(s)) => s
+      case res                   => res.orError(true)
     }
+    case res                   => res.orError(true)
+  }
 
-    val missing = sourceFiles.filter(!Files.exists(_))
-    if (missing.nonEmpty)
-      sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
+  val scalac2 = "scalac -deprecation"
+  lazy val scalac3 = {
+    execStr("dotc").orError() // make sure dotc is fresh, so we don't leak building output
+    "dotc -migration -color:never -explain"
+  }
 
-    val getVersion = "scala -2.13.head -e println(scala.util.Properties.versionNumberString)"
-    lazy val _2_13_head = execStr(getVersion).tap(println) match {
-      case ExecResult(_, 0, Seq(s)) => s
-      case ExecResult(_, 0, _)      => execStr(getVersion).tap(println) match { // got extra lines from Coursier, run again
-        case ExecResult(_, 0, Seq(s)) => s
-        case res                      => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
-      }
-      case res                      => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
-    }
+  final case class Invoke(id: String, cmd: String)
 
-    val scalac2 = "scalac -deprecation"
-    lazy val scalac3 = {
-      execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
-        case ExecResult(_, 0, _) => ()
-        case res                 => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
-      }
-      "dotc -migration -color:never -explain"
-    }
+  // More combinations?
+  // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
+  // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
+  // https://github.com/lampepfl/dotty/issues/8571 dotty options
+  val combinations = Seq(
+    Invoke("2.13-base", s"$scalac2 -2.13.1"),
+    Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
+    Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
+    Invoke("3.0-old",   s"$scalac3 -language:Scala2Compat"),
+    Invoke("3.0",       s"$scalac3"),
+    Invoke("3.1",       s"$scalac3 -strict"),
+  )
 
-    // More combinations?
-    // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
-    // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
-    // https://github.com/lampepfl/dotty/issues/8571 dotty options
-    val combinations = Seq(
-      Invoke("2.13-base", s"$scalac2 -2.13.1"),
-      Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
-      Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
-      Invoke("3.0-old",   s"$scalac3 -language:Scala2Compat"),
-      Invoke("3.0",       s"$scalac3"),
-      Invoke("3.1",       s"$scalac3 -strict"),
-    )
-
-    sourceFiles.foreach { sourceFile =>
-      if (sourceFiles.sizeIs > 1) println(s"  Testing $sourceFile")
-      if (sourceFile.toString.endsWith(".lines.scala")) {
-        doCompileLines(sourceFile, combinations)
-      } else {
-        combinations.foreach { case Invoke(id, cmd) => doCompile(id, cmd, sourceFile) }
-      }
+  sourceFiles.foreach { sourceFile =>
+    if (sourceFiles.sizeIs > 1) println(s"  Testing $sourceFile")
+    if (sourceFile.toString.endsWith(".lines.scala")) {
+      doCompileLines(sourceFile, combinations)
+    } else {
+      combinations.foreach { case Invoke(id, cmd) => doCompile(id, cmd, sourceFile) }
     }
   }
 
@@ -69,7 +80,7 @@ object Main {
     val dir = Files.createDirectories(sourceFile.resolveSibling(name))
     val out = Files.createDirectories(Paths.get("target").resolve(dir).resolve(s"$name.$id"))
     val chk = dir.resolve(s"$name.$id.check")
-    val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $sourceFile").tap(println)
+    val ExecResult(exitCode, lines) = execStr(s"$cmd -d $out $sourceFile").tap(println)
     Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
   }
 
@@ -97,7 +108,7 @@ object Main {
       val summary      = ListBuffer.empty[String]
       combinations.foreach { case Invoke(id, cmd) =>
         val out = Files.createDirectories(outD.resolve(s"$name.$id.$idx"))
-        val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
+        val ExecResult(exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
         val result      = if (exitCode == 0) if (lines.isEmpty) "ok   " else "warn " else "error"
         val linesAndPad = if (lines.isEmpty) Nil else lines :+ ""
         val writeBody =
@@ -111,20 +122,4 @@ object Main {
       Files.write(chk, Seq("", summary.mkString(" ")).asJava, CREATE, APPEND)
     }
   }
-
-  def tokenise(s: String) = s.split(' ').toSeq
-  def execStr(s: String)  = exec(tokenise(s))
-
-  def exec(argv: Seq[String]): ExecResult = {
-    val buff = new ListBuffer[String]
-    val exit = Process(argv) ! ProcessLogger(buff += _, buff += _)
-    ExecResult(argv, exit, buff.toList)
-  }
 }
-
-final case class Invoke(id: String, cmd: String)
-
-final case class ExecResult(argv: Seq[String], exitCode: Int, lines: Seq[String]) {
-  override def toString = s"${argv.mkString(" ")} => $exitCode"
-}
-
