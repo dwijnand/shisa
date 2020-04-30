@@ -58,12 +58,13 @@ object Main extends App {
   // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
   // https://github.com/lampepfl/dotty/issues/8571 dotty options
   val combinations = Seq(
-    Invoke("2.13-base", s"$scalac2 -2.13.1"),
+    Invoke("2.13-base", s"$scalac2 -2.13.2"),
     Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
     Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
-    Invoke("3.0-old",   s"$scalac3 -language:Scala2Compat"),
-    Invoke("3.0",       s"$scalac3"),
-    Invoke("3.1",       s"$scalac3 -strict"),
+    Invoke("3.0-old",   s"$scalac3 -source 3.0-migration"),
+    Invoke("3.0",       s"$scalac3"), // assumes -source 3.0 is the default
+    Invoke("3.1-migr",  s"$scalac3 -source 3.1-migration"),
+    Invoke("3.1",       s"$scalac3 -source 3.1"),
   )
 
   sourceFiles.foreach { sourceFile =>
