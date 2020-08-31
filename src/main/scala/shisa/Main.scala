@@ -2,7 +2,6 @@ package shisa
 
 import java.io.PrintWriter
 import java.nio.file._
-import java.nio.file.StandardOpenOption._
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
@@ -12,9 +11,9 @@ import scala.util.chaining._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val sourceFiles = args.toSeq match {
-      case Seq() => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
-        .toScala(Seq)
+    val sourceFiles = args.toList match {
+      case Nil  => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
+        .toScala(List)
         .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
       case argv  => argv.map(Paths.get(_)).map { p =>
         if (p.isAbsolute) Paths.get("").toAbsolutePath.relativize(p)
@@ -26,41 +25,42 @@ object Main {
     if (missing.nonEmpty)
       sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
-    val getVersion = "scala -2.13.head -e println(scala.util.Properties.versionNumberString)"
-    lazy val _2_13_head = execStr(getVersion).tap(println) match {
-      case ExecResult(_, 0, Seq(s)) => s
-      case ExecResult(_, 0, _)      => execStr(getVersion).tap(println) match { // got extra lines from Coursier, run again
-        case ExecResult(_, 0, Seq(s)) => s
-        case res                      => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
-      }
-      case res                      => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+    run(sourceFiles)
+  }
+
+  val getVersion    = () => execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)")
+  val getVersionErr = (res: ExecResult) => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+
+  def getVersionOr(alt: PartialFunction[ExecResult, String]) = getVersion() match {
+    case ExecResult(0, List(s)) => s
+    case res                    => alt.applyOrElse(res, getVersionErr)
+  }
+
+  // if we get extra lines from Coursier, run again
+  lazy val _2_13_head = getVersionOr { case ExecResult(0, _) => getVersionOr(PartialFunction.empty) }
+
+       val scalac2 = "scalac -deprecation"
+  lazy val scalac3 = {
+    execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
+      case ExecResult(0, _) =>
+      case res              => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
     }
+    "dotc -migration -color:never -explain"
+  }
 
-    val scalac2 = "scalac -deprecation"
-    lazy val scalac3 = {
-      execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
-        case ExecResult(_, 0, _) => ()
-        case res                 => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
-      }
-      "dotc -migration -color:never -explain"
-    }
+  val combinations = Seq(
+    Invoke("2.13-base", s"$scalac2 -2.13.3"),
+    Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
+    Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
+    Invoke("3.0-old",   s"$scalac3 -source 3.0-migration"),
+    Invoke("3.0",       s"$scalac3"), // assumes -source 3.0 is the default
+    Invoke("3.1-migr",  s"$scalac3 -source 3.1-migration"),
+    Invoke("3.1",       s"$scalac3 -source 3.1"),
+  )
 
-    // More combinations?
-    // -Xlint:eta-sam         The Java-defined target interface for eta-expansion was not annotated @FunctionalInterface.
-    // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
-    // https://github.com/lampepfl/dotty/issues/8571 dotty options
-    val combinations = Seq(
-      Invoke("2.13-base", s"$scalac2 -2.13.3"),
-      Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
-      Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
-      Invoke("3.0-old",   s"$scalac3 -source 3.0-migration"),
-      Invoke("3.0",       s"$scalac3"), // assumes -source 3.0 is the default
-      Invoke("3.1-migr",  s"$scalac3 -source 3.1-migration"),
-      Invoke("3.1",       s"$scalac3 -source 3.1"),
-    )
-
+  def run(sourceFiles: List[Path]) = {
     sourceFiles.foreach { sourceFile =>
-      if (sourceFiles.sizeIs > 1) println(s"  Testing $sourceFile")
+      println(s"  Testing $sourceFile")
       if (sourceFile.toString.endsWith(".lines.scala")) {
         doCompileLines(sourceFile, combinations)
       } else {
@@ -74,7 +74,7 @@ object Main {
     val dir = Files.createDirectories(sourceFile.resolveSibling(name))
     val out = Files.createDirectories(Paths.get("target").resolve(dir).resolve(s"$name.$id"))
     val chk = dir.resolve(s"$name.$id.check")
-    val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $sourceFile").tap(println)
+    val ExecResult(exitCode, lines) = execStr(s"$cmd -d $out $sourceFile")
     Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
   }
 
@@ -85,56 +85,56 @@ object Main {
     Files.createDirectories(dir)
     Files.createDirectories(outD)
     val re   = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
-    val (setup0, base, cases) = Files.readString(sourceFile) match {
-      case re(setup, base, cases) => (setup, base, cases)
+    val (setup, base, input) = Files.readString(sourceFile) match {
+      case re(setup0, base, cases) =>
+        (setup0.linesIterator.map(_.trim).mkString("\n"), base, cases.linesIterator.toList)
     }
-    val setup = setup0.linesIterator.map(_.trim).mkString("\n")
-    val input = cases.linesIterator.toList
-    val count = input.size
-    input.iterator.zipWithIndex.filter { case (l, _) => !l.trim.pipe(s => s.isEmpty || s.startsWith("//")) }.foreach { case (line, _idx) =>
-      val body = Array.fill(count)("")
-      body(_idx) = line
+    def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
+    input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
       val idx = if (_idx < 10) s"0${_idx}" else s"${_idx}"
       val src = outD.resolve(s"$name.$idx.scala")
       val chkP = dir.resolve(s"$name.$idx.check")
-      val chk = new PrintWriter(Files.newBufferedWriter(chkP), true)
+
+      val body = Array.fill(input.size)("")
+      body(_idx) = line
       Files.writeString(src, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
+
+      val chk = new PrintWriter(Files.newBufferedWriter(chkP), true)
       chk.println(s"// src: $line")
-      var prevExitCode = -127
-      var prevLines    = Seq.empty[String]
-      val summary      = ListBuffer.empty[String]
+
+      var prevRes = ExecResult(-127, Nil)
+      val summary = ListBuffer.empty[String]
       combinations.foreach { case Invoke(id, cmd) =>
         val out = outD.resolve(s"$name.$id.$idx")
         Files.createDirectories(out)
-        val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
-        val result      = if (exitCode == 0) if (lines.isEmpty) "ok   " else "warn " else "error"
-        val linesAndPad = if (lines.isEmpty) Nil else lines :+ ""
+        val res = execStr(s"$cmd -d $out $src")
+        val result = res match {
+          case ExecResult(0, Nil) => "ok   "
+          case ExecResult(0, _)   => "warn "
+          case ExecResult(_, _)   => "error"
+        }
+        val linesAndPad = if (res.lines.isEmpty) Nil else res.lines :+ ""
         val writeBody =
-          if (prevExitCode != exitCode || prevLines != lines) f"// $id%-9s $result" +: linesAndPad
-          else Seq(f"// $id%-9s $result <no change>")
+          if (res == prevRes) Seq(f"// $id%-9s $result <no change>")
+          else f"// $id%-9s $result" +: linesAndPad
+
         writeBody.foreach(chk.println)
-        prevExitCode = exitCode
-        prevLines    = lines
-        summary     += result
+
+        prevRes = res
+        summary += result
       }
       chk.println()
       chk.println(summary.mkString(" "))
     }
   }
 
-  def tokenise(s: String) = s.split(' ').toSeq
-  def execStr(s: String)  = exec(tokenise(s))
-
-  def exec(argv: Seq[String]): ExecResult = {
+  def execStr(s: String): ExecResult = {
     val buff = new ListBuffer[String]
-    val exit = Process(argv) ! ProcessLogger(buff += _, buff += _)
-    ExecResult(argv, exit, buff.toList)
+    val exit = Process(s) ! ProcessLogger(buff += _, buff += _)
+    println(s"$s => $exit")
+    ExecResult(exit, buff.toList)
   }
 }
 
 final case class Invoke(id: String, cmd: String)
-
-final case class ExecResult(argv: Seq[String], exitCode: Int, lines: Seq[String]) {
-  override def toString = s"${argv.mkString(" ")} => $exitCode"
-}
-
+final case class ExecResult(exitCode: Int, lines: List[String])
