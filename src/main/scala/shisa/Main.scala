@@ -16,7 +16,10 @@ object Main {
       case Seq() => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
         .toScala(Seq)
         .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
-      case argv  => argv.map(Paths.get(_))
+      case argv  => argv.map(Paths.get(_)).map { p =>
+        if (p.isAbsolute) Paths.get("").toAbsolutePath.relativize(p)
+        else p
+      }
     }
 
     val missing = sourceFiles.filter(!Files.exists(_))
@@ -77,8 +80,10 @@ object Main {
 
   def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
     val name = sourceFile.getFileName.toString.stripSuffix(".lines.scala")
-    val dir  = Files.createDirectories(sourceFile.resolveSibling(name))
-    val outD = Files.createDirectories(Paths.get("target").resolve(dir).resolve(name))
+    val dir  = sourceFile.resolveSibling(name)
+    val outD = Paths.get("target").resolve(dir).resolve(name)
+    Files.createDirectories(dir)
+    Files.createDirectories(outD)
     val re   = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
     val (setup0, base, cases) = Files.readString(sourceFile) match {
       case re(setup, base, cases) => (setup, base, cases)
@@ -99,7 +104,8 @@ object Main {
       var prevLines    = Seq.empty[String]
       val summary      = ListBuffer.empty[String]
       combinations.foreach { case Invoke(id, cmd) =>
-        val out = Files.createDirectories(outD.resolve(s"$name.$id.$idx"))
+        val out = outD.resolve(s"$name.$id.$idx")
+        Files.createDirectories(out)
         val ExecResult(_, exitCode, lines) = execStr(s"$cmd -d $out $src").tap(println)
         val result      = if (exitCode == 0) if (lines.isEmpty) "ok   " else "warn " else "error"
         val linesAndPad = if (lines.isEmpty) Nil else lines :+ ""

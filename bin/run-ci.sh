@@ -12,6 +12,8 @@ git clone https://github.com/dwijnand/scala-runners.git scala-runners || die fai
 (cd scala-runners && git checkout github-token || die fail)
 
 PATH=$PATH:$PWD/bin:$PWD/scala-runners
+dotc -version
+scalac -version
 
 sbt run              || die "sbt run failed"
 git diff --exit-code || die "diff in sources detected"
