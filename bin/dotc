@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cs launch ch.epfl.lamp:dotty-compiler_0.26:latest.stable -M dotty.tools.dotc.Main -- -usejavacp "$@"
