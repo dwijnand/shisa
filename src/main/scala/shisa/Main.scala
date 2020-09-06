@@ -6,7 +6,6 @@ import java.nio.file._
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
-import scala.sys.process._
 import scala.util.chaining._
 
 object Main {
@@ -28,22 +27,22 @@ object Main {
     run(sourceFiles)
   }
 
-  val getVersion    = () => execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)")
-  val getVersionErr = (res: ExecResult) => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+  val getVersion    = () => Exec.execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)")
+  val getVersionErr = (res: Exec.Result) => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
 
-  def getVersionOr(alt: PartialFunction[ExecResult, String]) = getVersion() match {
-    case ExecResult(0, List(s)) => s
-    case res                    => alt.applyOrElse(res, getVersionErr)
+  def getVersionOr(alt: PartialFunction[Exec.Result, String]) = getVersion() match {
+    case Exec.Result(0, List(s)) => s
+    case res                     => alt.applyOrElse(res, getVersionErr)
   }
 
   // if we get extra lines from Coursier, run again
-  lazy val _2_13_head = getVersionOr { case ExecResult(0, _) => getVersionOr(PartialFunction.empty) }
+  lazy val _2_13_head = getVersionOr { case Exec.Result(0, _) => getVersionOr(PartialFunction.empty) }
 
        val scalac2 = "scalac -deprecation"
   lazy val scalac3 = {
-    execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
-      case ExecResult(0, _) =>
-      case res              => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+    Exec.execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
+      case Exec.Result(0, _) =>
+      case res               => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
     }
     "dotc -migration -color:never -explain"
   }
@@ -74,7 +73,7 @@ object Main {
     val dir = Files.createDirectories(sourceFile.resolveSibling(name))
     val out = Files.createDirectories(Paths.get("target").resolve(dir).resolve(s"$name.$id"))
     val chk = dir.resolve(s"$name.$id.check")
-    val ExecResult(exitCode, lines) = execStr(s"$cmd -d $out $sourceFile")
+    val Exec.Result(exitCode, lines) = Exec.execStr(s"$cmd -d $out $sourceFile")
     Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
   }
 
@@ -102,16 +101,16 @@ object Main {
       val chk = new PrintWriter(Files.newBufferedWriter(chkP), true)
       chk.println(s"// src: $line")
 
-      var prevRes = ExecResult(-127, Nil)
+      var prevRes = Exec.Result(-127, Nil)
       val summary = ListBuffer.empty[String]
       combinations.foreach { case Invoke(id, cmd) =>
         val out = outD.resolve(s"$name.$id.$idx")
         Files.createDirectories(out)
-        val res = execStr(s"$cmd -d $out $src")
+        val res = Exec.execStr(s"$cmd -d $out $src")
         val result = res match {
-          case ExecResult(0, Nil) => "ok   "
-          case ExecResult(0, _)   => "warn "
-          case ExecResult(_, _)   => "error"
+          case Exec.Result(0, Nil) => "ok   "
+          case Exec.Result(0, _)   => "warn "
+          case Exec.Result(_, _)   => "error"
         }
         val linesAndPad = if (res.lines.isEmpty) Nil else res.lines :+ ""
         val writeBody =
@@ -127,14 +126,6 @@ object Main {
       chk.println(summary.mkString(" "))
     }
   }
-
-  def execStr(s: String): ExecResult = {
-    val buff = new ListBuffer[String]
-    val exit = Process(s) ! ProcessLogger(buff += _, buff += _)
-    println(s"$s => $exit")
-    ExecResult(exit, buff.toList)
-  }
 }
 
 final case class Invoke(id: String, cmd: String)
-final case class ExecResult(exitCode: Int, lines: List[String])
