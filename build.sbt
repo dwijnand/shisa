@@ -6,4 +6,3 @@ inThisBuild(Def.settings(
   scalaVersion := "2.13.3",
 ))
 
-sourcesInBase := false

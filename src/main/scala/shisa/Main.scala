@@ -1,5 +1,7 @@
 package shisa
 
+import scala.language.implicitConversions
+
 import java.io.PrintWriter
 import java.nio.file._
 
@@ -27,8 +29,9 @@ object Main {
     run(sourceFiles)
   }
 
-  val getVersion    = () => Exec.execStr("scala -2.13.head -e println(scala.util.Properties.versionNumberString)")
-  val getVersionErr = (res: Exec.Result) => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
+  val dq            = '"'
+  val getVersion    = () => Exec.execStr(s"scala -2.13.head -e 'println(scala.util.Properties.scalaPropOrNone(${dq}maven.version.number$dq).get)'")
+  val getVersionErr = (res: Exec.Result) => sys.error(s"Fail: ${res.exitCode}, lines:\n  ${res.lines.mkString("\n  ")}")
 
   def getVersionOr(alt: PartialFunction[Exec.Result, String]) = getVersion() match {
     case Exec.Result(0, List(s)) => s
