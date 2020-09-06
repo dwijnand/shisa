@@ -1,1 +1,6 @@
-// exitCode: 0
+// exitCode: 1
+tests/Call.switch/Call.p2m_m.scala:2: error: method with a single empty parameter list overrides method without any parameter list
+def d: String (defined in trait P)
+class P2M extends P { def d() = "" }
+                          ^
+1 error
