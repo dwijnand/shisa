@@ -47,7 +47,7 @@ object Main {
     // -Xlint:eta-zero        Usage `f` of parameterless `def f()` resulted in eta-expansion, not empty application `f()`.
     // https://github.com/lampepfl/dotty/issues/8571 dotty options
     val combinations = Seq(
-      Invoke("2.13-base", s"$scalac2 -2.13.2"),
+      Invoke("2.13-base", s"$scalac2 -2.13.3"),
       Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
       Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
       Invoke("3.0-old",   s"$scalac3 -source 3.0-migration"),
