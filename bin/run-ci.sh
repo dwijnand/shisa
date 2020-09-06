@@ -15,5 +15,5 @@ PATH=$PATH:$PWD/bin:$PWD/scala-runners
 dotc -version
 scalac -version
 
-sbt run              || die "sbt run failed"
-git diff --exit-code || die "diff in sources detected"
+sbt '++2.13.3 run; ++0.26.0 run' || die "sbt run failed"
+git diff --exit-code             || die "diff in sources detected"

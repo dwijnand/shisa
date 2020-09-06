@@ -11,9 +11,9 @@ import scala.util.chaining._
 
 import ShisaIo._
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    val sourceFiles = args.toList match {
+abstract class MainClass {
+  def runArgs(args: List[String]): Unit = {
+    val sourceFiles = args match {
       case Nil  => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
         .toScala(List)
         .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
@@ -30,36 +30,7 @@ object Main {
     run(sourceFiles)
   }
 
-  val dq            = '"'
-  val getVersion    = () => Exec.execStr(s"scala -2.13.head -e 'println(scala.util.Properties.scalaPropOrNone(${dq}maven.version.number$dq).get)'")
-  val getVersionErr = (res: Exec.Result) => sys.error(s"Fail: ${res.exitCode}, lines:\n  ${res.lines.mkString("\n  ")}")
-
-  def getVersionOr(alt: PartialFunction[Exec.Result, String]) = getVersion() match {
-    case Exec.Result(0, List(s)) => s
-    case res                     => alt.applyOrElse(res, getVersionErr)
-  }
-
-  // if we get extra lines from Coursier, run again
-  lazy val _2_13_head = getVersionOr { case Exec.Result(0, _) => getVersionOr(PartialFunction.empty) }
-
-       val scalac2 = "scalac -deprecation"
-  lazy val scalac3 = {
-    Exec.execStr("dotc") match { // make sure dotc is fresh, so we don't leak building output
-      case Exec.Result(0, _) =>
-      case res               => sys.error(s"Fail: $res, lines:\n  ${res.lines.mkString("\n  ")}")
-    }
-    "dotc -migration -color:never -explain"
-  }
-
-  val combinations = Seq(
-    Invoke("2.13-base", s"$scalac2 -2.13.3"),
-    Invoke("2.13-head", s"$scalac2 -${_2_13_head}"),
-    Invoke("2.13-new",  s"$scalac2 -${_2_13_head} -Xsource:3"),
-    Invoke("3.0-old",   s"$scalac3 -source 3.0-migration"),
-    Invoke("3.0",       s"$scalac3"), // assumes -source 3.0 is the default
-    Invoke("3.1-migr",  s"$scalac3 -source 3.1-migration"),
-    Invoke("3.1",       s"$scalac3 -source 3.1"),
-  )
+  def combinations: Seq[Invoke]
 
   def run(sourceFiles: List[Path]) = {
     sourceFiles.foreach { sourceFile =>
@@ -78,12 +49,15 @@ sealed abstract class CompileFile(val src: Path) {
   val dir           = createDirs(src.resolveSibling(name))
   val targetDir     = Paths.get("target").resolve(dir)
   def chkPath: Path
-  lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
+  def chkOpt: OpenOption
+  def chkOpts       = List(StandardOpenOption.CREATE, chkOpt, StandardOpenOption.WRITE)
+  lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath, chkOpts: _*), true)
 }
 
 final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
-  val out     = targetDir.resolve(s"$name.$id")
+  val out     = createDirs(targetDir.resolve(s"$name.$id"))
   val chkPath = dir.resolve(s"$name.$id.check")
+  def chkOpt  = StandardOpenOption.TRUNCATE_EXISTING
 }
 
 final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
@@ -91,7 +65,12 @@ final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src
   val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
   val chkPath = dir.resolve(s"$name.$idx.check")
   val src2    = outD.resolve(s"$name.$idx.scala")
-  val out     = (id: String) => outD.resolve(s"$name.$id.$idx")
+  val summF   = outD.resolve(s"$name.$idx.summary")
+  val prevOkF = outD.resolve(s"$name.$idx.prevOk")
+  val summ    = if (Files.exists(summF)) try Files.readString(summF) finally Files.delete(summF) else ""
+  val prevOk  = if (Files.exists(prevOkF)) try true finally Files.delete(prevOkF) else false
+  def chkOpt  = if (summ == "") StandardOpenOption.TRUNCATE_EXISTING else StandardOpenOption.APPEND
+  val out     = (id: String) => createDirs(outD.resolve(s"$name.$id.$idx"))
 }
 
 object InvokeCompiler {
@@ -99,7 +78,7 @@ object InvokeCompiler {
     val file = CompileFile1(sourceFile, invoke.id)
     val CompileResult(exitCode, lines) = invoke.compile1(file.src, file.out)
     val writeBody = s"// exitCode: $exitCode" +: lines
-    writeBody.foreach(file.chk.println)
+    (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
   }
 
@@ -112,17 +91,23 @@ object InvokeCompiler {
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
       val file = CompileFileLine(sourceFile, _idx)
-      println(s"    Testing ${file.src2}")
+      print(s"    Testing ${file.src2}")
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
       Files.writeString(file.src2, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
-      file.chk.println(s"// src: $line")
+      val summaries = ListBuffer.empty[String]
+      if (file.summ == "") {
+        file.chk.println(s"// src: $line")
+      } else {
+        summaries += file.summ
+      }
 
-      var prevRes = CompileResult(-127, Nil)
-      val summary = ListBuffer.empty[String]
-      combinations.foreach { case invoke @ Invoke(id, _) =>
+      var prevRes = CompileResult(if (file.prevOk) 0 else -127, Nil)
+
+      combinations.foreach { invoke =>
+        val id = invoke.id
         val res = invoke.compile1(file.src2, file.out(id))
         val result = res.statusPadded
         val writeBody = if (res == prevRes)
@@ -131,26 +116,28 @@ object InvokeCompiler {
           Seq(f"// $id%-9s $result") ++ (if (res.lines.isEmpty) Nil else res.lines :+ "")
         writeBody.foreach(file.chk.println)
         prevRes = res
-        summary += result
+        summaries += result
+        print('.')
       }
-      file.chk.println()
-      file.chk.println(summary.mkString(" "))
+
+      val summary = summaries.mkString(" ")
+      if (file.summ == "") {
+        Files.writeString(file.summF, summary)
+        if (prevRes.exitCode == 0) Files.writeString(file.prevOkF, "")
+      } else {
+        file.chk.println()
+        file.chk.println(summary)
+      }
+
       file.chk.close()
+      println("")
     }
   }
 }
 
-final case class Invoke(id: String, cmd: String) {
-  def compile1(src: Path, out: Path): CompileResult = {
-    val execRes = Exec.execStr(s"$cmd -d ${createDirs(out)} $src")
-    val compRes = execRes match {
-      case Exec.Result(0, Nil)     => CompileResult(0, Nil)
-      case Exec.Result(0, lines)   => CompileResult(0, lines)
-      case Exec.Result(err, lines) => CompileResult(err,  lines)
-    }
-    println(s"${compRes.statusPadded} | $cmd")
-    compRes
-  }
+trait Invoke {
+  def id: String
+  def compile1(src: Path, out: Path): CompileResult
 }
 
 final case class CompileResult(exitCode: Int, lines: List[String]) {
