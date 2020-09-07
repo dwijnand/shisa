@@ -6,9 +6,10 @@ import java.io.PrintWriter
 import java.nio.file._
 
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
+
+import ShisaIo._
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -64,28 +65,45 @@ object Main {
     sourceFiles.foreach { sourceFile =>
       println(s"  Testing $sourceFile")
       if (sourceFile.toString.endsWith(".lines.scala")) {
-        doCompileLines(sourceFile, combinations)
+        InvokeCompiler.doCompileLines(sourceFile, combinations)
       } else {
-        combinations.foreach { case Invoke(id, cmd) => doCompile(id, cmd, sourceFile) }
+        combinations.foreach(InvokeCompiler.doCompile(sourceFile, _))
       }
     }
   }
+}
 
-  def doCompile(id: String, cmd: String, sourceFile: Path) = {
-    val name = sourceFile.getFileName.toString.stripSuffix(".scala")
-    val dir = Files.createDirectories(sourceFile.resolveSibling(name))
-    val out = Files.createDirectories(Paths.get("target").resolve(dir).resolve(s"$name.$id"))
-    val chk = dir.resolve(s"$name.$id.check")
-    val Exec.Result(exitCode, lines) = Exec.execStr(s"$cmd -d $out $sourceFile")
-    Files.write(chk, (s"// exitCode: $exitCode" +: lines).asJava)
+sealed abstract class CompileFile(val src: Path) {
+  val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
+  val dir           = createDirs(src.resolveSibling(name))
+  val targetDir     = Paths.get("target").resolve(dir)
+  def chkPath: Path
+  lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
+}
+
+final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
+  val out     = targetDir.resolve(s"$name.$id")
+  val chkPath = dir.resolve(s"$name.$id.check")
+}
+
+final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
+  val outD    = createDirs(targetDir.resolve(name))
+  val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
+  val chkPath = dir.resolve(s"$name.$idx.check")
+  val src2    = outD.resolve(s"$name.$idx.scala")
+  val out     = (id: String) => outD.resolve(s"$name.$id.$idx")
+}
+
+object InvokeCompiler {
+  def doCompile(sourceFile: Path, invoke: Invoke): Unit = {
+    val file = CompileFile1(sourceFile, invoke.id)
+    val CompileResult(exitCode, lines) = invoke.compile1(file.src, file.out)
+    val writeBody = s"// exitCode: $exitCode" +: lines
+    writeBody.foreach(file.chk.println)
+    file.chk.close()
   }
 
   def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
-    val name = sourceFile.getFileName.toString.stripSuffix(".lines.scala")
-    val dir  = sourceFile.resolveSibling(name)
-    val outD = Paths.get("target").resolve(dir).resolve(name)
-    Files.createDirectories(dir)
-    Files.createDirectories(outD)
     val re   = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
     val (setup, base, input) = Files.readString(sourceFile) match {
       case re(setup0, base, cases) =>
@@ -93,42 +111,63 @@ object Main {
     }
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
-      val idx = if (_idx < 10) s"0${_idx}" else s"${_idx}"
-      val src = outD.resolve(s"$name.$idx.scala")
-      val chkP = dir.resolve(s"$name.$idx.check")
+      val file = CompileFileLine(sourceFile, _idx)
+      println(s"    Testing ${file.src2}")
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
-      Files.writeString(src, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
+      Files.writeString(file.src2, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
-      val chk = new PrintWriter(Files.newBufferedWriter(chkP), true)
-      chk.println(s"// src: $line")
+      file.chk.println(s"// src: $line")
 
-      var prevRes = Exec.Result(-127, Nil)
+      var prevRes = CompileResult(-127, Nil)
       val summary = ListBuffer.empty[String]
-      combinations.foreach { case Invoke(id, cmd) =>
-        val out = outD.resolve(s"$name.$id.$idx")
-        Files.createDirectories(out)
-        val res = Exec.execStr(s"$cmd -d $out $src")
-        val result = res match {
-          case Exec.Result(0, Nil) => "ok   "
-          case Exec.Result(0, _)   => "warn "
-          case Exec.Result(_, _)   => "error"
-        }
-        val linesAndPad = if (res.lines.isEmpty) Nil else res.lines :+ ""
-        val writeBody =
-          if (res == prevRes) Seq(f"// $id%-9s $result <no change>")
-          else f"// $id%-9s $result" +: linesAndPad
-
-        writeBody.foreach(chk.println)
-
+      combinations.foreach { case invoke @ Invoke(id, _) =>
+        val res = invoke.compile1(file.src2, file.out(id))
+        val result = res.statusPadded
+        val writeBody = if (res == prevRes)
+          Seq(f"// $id%-9s $result <no change>")
+        else
+          Seq(f"// $id%-9s $result") ++ (if (res.lines.isEmpty) Nil else res.lines :+ "")
+        writeBody.foreach(file.chk.println)
         prevRes = res
         summary += result
       }
-      chk.println()
-      chk.println(summary.mkString(" "))
+      file.chk.println()
+      file.chk.println(summary.mkString(" "))
+      file.chk.close()
     }
   }
 }
 
-final case class Invoke(id: String, cmd: String)
+final case class Invoke(id: String, cmd: String) {
+  def compile1(src: Path, out: Path): CompileResult = {
+    val execRes = Exec.execStr(s"$cmd -d ${createDirs(out)} $src")
+    val compRes = execRes match {
+      case Exec.Result(0, Nil)     => CompileResult(0, Nil)
+      case Exec.Result(0, lines)   => CompileResult(0, lines)
+      case Exec.Result(err, lines) => CompileResult(err,  lines)
+    }
+    println(s"${compRes.statusPadded} | $cmd")
+    compRes
+  }
+}
+
+final case class CompileResult(exitCode: Int, lines: List[String]) {
+  def statusPadded = this match {
+    case CompileResult(0, Nil) => "ok   "
+    case CompileResult(0, _)   => "warn "
+    case CompileResult(_, _)   => "error"
+  }
+  def assertNoErrors(): Unit = assert(exitCode == 0, s"$exitCode: " + lines)
+}
+
+object ShisaIo {
+  def createDirs(dir: Path) = {
+    // Files.createDirectories returns the created directory...
+    // but (sometimes? on Travis CI at least, compared to locally) as an absolute Path
+    // so do this instead
+    Files.createDirectories(dir)
+    dir
+  }
+}
