@@ -1,10 +1,13 @@
 val shisa = project in file(".")
 
+val dottyV  = "0.26.0"
+val dottyBv = "0.26"
+
 inThisBuild(Def.settings(
   organization := "com.dwijnand",
        version := "0.1.0-SNAPSHOT",
   scalaVersion := "2.13.3",
-  crossScalaVersions := Seq(scalaVersion.value, "0.26.0"),
+  crossScalaVersions := Seq(scalaVersion.value, dottyV),
 ))
 
 Compile / unmanagedSourceDirectories +=
@@ -15,5 +18,6 @@ def compiler2Dep = Def.setting(scalaOrganization.value  % "scala-compiler" % sca
 
 libraryDependencies += ("io.get-coursier" %% "coursier" % "2.0.0-RC6-25").withDottyCompat(scalaVersion.value)
 libraryDependencies += (if (isDotty.value) compiler3Dep.value else compiler2Dep.value)
+libraryDependencies += "ch.epfl.lamp" % "dotty-interfaces" % dottyV
 
 Compile / mainClass := Some(if (isDotty.value) "shisa.Scala3Main" else "shisa.Scala2Main")

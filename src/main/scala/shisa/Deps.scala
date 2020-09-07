@@ -34,6 +34,8 @@ object Deps {
   def gav(g: Organization, a: ModuleName, v: String) = Dependency(Module(g, a), v)
   def fetch(dep: Dependency, repos: Repository*) = Fetch().addDependencies(dep).addRepositories(repos: _*).run()
 
+  def getObj[A](cls: Class[_]) = cls.getField("MODULE$").get(null).asInstanceOf[A]
+
   final val dq     = '"'
   val findVersion  = s"scala.util.Properties.scalaPropOrNone(${dq}maven.version.number$dq).get"
   def getVersion() = Exec.execStr(s"scala -2.13.head -e 'println($findVersion)'")
