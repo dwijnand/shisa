@@ -12,8 +12,8 @@ import scala.util.chaining._
 import ShisaIo._
 
 abstract class MainClass {
-  def runArgs(args: List[String]): Unit = {
-    val sourceFiles = args match {
+  def main(args: Array[String]): Unit = {
+    val sourceFiles = args.toList match {
       case Nil  => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
         .toScala(List)
         .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))

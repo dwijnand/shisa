@@ -8,12 +8,7 @@ import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
 import coursier._
 
 object Scala3Main extends shisa.MainClass {
-  def main(args: Array[String]): Unit = runArgs(args.toList)
-
-  val compiler = Dependency(Module(Organization("ch.epfl.lamp"), ModuleName("dotty-compiler_0.26")), "0.26.0")
-  val jars     = Fetch().addDependencies(compiler).run()
-
-  override lazy val combinations = Seq[Invoke](
+  val combinations = Seq[Invoke](
     FreshCompiler3("3.0-old",  "-source 3.0-migration"),
     FreshCompiler3("3.0",      ""), // assumes -source 3.0 is the default
     FreshCompiler3("3.1-migr", "-source 3.1-migration"),
@@ -32,7 +27,7 @@ final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
     val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
     ctx.setReporter(reporter)
     ctx.setSetting(ctx.settings.color, "never")
-    ctx.setSetting(ctx.settings.classpath, Scala3Main.jars.mkString(File.pathSeparator))
+    ctx.setSetting(ctx.settings.classpath, Deps.scalac_3_00_base.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.migration, true)
     ctx.setSetting(ctx.settings.outputDir, dotty.tools.io.AbstractFile.getDirectory(out.toAbsolutePath.toString))
