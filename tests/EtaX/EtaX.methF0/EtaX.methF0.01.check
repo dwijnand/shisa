@@ -1,6 +1,6 @@
 // src:   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
 // 2.13-base warn 
-target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:7: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method methF0,
+target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:9: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method methF0,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
@@ -10,8 +10,8 @@ In Scala 3, an unapplied method like this will be eta-expanded into a function.
 // 2.13-head warn  <no change>
 // 2.13-new  warn  <no change>
 // 3.0-old   error
--- [E100] Syntax Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:7:33 
-7 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
+-- [E100] Syntax Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:9:33 
+9 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
   |                                 ^^^^^^
   |                             method methF0 must be called with () argument
 

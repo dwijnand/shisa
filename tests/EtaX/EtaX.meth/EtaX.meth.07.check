@@ -1,6 +1,6 @@
 // src:   val t3f: Any       = meth() _               // error: _ must follow method
 // 2.13-base error
-target/tests/EtaX/EtaX.meth/EtaX.meth.07.scala:16: error: _ must follow method; cannot follow String
+target/tests/EtaX/EtaX.meth/EtaX.meth.07.scala:18: error: _ must follow method; cannot follow String
   val t3f: Any       = meth() _               // error: _ must follow method
                            ^
 1 error
@@ -8,8 +8,8 @@ target/tests/EtaX/EtaX.meth/EtaX.meth.07.scala:16: error: _ must follow method; 
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- [E099] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth.07.scala:16:30 ---
-16 |  val t3f: Any       = meth() _               // error: _ must follow method
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth.07.scala:18:30 ---
+18 |  val t3f: Any       = meth() _               // error: _ must follow method
    |                       ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type String
 

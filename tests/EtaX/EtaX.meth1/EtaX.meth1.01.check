@@ -3,10 +3,10 @@
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>
 // 3.0-old   warn 
--- Warning: target/tests/EtaX/EtaX.meth1/EtaX.meth1.01.scala:10:24 -------------
-10 |  val t5b: Sam1S      = meth1                   // ok, but warning
+-- Warning: target/tests/EtaX/EtaX.meth1/EtaX.meth1.01.scala:12:24 -------------
+12 |  val t5b: Sam1S      = meth1                   // ok, but warning
    |                        ^^^^^
-   |method meth1 is eta-expanded even though Sam1S does not have the @FunctionalInterface annotation.
+   |method meth1 is eta-expanded even though p01.Sam1S does not have the @FunctionalInterface annotation.
 1 warning found
 
 // 3.0       warn  <no change>

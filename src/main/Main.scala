@@ -97,8 +97,7 @@ object InvokeCompiler {
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
-    //Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
-      Files.writeString(file.src2, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
+      Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
       file.chk.println(s"// src: $line")
 

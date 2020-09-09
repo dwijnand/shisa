@@ -1,6 +1,6 @@
 // src:   val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
 // 2.13-base warn 
-target/tests/EtaX/EtaX.meth/EtaX.meth.03.scala:12: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
+target/tests/EtaX/EtaX.meth/EtaX.meth.03.scala:14: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
@@ -10,8 +10,8 @@ In Scala 3, an unapplied method like this will be eta-expanded into a function.
 // 2.13-head warn  <no change>
 // 2.13-new  warn  <no change>
 // 3.0-old   error
--- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth.03.scala:12:33 ---
-12 |  val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
+-- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth.03.scala:14:33 ---
+14 |  val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
    |                                 ^^^^
    |                             method meth must be called with () argument
 
