@@ -14,7 +14,7 @@ inThisBuild(Def.settings(
   historyPath            := Some(target.value / ".history"),
 ))
 
-val shisaRoot = proj1(project).in(file(".")).settings(baseDirectory := target.value)
+val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
 aggregateProjects(shisaMain, shisaScalacI, shisaScalac2, shisaScalac3)
 
 lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3).settings(
@@ -35,13 +35,13 @@ lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
   projectDependencies := projectDependencies.value.map(_.withDottyCompat(scalaVersion.value)),
 )
 
-def projId(p: Project) = uncapitalize(p.id.stripPrefix("shisa"))
 def proj1(p: Project) = p.settings(
-  name        := "shisa-" + projId(p), // shisaFoo => shisa-foo
   target      := (ThisBuild / target).value / thisProject.value.id, // target = /target/{id}
   historyPath := (ThisBuild / historyPath).value, // all projects share the same history file
 )
-def proj(p: Project) = proj1(p).in(file("src") / projId(p)).settings(
+def proj(p: Project) = proj1(p).in(file("src") / uncapitalize(p.id.stripPrefix("shisa"))).settings(
+  name := "shisa-" + baseDirectory.value.getName, // src/foo => shisa-foo
+
   // IntelliJ's project import works better when these are set correctly.
   Seq(Compile, Test).flatMap(inConfig(_)(Seq(
     managedSourceDirectories := Nil,
