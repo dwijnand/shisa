@@ -1,5 +1,5 @@
-// exitCode: 0
--- [E100] Syntax Migration Warning: tests/Call.def/Call.meth_p.scala:3:2 -------
+// exitCode: 1
+-- [E100] Syntax Error: tests/Call.def/Call.meth_p.scala:3:2 -------------------
 3 |  meth
   |  ^^^^
   |  method meth must be called with () argument
@@ -14,4 +14,4 @@ def next(): T = ...
 In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
-1 warning found
+1 error found

@@ -2,7 +2,7 @@ inThisBuild(Def.settings(
   organization := "com.dwijnand",
        version := "0.1.0-SNAPSHOT",
   scalaVersion := "2.13.3",
-  crossScalaVersions := Seq(scalaVersion.value, "0.26.0"),
+  crossScalaVersions := Seq(scalaVersion.value, "0.23.0"),
 
   Global / sourcesInBase := false,
   sourceDirectory        := baseDirectory.value / "src",

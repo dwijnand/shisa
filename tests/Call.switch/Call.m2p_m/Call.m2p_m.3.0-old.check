@@ -1,7 +1,7 @@
-// exitCode: 0
--- Migration Warning: tests/Call.switch/Call.m2p_m.scala:2:26 ------------------
+// exitCode: 1
+-- Error: tests/Call.switch/Call.m2p_m.scala:2:26 ------------------------------
 2 |class M2P extends M { def d   = "" }
   |                          ^
-  |                error overriding method d in trait M of type (): String;
-  |                  method d of type => String no longer has compatible type
-1 warning found
+  |                  error overriding method d in trait M of type (): String;
+  |                    method d of type => String has incompatible type
+1 error found

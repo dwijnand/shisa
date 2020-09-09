@@ -10,30 +10,6 @@ target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatc
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
-10 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
-   |                       ^^^^
-   |                       method meth must be called with () argument
-
-Explanation
-===========
-Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
-
-def next(): T = ...
-          |next     // is expanded to next()
-
-In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
-Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
-
--- [E007] Type Mismatch Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
-10 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
-   |                       ^^^^
-   |                       Found:    String
-   |                       Required: Sam0S
-1 warning found
-1 error found
-
-// 3.0       error
 -- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
 10 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
    |                       ^^^^
@@ -51,6 +27,7 @@ Excluded from this rule are methods that are defined in Java or that override me
 
 1 error found
 
+// 3.0       error <no change>
 // 3.1-migr  error <no change>
 // 3.1       error <no change>
 

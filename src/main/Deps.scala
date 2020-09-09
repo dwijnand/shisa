@@ -11,7 +11,7 @@ object Deps {
   lazy val scalac_3_00_base = fetch(scala3Art("compiler", _3_00_base))
 
   def _2_13_base = "2.13.3"
-  def _3_00_base = "0.26.0"
+  def _3_00_base = "0.23.0"
 
   lazy val _2_13_head = getVersion() match {
     case Exec.Result(0, List(s)) => s

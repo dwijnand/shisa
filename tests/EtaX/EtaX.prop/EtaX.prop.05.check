@@ -12,20 +12,7 @@ target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.05.scala:11: error: Methods with
                        ^
 1 error
 
-// 3.0-old   warn 
--- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.05.scala:11:28 
-11 |  val t2f: Any       = prop _                 // ok
-   |                       ^^^^^^
-   |Only function types can be followed by _ but the current expression has type String
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 warning found
-
-// 3.0       error
+// 3.0-old   error
 -- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.05.scala:11:28 
 11 |  val t2f: Any       = prop _                 // ok
    |                       ^^^^^^
@@ -38,31 +25,8 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 
-// 3.1-migr  warn 
--- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.05.scala:11:28 
-11 |  val t2f: Any       = prop _                 // ok
-   |                       ^^^^^^
-   |Only function types can be followed by _ but the current expression has type String
+// 3.0       error <no change>
+// 3.1-migr  error <no change>
+// 3.1       error <no change>
 
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 warning found
-
-// 3.1       error
--- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.05.scala:11:28 
-11 |  val t2f: Any       = prop _                 // ok
-   |                       ^^^^^^
-   |Only function types can be followed by _ but the current expression has type String
-
-Explanation
-===========
-The syntax x _ is no longer supported if x is not a function.
-To convert to a function value, you need to explicitly write () => x
-
-1 error found
-
-
-warn  warn  error warn  error warn  error
+warn  warn  error error error error error

@@ -4,8 +4,7 @@ import java.io.File
 import java.nio.file.Path
 
 import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
-
-import coursier._
+import diagnostic.{ MessageContainer => Diagnostic }, diagnostic.messages._
 
 object Scala3Main extends shisa.MainClass {
   val combinations = Seq[Invoke](
@@ -39,7 +38,7 @@ final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
   }
 
   // from dotc.reporting.ConsoleReporter
-  def display(dia: Diagnostic)(using Context): String = {
+  def display(dia: Diagnostic)(implicit ctx: Context): String = {
     import Diagnostic._
     val doIt = dia match {
       case dia: ConditionalWarning => dia.enablingOption.value
@@ -51,9 +50,13 @@ final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
       val builder   = new StringBuilder("")
       def addMsg    = builder ++= (_: String)
 
-      if (doIt) addMsg(messageAndPos(dia.msg, dia.pos, diagnosticLevel(dia)))
-      if (doIt && shouldExplain(dia)) addMsg("\n" + explanation(dia.msg))
-      else if (doIt && dia.msg.explanation.nonEmpty) addMsg("\nlonger explanation available when compiling with `-explain`")
+      val msg = dia.contained // dia.msg
+      addMsg(messageAndPos(msg, dia.pos, diagnosticLevel(dia)))
+
+      if (ctx.shouldExplain(dia))
+        addMsg("\n" + explanation(msg))
+      else if (msg.explanation.nonEmpty)
+        addMsg("\nlonger explanation available when compiling with `-explain`")
 
       builder.result()
     } else ""
