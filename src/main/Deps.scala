@@ -5,7 +5,7 @@ import coursier._
 object Deps {
   val _2_13_base = "2.13.3"
   val _2_13_head = "2.13.4-bin-965ab82" // scala -2.13.head -version
-  val _3_00_base = "0.23.0"
+  val _3_00_base = "0.26.0"
 
   lazy val scalac_2_13_base = fetch(scala2Art("scala-compiler", _2_13_base))
   lazy val scalac_2_13_head = fetch(scala2Art("scala-compiler", _2_13_head), scalaEaRepo)

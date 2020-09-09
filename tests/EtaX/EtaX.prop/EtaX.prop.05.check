@@ -12,7 +12,20 @@ target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:13: error: Methods without a para
                        ^
 1 error
 
-// 3.0-old   error
+// 3.0-old   warn 
+-- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:13:28 
+13 |  val t2f: Any       = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
+
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+1 warning found
+
+// 3.0       error
 -- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:13:28 ---
 13 |  val t2f: Any       = prop _                 // ok
    |                       ^^^^^^
@@ -25,8 +38,31 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 
-// 3.0       error <no change>
-// 3.1-migr  error <no change>
-// 3.1       error <no change>
+// 3.1-migr  warn 
+-- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:13:28 
+13 |  val t2f: Any       = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
 
-warn  warn  error error error error error
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+1 warning found
+
+// 3.1       error
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:13:28 ---
+13 |  val t2f: Any       = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
+
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+1 error found
+
+
+warn  warn  error warn  error warn  error

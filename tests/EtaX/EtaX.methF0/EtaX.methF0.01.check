@@ -9,7 +9,25 @@ In Scala 3, an unapplied method like this will be eta-expanded into a function.
 
 // 2.13-head warn  <no change>
 // 2.13-new  warn  <no change>
-// 3.0-old   error
+// 3.0-old   warn 
+-- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:9:33 
+9 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
+  |                                 ^^^^^^
+  |                             method methF0 must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 warning found
+
+// 3.0       error
 -- [E100] Syntax Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:9:33 
 9 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
   |                                 ^^^^^^
@@ -27,8 +45,7 @@ Excluded from this rule are methods that are defined in Java or that override me
 
 1 error found
 
-// 3.0       error <no change>
 // 3.1-migr  error <no change>
 // 3.1       error <no change>
 
-warn  warn  warn  error error error error
+warn  warn  warn  warn  error error error

@@ -6,7 +6,6 @@ import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
-import diagnostic.{ MessageContainer => Diagnostic }, diagnostic.messages._
 
 object ShisaDriver extends Driver {
   override def doCompile(compiler: Compiler, fileNames: List[String])(using Context): Reporter =
@@ -47,12 +46,11 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
       val builder   = new StringBuilder("")
       def addMsg    = builder ++= (_: String)
 
-      val msg = dia.contained // dia.msg
-      addMsg(messageAndPos(msg, dia.pos, diagnosticLevel(dia)))
+      addMsg(messageAndPos(dia.msg, dia.pos, diagnosticLevel(dia)))
 
-      if (ctx.shouldExplain(dia))
-        addMsg("\n" + explanation(msg))
-      else if (msg.explanation.nonEmpty)
+      if (shouldExplain(dia))
+        addMsg("\n" + explanation(dia.msg))
+      else if (dia.msg.explanation.nonEmpty)
         addMsg("\nlonger explanation available when compiling with `-explain`")
 
       builder.result()
