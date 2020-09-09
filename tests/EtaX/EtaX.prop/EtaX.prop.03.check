@@ -1,19 +1,19 @@
 // src:   val t2d: () => Any = prop _                 // ok
 // 2.13-base warn 
-target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.03.scala:9: warning: Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead
+target/tests/EtaX/EtaX.prop/EtaX.prop.03.scala:9: warning: Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead
   val t2d: () => Any = prop _                 // ok
                        ^
 1 warning
 
 // 2.13-head warn  <no change>
 // 2.13-new  error
-target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.03.scala:9: error: Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead
+target/tests/EtaX/EtaX.prop/EtaX.prop.03.scala:9: error: Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead
   val t2d: () => Any = prop _                 // ok
                        ^
 1 error
 
 // 3.0-old   error
--- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.03.scala:9:28 
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop.03.scala:9:28 ----
 9 |  val t2d: () => Any = prop _                 // ok
   |                       ^^^^^^
   |Only function types can be followed by _ but the current expression has type String

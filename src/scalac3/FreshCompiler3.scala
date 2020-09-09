@@ -12,7 +12,7 @@ object ShisaDriver extends Driver {
 }
 
 final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
-  def compile1(src: Path, out: Path): CompileResult = {
+  def compile1(src: Path): CompileResult = {
     implicit val ctx: FreshContext = new ContextBase().initialCtx.fresh
     val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
     ctx.setReporter(reporter)
@@ -20,7 +20,7 @@ final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
     ctx.setSetting(ctx.settings.classpath, Deps.scalac_3_00_base.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.migration, true)
-    ctx.setSetting(ctx.settings.outputDir, dotty.tools.io.AbstractFile.getDirectory(out.toAbsolutePath.toString))
+    ctx.setSetting(ctx.settings.outputDir, new dotty.tools.io.VirtualDirectory(s"$src.out.d"))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(config.CommandLineParser.tokenize(cmd), processAll = true).sstate)
     ast.Positioned.updateDebugPos(using ctx)

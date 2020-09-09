@@ -1,6 +1,6 @@
 // src:   val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
 // 2.13-base error
-target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatch;
+target/tests/EtaX/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatch;
  found   : String
  required: Sam0S
   val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
@@ -10,7 +10,7 @@ target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10: error: type mismatc
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth/EtaX.meth.01.scala:10:23 
+-- [E100] Syntax Error: target/tests/EtaX/EtaX.meth/EtaX.meth.01.scala:10:23 ---
 10 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
    |                       ^^^^
    |                       method meth must be called with () argument

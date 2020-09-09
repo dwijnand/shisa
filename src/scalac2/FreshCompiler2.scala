@@ -5,15 +5,15 @@ import java.nio.file.Path
 
 import scala.reflect.internal.util.{ Position, StringOps }
 import scala.reflect.internal.Reporter.{ ERROR, WARNING }
-import scala.reflect.io.AbstractFile
+import scala.reflect.io.{ AbstractFile, VirtualDirectory }
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends Invoke {
-  def compile1(src: Path, out: Path): CompileResult = {
+  def compile1(src: Path): CompileResult = {
     val settings = new Settings
     settings.classpath.value   = scalaJars.mkString(File.pathSeparator)
     settings.deprecation.value = true
-    settings.outdir.value      = out.toString
+    settings.outputDirs.setSingleOutput(new VirtualDirectory(s"$src.out.d", None))
     settings.processArgumentString(cmd)
     val reporter = new StoreReporter(settings)
     val compiler = Global(settings, reporter)

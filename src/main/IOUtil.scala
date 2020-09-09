@@ -2,12 +2,8 @@ package shisa
 
 import scala.language.implicitConversions
 
-import java.io.{ IOException, PrintWriter }
+import java.io.IOException
 import java.nio.file._, attribute.BasicFileAttributes
-
-import scala.collection.mutable.ListBuffer
-import scala.jdk.StreamConverters._
-import scala.util.chaining._
 
 object IOUtil {
   def createDirs(dir: Path) = {

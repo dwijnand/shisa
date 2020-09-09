@@ -48,22 +48,18 @@ object Main {
 sealed abstract class CompileFile(val src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
   val dir           = IOUtil.createDirs(src.resolveSibling(name))
-  val targetDir     = Paths.get("target").resolve(dir)
   def chkPath: Path
   lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
 }
 
 final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
-  val out     = IOUtil.createDirs(targetDir.resolve(s"$name.$id"))
   val chkPath = dir.resolve(s"$name.$id.check")
 }
 
 final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
-  val outD    = IOUtil.createDirs(targetDir.resolve(name))
   val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
+  val src2    = IOUtil.createDirs(Paths.get("target").resolve(dir)).resolve(s"$name.$idx.scala")
   val chkPath = dir.resolve(s"$name.$idx.check")
-  val src2    = outD.resolve(s"$name.$idx.scala")
-  val out     = (id: String) => IOUtil.createDirs(outD.resolve(s"$name.$id.$idx"))
 }
 
 object InvokeCompiler {
@@ -81,7 +77,7 @@ object InvokeCompiler {
 
   def doCompile(sourceFile: Path, invoke: Invoke) = {
     val file = CompileFile1(sourceFile, invoke.id)
-    val CompileResult(exitCode, lines) = invoke.compile1(file.src, file.out)
+    val CompileResult(exitCode, lines) = invoke.compile1(file.src)
     val writeBody = s"// exitCode: $exitCode" +: lines
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
@@ -101,6 +97,7 @@ object InvokeCompiler {
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
+    //Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
       Files.writeString(file.src2, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
       file.chk.println(s"// src: $line")
@@ -109,7 +106,7 @@ object InvokeCompiler {
       var prevRes = CompileResult(-127, Nil)
       combinations.foreach { invoke =>
         val id = invoke.id
-        val res = invoke.compile1(file.src2, file.out(id))
+        val res = invoke.compile1(file.src2)
         val result = res.statusPadded
         val writeBody = if (res == prevRes)
           Seq(f"// $id%-9s $result <no change>")

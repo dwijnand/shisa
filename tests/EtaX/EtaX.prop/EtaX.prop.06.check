@@ -1,6 +1,6 @@
 // src:   val t2g: Any       = prop() _               // error: not enough arguments for method apply
 // 2.13-base error
-target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.06.scala:12: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:12: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
 Unspecified value parameter i.
   val t2g: Any       = prop() _               // error: not enough arguments for method apply
                            ^
@@ -9,7 +9,7 @@ Unspecified value parameter i.
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop/EtaX.prop.06.scala:12:30 
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:12:30 ---
 12 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type <nonsensical><error unspecified error></nonsensical>

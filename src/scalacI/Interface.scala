@@ -18,8 +18,11 @@ final case class CompileResult(exitCode: Int, lines: List[String]) {
   def assertNoErrors(): Unit = assert(exitCode == 0, s"$exitCode: " + lines)
 }
 
-trait Invoke {
+trait Runner {
+  def compile1(src: Path): CompileResult
+}
+
+trait Invoke extends Runner {
   def id: String
   def cmd: String
-  def compile1(src: Path, out: Path): CompileResult
 }
