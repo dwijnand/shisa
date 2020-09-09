@@ -3,15 +3,15 @@ package shisa
 import coursier._
 
 object Deps {
-  lazy val lib_2_13_base = fetch(scala2Art("library", "2.13.3"))
+  val _2_13_base = "2.13.3"
+  val _3_00_base = "0.23.0"
+
+  lazy val lib_2_13_base = fetch(scala2Art("library", _2_13_base))
   lazy val lib_2_13_head = fetch(scala2Art("library", _2_13_head), scalaEaRepo)
 
-  lazy val scalac_2_13_base = fetch(scala2Art("compiler", "2.13.3"))
+  lazy val scalac_2_13_base = fetch(scala2Art("compiler", _2_13_base))
   lazy val scalac_2_13_head = fetch(scala2Art("compiler", _2_13_head), scalaEaRepo)
   lazy val scalac_3_00_base = fetch(scala3Art("compiler", _3_00_base))
-
-  def _2_13_base = "2.13.3"
-  def _3_00_base = "0.23.0"
 
   lazy val _2_13_head = getVersion() match {
     case Exec.Result(0, List(s)) => s
