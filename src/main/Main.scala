@@ -90,6 +90,16 @@ object InvokeCompiler {
       case re(setup0, base, cases) =>
         (setup0.linesIterator.map(_.trim).mkString("\n"), base, cases.linesIterator.toList)
     }
+
+    val residentCompilers = combinations.map { invoke =>
+      new Invoke {
+        def id            = invoke.id
+        def cmd           = invoke.cmd
+        lazy val instance = invoke.mkRunner()
+        def mkRunner()    = instance
+      }
+    }
+
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
       val file = CompileFileLine(sourceFile, _idx)
@@ -103,7 +113,7 @@ object InvokeCompiler {
 
       val summaries = ListBuffer.empty[String]
       var prevRes = CompileResult(-127, Nil)
-      combinations.foreach { invoke =>
+      residentCompilers.foreach { invoke =>
         val id = invoke.id
         val res = invoke.compile1(file.src2)
         val result = res.statusPadded

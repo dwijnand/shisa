@@ -9,17 +9,22 @@ import scala.reflect.io.{ AbstractFile, VirtualDirectory }
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends Invoke {
-  def compile1(src: Path): CompileResult = {
+  def mkRunner(): Runner = new Runner {
     val settings = new Settings
     settings.classpath.value   = scalaJars.mkString(File.pathSeparator)
     settings.deprecation.value = true
-    settings.outputDirs.setSingleOutput(new VirtualDirectory(s"$src.out.d", None))
+    settings.outputDirs.setSingleOutput(new VirtualDirectory("FreshCompiler2 output", None))
     settings.processArgumentString(cmd)
     val reporter = new StoreReporter(settings)
     val compiler = Global(settings, reporter)
-    new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
-    finish(reporter)
-    CompileResult(if (reporter.hasErrors) 1 else 0, reporter.infos.toList.map(display))
+
+    def compile1(src: Path) = {
+      new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
+      finish(reporter)
+      val res = CompileResult(if (reporter.hasErrors) 1 else 0, reporter.infos.toList.map(display))
+      reporter.reset()
+      res
+    }
   }
 
   // from nsc.reporters.PrintReporter

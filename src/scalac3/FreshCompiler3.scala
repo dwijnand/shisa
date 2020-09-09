@@ -12,20 +12,24 @@ object ShisaDriver extends Driver {
 }
 
 final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
-  def compile1(src: Path): CompileResult = {
+  def mkRunner(): Runner = new Runner {
     implicit val ctx: FreshContext = new ContextBase().initialCtx.fresh
-    val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
-    ctx.setReporter(reporter)
     ctx.setSetting(ctx.settings.color, "never")
     ctx.setSetting(ctx.settings.classpath, Deps.scalac_3_00_base.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.migration, true)
-    ctx.setSetting(ctx.settings.outputDir, new dotty.tools.io.VirtualDirectory(s"$src.out.d"))
+    ctx.setSetting(ctx.settings.outputDir, new dotty.tools.io.VirtualDirectory(s"FreshCompiler3 output"))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(config.CommandLineParser.tokenize(cmd), processAll = true).sstate)
     ast.Positioned.updateDebugPos(using ctx)
-    ShisaDriver.doCompile(new dotty.tools.dotc.Compiler, List(src.toString))
-    CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display))
+    val compiler = new dotty.tools.dotc.Compiler
+
+    def compile1(src: Path) = {
+      val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
+      ctx.setReporter(reporter)
+      ShisaDriver.doCompile(compiler, List(src.toString))
+      CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display))
+    }
   }
 
   // from dotc.reporting.ConsoleReporter
