@@ -2,14 +2,12 @@ package shisa
 
 import scala.language.implicitConversions
 
-import java.io.{ IOException, PrintWriter }
-import java.nio.file._, attribute.BasicFileAttributes
+import java.io.PrintWriter
+import java.nio.file._
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
-
-import ShisaIo._
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -29,7 +27,7 @@ object Main {
       sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
     val targetTestsDir = Paths.get("target/tests")
-    if (Files.exists(targetTestsDir)) deleteRecursive(targetTestsDir)
+    if (Files.exists(targetTestsDir)) IOUtil.deleteRecursive(targetTestsDir)
 
     println(s"Combinations:${combinations.map(i => f"\n  ${i.id}%-9s : ${i.cmd}").mkString}")
 
@@ -49,23 +47,23 @@ object Main {
 
 sealed abstract class CompileFile(val src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
-  val dir           = createDirs(src.resolveSibling(name))
+  val dir           = IOUtil.createDirs(src.resolveSibling(name))
   val targetDir     = Paths.get("target").resolve(dir)
   def chkPath: Path
   lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
 }
 
 final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
-  val out     = createDirs(targetDir.resolve(s"$name.$id"))
+  val out     = IOUtil.createDirs(targetDir.resolve(s"$name.$id"))
   val chkPath = dir.resolve(s"$name.$id.check")
 }
 
 final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
-  val outD    = createDirs(targetDir.resolve(name))
+  val outD    = IOUtil.createDirs(targetDir.resolve(name))
   val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
   val chkPath = dir.resolve(s"$name.$idx.check")
   val src2    = outD.resolve(s"$name.$idx.scala")
-  val out     = (id: String) => createDirs(outD.resolve(s"$name.$id.$idx"))
+  val out     = (id: String) => IOUtil.createDirs(outD.resolve(s"$name.$id.$idx"))
 }
 
 object InvokeCompiler {
@@ -127,33 +125,6 @@ object InvokeCompiler {
       file.chk.println(summaries.mkString(" "))
       file.chk.close()
       println()
-    }
-  }
-}
-
-object ShisaIo {
-  def createDirs(dir: Path) = {
-    // Files.createDirectories returns the created directory...
-    // but (sometimes? on Travis CI at least, compared to locally) as an absolute Path
-    // so do this instead
-    Files.createDirectories(dir)
-    dir
-  }
-
-  def deleteRecursive(p: Path): Unit = Files.walkFileTree(p, new DeleteVisitor)
-
-  private final class DeleteVisitor extends SimpleFileVisitor[Path]() {
-    override def visitFile(file: Path, attrs: BasicFileAttributes) = {
-      Files.delete(file)
-      FileVisitResult.CONTINUE
-    }
-
-    override def postVisitDirectory(dir: Path, exc: IOException) = {
-      val listing = Files.list(dir)
-      try if (!listing.iterator().hasNext())
-        Files.delete(dir)
-      finally listing.close()
-      FileVisitResult.CONTINUE
     }
   }
 }
