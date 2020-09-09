@@ -35,13 +35,13 @@ object Main {
   }
 
   val combinations = Seq[Invoke](
-    FreshCompiler2("2.13-base", Deps.lib_2_13_base, ""),
-    FreshCompiler2("2.13-head", Deps.lib_2_13_head, ""),
-    FreshCompiler2("2.13-new",  Deps.lib_2_13_head, "-Xsource:3"),
-    FreshCompiler3("3.0-old",  "-source 3.0-migration"),
-    FreshCompiler3("3.0",      ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr", "-source 3.1-migration"),
-    FreshCompiler3("3.1",      "-source 3.1"),
+    FreshCompiler2("2.13-base", Deps.scalac_2_13_base, ""),
+    FreshCompiler2("2.13-head", Deps.scalac_2_13_head, ""),
+    FreshCompiler2("2.13-new",  Deps.scalac_2_13_head, "-Xsource:3"),
+    FreshCompiler3("3.0-old",                          "-source 3.0-migration"),
+    FreshCompiler3("3.0",                              ""), // assumes -source 3.0 is the default
+    FreshCompiler3("3.1-migr",                         "-source 3.1-migration"),
+    FreshCompiler3("3.1",                              "-source 3.1"),
   )
 }
 
@@ -62,15 +62,25 @@ final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src
   val chkPath = dir.resolve(s"$name.$idx.check")
 }
 
+final class CachedInvoke(invoke: Invoke) extends Invoke {
+  lazy val instance = invoke.mkRunner()
+
+  def id         = invoke.id
+  def cmd        = invoke.cmd
+  def mkRunner() = instance
+}
+
 object InvokeCompiler {
   def compileSwitch(sourceFile: Path, combinations: Seq[Invoke]) = {
+    val residentCompilers = combinations.map(new CachedInvoke(_))
+
     print(s"> Testing $sourceFile")
     if (sourceFile.toString.endsWith(".lines.scala")) {
       println()
       doCompileLines(sourceFile, combinations)
     } else {
       print(" ")
-      combinations.foreach(doCompile(sourceFile, _))
+      residentCompilers.foreach(doCompile(sourceFile, _))
       println()
     }
   }
@@ -91,15 +101,6 @@ object InvokeCompiler {
         (setup0.linesIterator.map(_.trim).mkString("\n"), base, cases.linesIterator.toList)
     }
 
-    val residentCompilers = combinations.map { invoke =>
-      new Invoke {
-        def id            = invoke.id
-        def cmd           = invoke.cmd
-        lazy val instance = invoke.mkRunner()
-        def mkRunner()    = instance
-      }
-    }
-
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
       val file = CompileFileLine(sourceFile, _idx)
@@ -113,7 +114,7 @@ object InvokeCompiler {
 
       val summaries = ListBuffer.empty[String]
       var prevRes = CompileResult(-127, Nil)
-      residentCompilers.foreach { invoke =>
+      combinations.foreach { invoke =>
         val id = invoke.id
         val res = invoke.compile1(file.src2)
         val result = res.statusPadded

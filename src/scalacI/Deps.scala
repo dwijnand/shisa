@@ -7,9 +7,6 @@ object Deps {
   val _2_13_head = "2.13.4-bin-965ab82" // scala -2.13.head -version
   val _3_00_base = "0.23.0"
 
-  lazy val lib_2_13_base = fetch(scala2Art("scala-library", _2_13_base))
-  lazy val lib_2_13_head = fetch(scala2Art("scala-library", _2_13_head), scalaEaRepo)
-
   lazy val scalac_2_13_base = fetch(scala2Art("scala-compiler", _2_13_base))
   lazy val scalac_2_13_head = fetch(scala2Art("scala-compiler", _2_13_head), scalaEaRepo)
   lazy val scalac_3_00_base = fetch(scala3Art("dotty-compiler", _3_00_base))
