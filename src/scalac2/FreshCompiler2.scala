@@ -3,6 +3,7 @@ package shisa
 import java.io.File
 import java.nio.file.Path
 
+import scala.jdk.CollectionConverters._
 import scala.reflect.internal.util.{ Position, StringOps }
 import scala.reflect.internal.Reporter.{ ERROR, WARNING }
 import scala.reflect.io.{ AbstractFile, VirtualDirectory }
@@ -21,7 +22,7 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
     def compile1(src: Path) = {
       new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
       finish(reporter)
-      val res = CompileResult(if (reporter.hasErrors) 1 else 0, reporter.infos.toList.map(display))
+      val res = new CompileResult(if (reporter.hasErrors) 1 else 0, reporter.infos.toList.map(display).asJava)
       reporter.reset()
       res
     }

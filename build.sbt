@@ -1,6 +1,5 @@
-val scala2 = "2.13.4-bin-965ab82" // Early access to TASTy unpickling integration
-val scala3 = "0.23.0" // need to go back for the TASTy unpickler in 2.13.x..
-//val scala3 = "0.26.0"
+val scala2 = "2.13.3"
+val scala3 = "0.23.0"
 
 inThisBuild(Def.settings(
   organization := "com.dwijnand",
@@ -17,8 +16,14 @@ inThisBuild(Def.settings(
 val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
 aggregateProjects(shisaMain, shisaScalacI, shisaScalac2, shisaScalac3)
 
-lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3).settings(
-)
+lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
+  buildInfoPackage := "shisa",
+  buildInfoKeys := Seq[BuildInfoKey](
+    BuildInfoKey.map((shisaScalac3 / Compile / classDirectory).toTask.dependsOn(shisaScalac3 / Compile / compile).taskValue) { case (_, dir) =>
+      "scalac3Dir" -> dir
+    },
+  ),
+).enablePlugins(BuildInfoPlugin)
 
 lazy val shisaScalacI = proj(project).settings(
   libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25",
@@ -30,7 +35,6 @@ lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
 
 lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
          scalaVersion := scala3,
-         crossVersion := CrossVersion.constant("2.13"), // not "0.26" or similar
   libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
   projectDependencies := projectDependencies.value.map(_.withDottyCompat(scalaVersion.value)),
 )
@@ -53,9 +57,10 @@ def proj(p: Project) = proj1(p).in(file("src") / uncapitalize(p.id.stripPrefix("
             sourceDirectory            := baseDirectory.value,
   Compile / sourceDirectory            := sourceDirectory.value,
   Compile / scalaSource                := (Compile / sourceDirectory).value,
+  Compile / javaSource                 := (Compile / sourceDirectory).value,
   Compile / unmanagedSourceDirectories += (Compile / scalaSource).value,
+  Compile / unmanagedSourceDirectories += (Compile / javaSource).value,
 
-  Compile / javaSource        := target.value / "src/main/java",
   Compile / resourceDirectory := target.value / "src/main/resources",
      Test / sourceDirectory   := target.value / "src/test",
 )

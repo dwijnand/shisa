@@ -3,6 +3,8 @@ package shisa
 import java.io.File
 import java.nio.file.Path
 
+import scala.jdk.CollectionConverters._
+
 import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
 import diagnostic.{ MessageContainer => Diagnostic }, diagnostic.messages._
 
@@ -11,11 +13,11 @@ object ShisaDriver extends Driver {
     super.doCompile(compiler, fileNames)
 }
 
-final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
+final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends Invoke {
   def mkRunner(): Runner = new Runner {
     implicit val ctx: FreshContext = new ContextBase().initialCtx.fresh
     ctx.setSetting(ctx.settings.color, "never")
-    ctx.setSetting(ctx.settings.classpath, Deps.scalac_3_00_base.mkString(File.pathSeparator))
+    ctx.setSetting(ctx.settings.classpath, scalaJars.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.migration, true)
     ctx.setSetting(ctx.settings.outputDir, new dotty.tools.io.VirtualDirectory(s"FreshCompiler3 output"))
@@ -28,7 +30,7 @@ final case class FreshCompiler3(id: String, cmd: String) extends Invoke {
       val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
       ctx.setReporter(reporter)
       ShisaDriver.doCompile(compiler, List(src.toString))
-      CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display))
+      new CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display).asJava)
     }
   }
 

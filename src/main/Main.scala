@@ -2,10 +2,12 @@ package shisa
 
 import scala.language.implicitConversions
 
-import java.io.PrintWriter
+import java.io.{ File, PrintWriter }
+import java.net.URLClassLoader
 import java.nio.file._
 
 import scala.collection.mutable.ListBuffer
+import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
 
@@ -34,14 +36,23 @@ object Main {
     sourceFiles.foreach(InvokeCompiler.compileSwitch(_, combinations))
   }
 
+  val mkFreshCompiler3: (String, String) => Invoke = {
+    val scalaJars = Deps.scalac_3_00_base
+    val urls = (BuildInfo.scalac3Dir +: scalaJars).toArray.map(_.toURI.toURL)
+    val cl = new URLClassLoader(urls, getClass.getClassLoader)
+    val cls = cl.loadClass("shisa.FreshCompiler3")
+    val ctor = cls.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
+    (id: String, cmd: String) => ctor.newInstance(id, scalaJars.toArray, cmd).asInstanceOf[Invoke]
+  }
+
   val combinations = Seq[Invoke](
     FreshCompiler2("2.13-base", Deps.scalac_2_13_base, ""),
     FreshCompiler2("2.13-head", Deps.scalac_2_13_head, ""),
     FreshCompiler2("2.13-new",  Deps.scalac_2_13_head, "-Xsource:3"),
-    FreshCompiler3("3.0-old",                          "-source 3.0-migration"),
-    FreshCompiler3("3.0",                              ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr",                         "-source 3.1-migration"),
-    FreshCompiler3("3.1",                              "-source 3.1"),
+  mkFreshCompiler3("3.0-old",                          "-source 3.0-migration"),
+  mkFreshCompiler3("3.0",                              ""), // assumes -source 3.0 is the default
+  mkFreshCompiler3("3.1-migr",                         "-source 3.1-migration"),
+  mkFreshCompiler3("3.1",                              "-source 3.1"),
   )
 }
 
@@ -62,14 +73,6 @@ final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src
   val chkPath = dir.resolve(s"$name.$idx.check")
 }
 
-final class CachedInvoke(invoke: Invoke) extends Invoke {
-  lazy val instance = invoke.mkRunner()
-
-  def id         = invoke.id
-  def cmd        = invoke.cmd
-  def mkRunner() = instance
-}
-
 object InvokeCompiler {
   def compileSwitch(sourceFile: Path, combinations: Seq[Invoke]) = {
     val residentCompilers = combinations.map(new CachedInvoke(_))
@@ -86,9 +89,10 @@ object InvokeCompiler {
   }
 
   def doCompile(sourceFile: Path, invoke: Invoke) = {
+    if (Thread.interrupted()) throw new InterruptedException
     val file = CompileFile1(sourceFile, invoke.id)
-    val CompileResult(exitCode, lines) = invoke.compile1(file.src)
-    val writeBody = s"// exitCode: $exitCode" +: lines
+    val res = invoke.compile1(file.src)
+    val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
     print('.')
@@ -103,6 +107,7 @@ object InvokeCompiler {
 
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
+      if (Thread.interrupted()) throw new InterruptedException
       val file = CompileFileLine(sourceFile, _idx)
       print(s"    Testing ${file.src2} ")
 
@@ -113,15 +118,15 @@ object InvokeCompiler {
       file.chk.println(s"// src: $line")
 
       val summaries = ListBuffer.empty[String]
-      var prevRes = CompileResult(-127, Nil)
+      var prevRes = new CompileResult(-127, Nil.asJava)
       combinations.foreach { invoke =>
         val id = invoke.id
         val res = invoke.compile1(file.src2)
-        val result = res.statusPadded
+        val result = statusPadded(res)
         val writeBody = if (res == prevRes)
           Seq(f"// $id%-9s $result <no change>")
         else
-          Seq(f"// $id%-9s $result") ++ (if (res.lines.isEmpty) Nil else res.lines :+ "")
+          Seq(f"// $id%-9s $result") ++ (if (res.lines.isEmpty) Nil else res.lines.asScala :+ "")
         writeBody.foreach(file.chk.println)
         prevRes = res
         summaries += result
@@ -134,4 +139,18 @@ object InvokeCompiler {
       println()
     }
   }
+
+  def statusPadded(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
+    case (0, Nil) => "ok   "
+    case (0, _)   => "warn "
+    case (_, _)   => "error"
+  }
+}
+
+final class CachedInvoke(invoke: Invoke) extends Invoke {
+  lazy val instance = invoke.mkRunner()
+
+  def id         = invoke.id
+  def cmd        = invoke.cmd
+  def mkRunner() = instance
 }
