@@ -6,15 +6,6 @@ import java.nio.file.Path
 import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
 import diagnostic.{ MessageContainer => Diagnostic }, diagnostic.messages._
 
-object Scala3Main extends shisa.MainClass {
-  val combinations = Seq[Invoke](
-    FreshCompiler3("3.0-old",  "-source 3.0-migration"),
-    FreshCompiler3("3.0",      ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr", "-source 3.1-migration"),
-    FreshCompiler3("3.1",      "-source 3.1"),
-  )
-}
-
 object ShisaDriver extends Driver {
   override def doCompile(compiler: Compiler, fileNames: List[String])(using Context): Reporter =
     super.doCompile(compiler, fileNames)

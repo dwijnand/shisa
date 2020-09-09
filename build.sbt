@@ -1,8 +1,12 @@
+val scala2 = "2.13.4-bin-965ab82" // Early access to TASTy unpickling integration
+val scala3 = "0.23.0" // need to go back for the TASTy unpickler in 2.13.x..
+//val scala3 = "0.26.0"
+
 inThisBuild(Def.settings(
   organization := "com.dwijnand",
        version := "0.1.0-SNAPSHOT",
-  scalaVersion := "2.13.3",
-  crossScalaVersions := Seq(scalaVersion.value, "0.23.0"),
+     resolvers += "scala-integration" at "https://scala-ci.typesafe.com/artifactory/scala-integration/",
+  scalaVersion := scala2,
 
   Global / sourcesInBase := false,
   sourceDirectory        := baseDirectory.value / "src",
@@ -11,17 +15,24 @@ inThisBuild(Def.settings(
 ))
 
 val shisaRoot = proj1(project).in(file(".")).settings(baseDirectory := target.value)
-aggregateProjects(shisaMain)
+aggregateProjects(shisaMain, shisaScalacI, shisaScalac2, shisaScalac3)
 
-def compiler3Dep = Def.setting(scalaOrganization.value %% "dotty-compiler" % scalaVersion.value)
-def compiler2Dep = Def.setting(scalaOrganization.value  % "scala-compiler" % scalaVersion.value)
+lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3).settings(
+)
 
-lazy val shisaMain = proj(project).settings(
-  Compile / unmanagedSourceDirectories += (
-    (ThisBuild / sourceDirectory).value / (if (isDotty.value) "scalac3" else "scalac2")),
-  libraryDependencies += ("io.get-coursier" %% "coursier" % "2.0.0-RC6-25").withDottyCompat(scalaVersion.value),
-  libraryDependencies += (if (isDotty.value) compiler3Dep.value else compiler2Dep.value),
-  Compile / mainClass := Some(if (isDotty.value) "shisa.Scala3Main" else "shisa.Scala2Main"),
+lazy val shisaScalacI = proj(project).settings(
+  libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25",
+)
+
+lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
+  libraryDependencies += scalaOrganization.value  % "scala-compiler" % scalaVersion.value,
+)
+
+lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
+         scalaVersion := scala3,
+         crossVersion := CrossVersion.constant("2.13"), // not "0.26" or similar
+  libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
+  projectDependencies := projectDependencies.value.map(_.withDottyCompat(scalaVersion.value)),
 )
 
 def projId(p: Project) = uncapitalize(p.id.stripPrefix("shisa"))

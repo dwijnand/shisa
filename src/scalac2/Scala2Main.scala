@@ -8,14 +8,6 @@ import scala.reflect.internal.Reporter.{ ERROR, WARNING }
 import scala.reflect.io.AbstractFile
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
-object Scala2Main extends shisa.MainClass {
-  val combinations = Seq[Invoke](
-    FreshCompiler2("2.13-base", Deps.lib_2_13_base, ""),
-    FreshCompiler2("2.13-head", Deps.lib_2_13_head, ""),
-    FreshCompiler2("2.13-new",  Deps.lib_2_13_head, "-Xsource:3"),
-  )
-}
-
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends Invoke {
   def compile1(src: Path, out: Path): CompileResult = {
     val settings = new Settings

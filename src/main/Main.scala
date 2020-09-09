@@ -2,8 +2,8 @@ package shisa
 
 import scala.language.implicitConversions
 
-import java.io.PrintWriter
-import java.nio.file._
+import java.io.{ IOException, PrintWriter }
+import java.nio.file._, attribute.BasicFileAttributes
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.StreamConverters._
@@ -11,11 +11,12 @@ import scala.util.chaining._
 
 import ShisaIo._
 
-abstract class MainClass {
+object Main {
   def main(args: Array[String]): Unit = {
     val sourceFiles = args.toList match {
       case Nil  => Files.find(Paths.get("tests"), 10, (p, _) => p.toString.endsWith(".scala"))
         .toScala(List)
+        .sorted
         .tap(xs => println(s"Files: ${xs.mkString("[", ", ", "]")}"))
       case argv  => argv.map(Paths.get(_)).map { p =>
         if (p.isAbsolute) Paths.get("").toAbsolutePath.relativize(p)
@@ -27,21 +28,23 @@ abstract class MainClass {
     if (missing.nonEmpty)
       sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
-    run(sourceFiles)
+    val targetTestsDir = Paths.get("target/tests")
+    if (Files.exists(targetTestsDir)) deleteRecursive(targetTestsDir)
+
+    println(s"Combinations:${combinations.map(i => f"\n  ${i.id}%-9s : ${i.cmd}").mkString}")
+
+    sourceFiles.foreach(InvokeCompiler.compileSwitch(_, combinations))
   }
 
-  def combinations: Seq[Invoke]
-
-  def run(sourceFiles: List[Path]) = {
-    sourceFiles.foreach { sourceFile =>
-      println(s"  Testing $sourceFile")
-      if (sourceFile.toString.endsWith(".lines.scala")) {
-        InvokeCompiler.doCompileLines(sourceFile, combinations)
-      } else {
-        combinations.foreach(InvokeCompiler.doCompile(sourceFile, _))
-      }
-    }
-  }
+  val combinations = Seq[Invoke](
+    FreshCompiler2("2.13-base", Deps.lib_2_13_base, ""),
+    FreshCompiler2("2.13-head", Deps.lib_2_13_head, ""),
+    FreshCompiler2("2.13-new",  Deps.lib_2_13_head, "-Xsource:3"),
+    FreshCompiler3("3.0-old",  "-source 3.0-migration"),
+    FreshCompiler3("3.0",      ""), // assumes -source 3.0 is the default
+    FreshCompiler3("3.1-migr", "-source 3.1-migration"),
+    FreshCompiler3("3.1",      "-source 3.1"),
+  )
 }
 
 sealed abstract class CompileFile(val src: Path) {
@@ -49,15 +52,12 @@ sealed abstract class CompileFile(val src: Path) {
   val dir           = createDirs(src.resolveSibling(name))
   val targetDir     = Paths.get("target").resolve(dir)
   def chkPath: Path
-  def chkOpt: OpenOption
-  def chkOpts       = List(StandardOpenOption.CREATE, chkOpt, StandardOpenOption.WRITE)
-  lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath, chkOpts: _*), true)
+  lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
 }
 
 final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
   val out     = createDirs(targetDir.resolve(s"$name.$id"))
   val chkPath = dir.resolve(s"$name.$id.check")
-  def chkOpt  = StandardOpenOption.TRUNCATE_EXISTING
 }
 
 final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
@@ -65,21 +65,29 @@ final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src
   val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
   val chkPath = dir.resolve(s"$name.$idx.check")
   val src2    = outD.resolve(s"$name.$idx.scala")
-  val summF   = outD.resolve(s"$name.$idx.summary")
-  val prevOkF = outD.resolve(s"$name.$idx.prevOk")
-  val summ    = if (Files.exists(summF)) try Files.readString(summF) finally Files.delete(summF) else ""
-  val prevOk  = if (Files.exists(prevOkF)) try true finally Files.delete(prevOkF) else false
-  def chkOpt  = if (summ == "") StandardOpenOption.TRUNCATE_EXISTING else StandardOpenOption.APPEND
   val out     = (id: String) => createDirs(outD.resolve(s"$name.$id.$idx"))
 }
 
 object InvokeCompiler {
-  def doCompile(sourceFile: Path, invoke: Invoke): Unit = {
+  def compileSwitch(sourceFile: Path, combinations: Seq[Invoke]) = {
+    print(s"> Testing $sourceFile")
+    if (sourceFile.toString.endsWith(".lines.scala")) {
+      println()
+      doCompileLines(sourceFile, combinations)
+    } else {
+      print(" ")
+      combinations.foreach(doCompile(sourceFile, _))
+      println()
+    }
+  }
+
+  def doCompile(sourceFile: Path, invoke: Invoke) = {
     val file = CompileFile1(sourceFile, invoke.id)
     val CompileResult(exitCode, lines) = invoke.compile1(file.src, file.out)
     val writeBody = s"// exitCode: $exitCode" +: lines
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
+    print('.')
   }
 
   def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
@@ -91,21 +99,16 @@ object InvokeCompiler {
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
       val file = CompileFileLine(sourceFile, _idx)
-      print(s"    Testing ${file.src2}")
+      print(s"    Testing ${file.src2} ")
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
       Files.writeString(file.src2, s"$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
+      file.chk.println(s"// src: $line")
+
       val summaries = ListBuffer.empty[String]
-      if (file.summ == "") {
-        file.chk.println(s"// src: $line")
-      } else {
-        summaries += file.summ
-      }
-
-      var prevRes = CompileResult(if (file.prevOk) 0 else -127, Nil)
-
+      var prevRes = CompileResult(-127, Nil)
       combinations.foreach { invoke =>
         val id = invoke.id
         val res = invoke.compile1(file.src2, file.out(id))
@@ -120,33 +123,12 @@ object InvokeCompiler {
         print('.')
       }
 
-      val summary = summaries.mkString(" ")
-      if (file.summ == "") {
-        Files.writeString(file.summF, summary)
-        if (prevRes.exitCode == 0) Files.writeString(file.prevOkF, "")
-      } else {
-        file.chk.println()
-        file.chk.println(summary)
-      }
-
+      file.chk.println()
+      file.chk.println(summaries.mkString(" "))
       file.chk.close()
-      println("")
+      println()
     }
   }
-}
-
-trait Invoke {
-  def id: String
-  def compile1(src: Path, out: Path): CompileResult
-}
-
-final case class CompileResult(exitCode: Int, lines: List[String]) {
-  def statusPadded = this match {
-    case CompileResult(0, Nil) => "ok   "
-    case CompileResult(0, _)   => "warn "
-    case CompileResult(_, _)   => "error"
-  }
-  def assertNoErrors(): Unit = assert(exitCode == 0, s"$exitCode: " + lines)
 }
 
 object ShisaIo {
@@ -156,5 +138,22 @@ object ShisaIo {
     // so do this instead
     Files.createDirectories(dir)
     dir
+  }
+
+  def deleteRecursive(p: Path): Unit = Files.walkFileTree(p, new DeleteVisitor)
+
+  private final class DeleteVisitor extends SimpleFileVisitor[Path]() {
+    override def visitFile(file: Path, attrs: BasicFileAttributes) = {
+      Files.delete(file)
+      FileVisitResult.CONTINUE
+    }
+
+    override def postVisitDirectory(dir: Path, exc: IOException) = {
+      val listing = Files.list(dir)
+      try if (!listing.iterator().hasNext())
+        Files.delete(dir)
+      finally listing.close()
+      FileVisitResult.CONTINUE
+    }
   }
 }
