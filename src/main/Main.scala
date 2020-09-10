@@ -108,7 +108,7 @@ object InvokeCompiler {
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
       if (Thread.interrupted()) throw new InterruptedException
       val file = CompileFileLine(sourceFile, _idx)
-      print(s"    Testing ${file.src2} ")
+      print(f"    line ${file.idx} $line%-100s ")
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
