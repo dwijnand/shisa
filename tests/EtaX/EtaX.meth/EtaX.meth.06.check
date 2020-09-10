@@ -5,16 +5,16 @@
 // 3.0-old   ok    <no change>
 // 3.0       ok    <no change>
 // 3.1-migr  warn 
--- Migration Warning: target/tests/EtaX/EtaX.meth/EtaX.meth.06.scala:17:28 -----
-17 |  val t3e: Any       = meth _                 // ok
+-- Migration Warning: target/tests/EtaX/EtaX.meth/EtaX.meth.06.scala:18:28 -----
+18 |  val t3e: Any       = meth _                 // ok
    |                       ^^^^^^
    |                       The syntax `<function> _` is no longer supported;
    |                       you can use `(() => <function>())` instead
 1 warning found
 
 // 3.1       error
--- Error: target/tests/EtaX/EtaX.meth/EtaX.meth.06.scala:17:28 -----------------
-17 |  val t3e: Any       = meth _                 // ok
+-- Error: target/tests/EtaX/EtaX.meth/EtaX.meth.06.scala:18:28 -----------------
+18 |  val t3e: Any       = meth _                 // ok
    |                       ^^^^^^
    |                       The syntax `<function> _` is no longer supported;
    |                       you can use `(() => <function>())` instead

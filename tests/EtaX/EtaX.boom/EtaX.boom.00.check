@@ -1,6 +1,6 @@
 // src:   new A().boom // ?/?/err: apply, ()-insertion
 // 2.13-base warn 
-target/tests/EtaX/EtaX.boom/EtaX.boom.00.scala:6: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method boom,
+target/tests/EtaX/EtaX.boom/EtaX.boom.00.scala:7: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method boom,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   new A().boom // ?/?/err: apply, ()-insertion
@@ -10,8 +10,8 @@ In Scala 3, an unapplied method like this will be eta-expanded into a function.
 // 2.13-head warn  <no change>
 // 2.13-new  warn  <no change>
 // 3.0-old   warn 
--- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.boom/EtaX.boom.00.scala:6:10 
-6 |  new A().boom // ?/?/err: apply, ()-insertion
+-- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.boom/EtaX.boom.00.scala:7:10 
+7 |  new A().boom // ?/?/err: apply, ()-insertion
   |  ^^^^^^^^^^^^
   |  method boom must be called with () argument
 
@@ -28,8 +28,8 @@ Excluded from this rule are methods that are defined in Java or that override me
 1 warning found
 
 // 3.0       error
--- [E100] Syntax Error: target/tests/EtaX/EtaX.boom/EtaX.boom.00.scala:6:10 ----
-6 |  new A().boom // ?/?/err: apply, ()-insertion
+-- [E100] Syntax Error: target/tests/EtaX/EtaX.boom/EtaX.boom.00.scala:7:10 ----
+7 |  new A().boom // ?/?/err: apply, ()-insertion
   |  ^^^^^^^^^^^^
   |  method boom must be called with () argument
 

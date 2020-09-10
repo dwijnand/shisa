@@ -5,16 +5,16 @@
 // 3.0-old   ok    <no change>
 // 3.0       ok    <no change>
 // 3.1-migr  warn 
--- Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0.02.scala:10:30 -
-10 |  val t1c: () => Any = methF0 _              // ok, explicit eta-expansion requested
+-- Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0.02.scala:11:30 -
+11 |  val t1c: () => Any = methF0 _              // ok, explicit eta-expansion requested
    |                       ^^^^^^^^
    |                       The syntax `<function> _` is no longer supported;
    |                       you can use `(() => <function>())` instead
 1 warning found
 
 // 3.1       error
--- Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0.02.scala:10:30 -------------
-10 |  val t1c: () => Any = methF0 _              // ok, explicit eta-expansion requested
+-- Error: target/tests/EtaX/EtaX.methF0/EtaX.methF0.02.scala:11:30 -------------
+11 |  val t1c: () => Any = methF0 _              // ok, explicit eta-expansion requested
    |                       ^^^^^^^^
    |                       The syntax `<function> _` is no longer supported;
    |                       you can use `(() => <function>())` instead

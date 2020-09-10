@@ -101,8 +101,7 @@ object InvokeCompiler {
   def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
     val re   = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
     val (setup, base, input) = Files.readString(sourceFile) match {
-      case re(setup0, base, cases) =>
-        (setup0.linesIterator.map(_.trim).mkString("\n"), base, cases.linesIterator.toList)
+      case re(setup, base, cases) => (setup, base, cases.linesIterator.toList)
     }
 
     def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")

@@ -1,6 +1,6 @@
 // src:   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
 // 2.13-base error
-target/tests/EtaX/EtaX.prop/EtaX.prop.02.scala:10: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+target/tests/EtaX/EtaX.prop/EtaX.prop.02.scala:11: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
 Unspecified value parameter i.
   val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
                            ^
@@ -9,8 +9,8 @@ Unspecified value parameter i.
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- Error: target/tests/EtaX/EtaX.prop/EtaX.prop.02.scala:10:27 -----------------
-10 |  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
+-- Error: target/tests/EtaX/EtaX.prop/EtaX.prop.02.scala:11:27 -----------------
+11 |  val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument
    |                       ^^^^^^
    |        missing argument for parameter i of method apply: (i: Int): Char
 1 error found
