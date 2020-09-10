@@ -77,7 +77,7 @@ object InvokeCompiler {
   def compileSwitch(sourceFile: Path, combinations: Seq[Invoke]) = {
     val residentCompilers = combinations.map(new CachedInvoke(_))
 
-    print(s"> Testing $sourceFile")
+    print(f"> Testing $sourceFile%-50s")
     if (sourceFile.toString.endsWith(".lines.scala")) {
       println()
       doCompileLines(sourceFile, combinations)
@@ -95,7 +95,7 @@ object InvokeCompiler {
     val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
-    print('.')
+    printStatus(res)
   }
 
   def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
@@ -129,7 +129,7 @@ object InvokeCompiler {
         writeBody.foreach(file.chk.println)
         prevRes = res
         summaries += result
-        print('.')
+        printStatus(res)
       }
 
       file.chk.println()
@@ -138,6 +138,16 @@ object InvokeCompiler {
       println()
     }
   }
+
+  def printStatus(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
+    case (0, Nil) => print(pass)
+    case (0, _)   => print(warn)
+    case (_, _)   => print(fail)
+  }
+
+  def fail = s"${Console.RED}\u2717${Console.RESET}"    // cross mark (red)
+  def pass = s"${Console.GREEN}\u2713${Console.RESET}"  // check mark (green)
+  def warn = s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
 
   def statusPadded(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
     case (0, Nil) => "ok   "
