@@ -1,5 +1,5 @@
 // src:   val t2f: Any       = prop _                 // ok
-// 2.13-base warn 
+// 2.13-base warn
 target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:14: warning: Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead
   val t2f: Any       = prop _                 // ok
                        ^
@@ -12,7 +12,7 @@ target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:14: error: Methods without a para
                        ^
 1 error
 
-// 3.0-old   warn 
+// 3.0-old   warn
 -- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:14:28 
 14 |  val t2f: Any       = prop _                 // ok
    |                       ^^^^^^
@@ -38,7 +38,7 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 
-// 3.1-migr  warn 
+// 3.1-migr  warn
 -- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.05.scala:14:28 
 14 |  val t2f: Any       = prop _                 // ok
    |                       ^^^^^^

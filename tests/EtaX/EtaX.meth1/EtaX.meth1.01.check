@@ -1,8 +1,8 @@
 // src:   val t5b: Sam1S      = meth1                   // ok, but warning
-// 2.13-base ok   
+// 2.13-base ok
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>
-// 3.0-old   warn 
+// 3.0-old   warn
 -- Warning: target/tests/EtaX/EtaX.meth1/EtaX.meth1.01.scala:13:24 -------------
 13 |  val t5b: Sam1S      = meth1                   // ok, but warning
    |                        ^^^^^
@@ -13,4 +13,4 @@
 // 3.1-migr  warn  <no change>
 // 3.1       warn  <no change>
 
-ok    ok    ok    warn  warn  warn  warn 
+ok    ok    ok    warn  warn  warn  warn

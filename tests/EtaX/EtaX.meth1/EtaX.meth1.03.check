@@ -8,10 +8,10 @@ You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead
 1 error
 
 // 2.13-head error <no change>
-// 2.13-new  ok   
+// 2.13-new  ok
 // 3.0-old   ok    <no change>
 // 3.0       ok    <no change>
 // 3.1-migr  ok    <no change>
 // 3.1       ok    <no change>
 
-error error ok    ok    ok    ok    ok   
+error error ok    ok    ok    ok    ok

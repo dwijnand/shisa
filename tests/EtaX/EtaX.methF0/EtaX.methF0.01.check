@@ -1,5 +1,5 @@
 // src:   val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
-// 2.13-base warn 
+// 2.13-base warn
 target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:10: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method methF0,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
@@ -9,7 +9,7 @@ In Scala 3, an unapplied method like this will be eta-expanded into a function.
 
 // 2.13-head warn  <no change>
 // 2.13-new  warn  <no change>
-// 3.0-old   warn 
+// 3.0-old   warn
 -- [E100] Syntax Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0.01.scala:10:33 
 10 |  val t1b: () => Any = { val t = methF0; t } // `()`-insert b/c no expected type
    |                                 ^^^^^^

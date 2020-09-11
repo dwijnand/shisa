@@ -1,5 +1,5 @@
 // src:   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
-// 2.13-base warn 
+// 2.13-base warn
 target/tests/EtaX/EtaX.prop/EtaX.prop.04.scala:13: warning: Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead
   val t2e: () => Any = { val t = prop _ ; t } // ?/ok
                                  ^
@@ -12,7 +12,7 @@ target/tests/EtaX/EtaX.prop/EtaX.prop.04.scala:13: error: Methods without a para
                                  ^
 1 error
 
-// 3.0-old   warn 
+// 3.0-old   warn
 -- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.04.scala:13:38 
 13 |  val t2e: () => Any = { val t = prop _ ; t } // ?/ok
    |                                 ^^^^^^

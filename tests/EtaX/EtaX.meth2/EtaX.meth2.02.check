@@ -1,10 +1,10 @@
 // src:   val t4c: () => Any = meth2 _   // ok
-// 2.13-base ok   
+// 2.13-base ok
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>
 // 3.0-old   ok    <no change>
 // 3.0       ok    <no change>
-// 3.1-migr  warn 
+// 3.1-migr  warn
 -- Migration Warning: target/tests/EtaX/EtaX.meth2/EtaX.meth2.02.scala:11:23 ---
 11 |  val t4c: () => Any = meth2 _   // ok
    |                       ^^^^^

@@ -6,7 +6,6 @@ import java.io.{ File, PrintWriter }
 import java.net.URLClassLoader
 import java.nio.file._
 
-import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
@@ -114,26 +113,22 @@ object InvokeCompiler {
       body(_idx) = line
       Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
+      val results = combinations.map(invoke => (invoke.id, invoke.compile1(file.src2).tap(printStatus)))
+
       file.chk.println(s"// src: $line")
 
-      val summaries = ListBuffer.empty[String]
-      var prevRes = new CompileResult(-127, Nil.asJava)
-      combinations.foreach { invoke =>
-        val id = invoke.id
-        val res = invoke.compile1(file.src2)
+      results.foldLeft(new CompileResult(-127, Nil.asJava)) { case (prevRes, (id, res)) =>
         val result = statusPadded(res)
         val writeBody = if (res == prevRes)
           Seq(f"// $id%-9s $result <no change>")
         else
-          Seq(f"// $id%-9s $result") ++ (if (res.lines.isEmpty) Nil else res.lines.asScala :+ "")
+          Seq(f"// $id%-9s $result".trim) ++ (if (res.lines.isEmpty) Nil else res.lines.asScala :+ "")
         writeBody.foreach(file.chk.println)
-        prevRes = res
-        summaries += result
-        printStatus(res)
+        res
       }
 
       file.chk.println()
-      file.chk.println(summaries.mkString(" "))
+      file.chk.println(results.map(x => statusPadded(x._2)).mkString(" ").trim)
       file.chk.close()
       println()
     }

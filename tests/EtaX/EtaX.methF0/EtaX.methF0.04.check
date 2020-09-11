@@ -7,7 +7,7 @@ target/tests/EtaX/EtaX.methF0/EtaX.methF0.04.scala:13: error: _ must follow meth
 
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
-// 3.0-old   warn 
+// 3.0-old   warn
 -- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0.04.scala:13:32 
 13 |  val t1e: Any       = methF0() _            // error: _ must follow method
    |                       ^^^^^^^^^^
@@ -33,7 +33,7 @@ To convert to a function value, you need to explicitly write () => x
 
 1 error found
 
-// 3.1-migr  warn 
+// 3.1-migr  warn
 -- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.methF0/EtaX.methF0.04.scala:13:32 
 13 |  val t1e: Any       = methF0() _            // error: _ must follow method
    |                       ^^^^^^^^^^
