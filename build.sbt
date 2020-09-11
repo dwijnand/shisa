@@ -15,18 +15,20 @@ inThisBuild(Def.settings(
 
 val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
 aggregateProjects(shisaMain, shisaScalacI, shisaScalac2, shisaScalac3)
+run := (shisaMain / Compile / run).evaluated
 
 lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
   buildInfoPackage := "shisa",
   buildInfoKeys := Seq[BuildInfoKey](
-    BuildInfoKey.map((shisaScalac3 / Compile / classDirectory).toTask.dependsOn(shisaScalac3 / Compile / compile).taskValue) { case (_, dir) =>
-      "scalac3Dir" -> dir
-    },
+    classesDir(shisaScalac3, Compile).taskValue.named("scalac3Dir"),
   ),
+  libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25",
 ).enablePlugins(BuildInfoPlugin)
 
 lazy val shisaScalacI = proj(project).settings(
-  libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25",
+  autoScalaLibrary := false,
+      compileOrder := CompileOrder.JavaThenScala,
+        crossPaths := false,
 )
 
 lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
@@ -36,7 +38,6 @@ lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
 lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
          scalaVersion := scala3,
   libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
-  projectDependencies := projectDependencies.value.map(_.withDottyCompat(scalaVersion.value)),
 )
 
 def proj1(p: Project) = p.settings(
@@ -75,3 +76,5 @@ def uncapitalize(s: String) = {
     new String(chars)
   }
 }
+
+def classesDir(r: Reference, c: ConfigKey) = (r / c / classDirectory).toTask.dependsOn(r / c / compile)
