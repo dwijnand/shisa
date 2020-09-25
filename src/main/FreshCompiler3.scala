@@ -3,8 +3,6 @@ package shisa
 import java.io.File
 import java.nio.file.Path
 
-import scala.jdk.CollectionConverters._
-
 import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
 
 object ShisaDriver extends Driver {
@@ -12,7 +10,7 @@ object ShisaDriver extends Driver {
     super.doCompile(compiler, fileNames)
 }
 
-final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends Invoke {
+final case class FreshCompiler3(id: String, scalaJars: Seq[File], cmd: String) extends Invoke {
   def mkRunner(): Runner = new Runner {
     implicit val ctx: FreshContext = new ContextBase().initialCtx.fresh
     ctx.setSetting(ctx.settings.color, "never")
@@ -29,7 +27,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
       val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
       ctx.setReporter(reporter)
       ShisaDriver.doCompile(compiler, List(src.toString))
-      new CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display).asJava)
+      new CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display))
     }
   }
 

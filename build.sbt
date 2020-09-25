@@ -1,43 +1,27 @@
-val scala2 = "2.13.3"
-val scala3 = "0.26.0"
+val scalaV2 = "2.13.3"
+val scalaV3 = "0.26.0"
 
 inThisBuild(Def.settings(
   organization := "com.dwijnand",
        version := "0.1.0-SNAPSHOT",
-     resolvers += "scala-integration" at "https://scala-ci.typesafe.com/artifactory/scala-integration/",
-  scalaVersion := scala2,
+  scalaVersion := scalaV3,
 
   Global / sourcesInBase := false,
   sourceDirectory        := baseDirectory.value / "src",
   target                 := baseDirectory.value / "target",
   historyPath            := Some(target.value / ".history"),
+  scalacOptions          += "-language:implicitConversions",
 ))
 
 val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
-aggregateProjects(shisaMain, shisaScalacI, shisaScalac2, shisaScalac3)
+aggregateProjects(shisaMain)
 run := (shisaMain / Compile / run).evaluated
 
-lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
-  buildInfoPackage := "shisa",
-  buildInfoKeys := Seq[BuildInfoKey](
-    classesDir(shisaScalac3, Compile).taskValue.named("scalac3Dir"),
-  ),
-  libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25",
-).enablePlugins(BuildInfoPlugin)
-
-lazy val shisaScalacI = proj(project).settings(
-  autoScalaLibrary := false,
-      compileOrder := CompileOrder.JavaThenScala,
-        crossPaths := false,
-)
-
-lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
-  libraryDependencies += scalaOrganization.value  % "scala-compiler" % scalaVersion.value,
-)
-
-lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
-         scalaVersion := scala3,
-  libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
+lazy val shisaMain = proj(project).settings(
+  libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25" withDottyCompat scalaVersion.value,
+  libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaV2,
+  libraryDependencies += "ch.epfl.lamp"  %% "dotty-compiler" % scalaV3,
+  Compile / mainClass := Some("shisa.Main"),
 )
 
 def proj1(p: Project) = p.settings(
@@ -76,5 +60,3 @@ def uncapitalize(s: String) = {
     new String(chars)
   }
 }
-
-def classesDir(r: Reference, c: ConfigKey) = (r / c / classDirectory).toTask.dependsOn(r / c / compile)

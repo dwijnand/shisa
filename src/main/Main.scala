@@ -2,34 +2,24 @@ package shisa
 
 import scala.language.implicitConversions
 
-import java.io.{ File, PrintWriter }
-import java.net.URLClassLoader
+import java.io.PrintWriter
 import java.nio.file._
 
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
 
 object Main {
   val cwdAbs = Paths.get("").toAbsolutePath
 
-  val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00_base
-  val dotcCl = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
-  val freshCompiler3Cls  = dotcCl.loadClass("shisa.FreshCompiler3")
-  val freshCompiler3Ctor = freshCompiler3Cls.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
-
-  def FreshCompiler3(id: String, cmd: String): Invoke =
-    freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00_base.toArray, cmd).asInstanceOf[Invoke]
-
   val combinations = Seq[Invoke](
     FreshCompiler2("2.13-base", Deps.scalac_2_13_base, ""),
     FreshCompiler2("2.13-head", Deps.scalac_2_13_head, ""),
     FreshCompiler2("2.13-new",  Deps.scalac_2_13_head, "-Xsource:3"),
-    FreshCompiler3("3.0-old",                          "-source 3.0-migration"),
-    FreshCompiler3("3.0",                              ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr",                         "-source 3.1-migration"),
-    FreshCompiler3("3.1",                              "-source 3.1"),
+    FreshCompiler3("3.0-old",   Deps.scalac_3_00_base, "-source 3.0-migration"),
+    FreshCompiler3("3.0",       Deps.scalac_3_00_base, ""), // assumes -source 3.0 is the default
+    FreshCompiler3("3.1-migr",  Deps.scalac_3_00_base, "-source 3.1-migration"),
+    FreshCompiler3("3.1",       Deps.scalac_3_00_base, "-source 3.1"),
   )
 
   def main(args: Array[String]): Unit = {
@@ -47,7 +37,7 @@ object Main {
     if (Files.exists(Paths.get("target/tests")))
       IOUtil.deleteRecursive(Paths.get("target/tests"))
 
-    println(s"Combinations:${combinations.map(i => f"\n  ${i.id}%-9s : ${i.cmd}").mkString}")
+    println(s"Combinations:${combinations.map(i => "\n" + f"  ${i.id}%-9s : ${i.cmd}").mkString}")
 
     sourceFiles.foreach(compile1(_, combinations))
   }
@@ -70,7 +60,7 @@ object Main {
     if (Thread.interrupted()) throw new InterruptedException
     val file = CompileFile1(sourceFile, invoke.id)
     val res = invoke.compile1(file.src)
-    val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
+    val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
     printStatus(res)
@@ -96,12 +86,12 @@ object Main {
 
       file.chk.println(s"// src: $line")
 
-      results.foldLeft(new CompileResult(-127, Nil.asJava)) { case (prevRes, (id, res)) =>
+      results.foldLeft(new CompileResult(-127, Nil)) { case (prevRes, (id, res)) =>
         val result = statusPadded(res)
         val writeBody = if (res == prevRes)
           Seq(f"// $id%-9s $result <no change>")
         else
-          Seq(f"// $id%-9s $result".trim) ++ (if (res.lines.isEmpty) Nil else res.lines.asScala :+ "")
+          Seq(f"// $id%-9s $result".trim) ++ (if (res.lines.isEmpty) Nil else res.lines :+ "")
         writeBody.foreach(file.chk.println)
         res
       }
@@ -113,7 +103,7 @@ object Main {
     }
   }
 
-  def printStatus(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
+  def printStatus(res: CompileResult) = (res.exitCode, res.lines) match {
     case (0, Nil) => print(pass)
     case (0, _)   => print(warn)
     case (_, _)   => print(fail)
@@ -123,7 +113,7 @@ object Main {
   def pass = s"${Console.GREEN}\u2713${Console.RESET}"  // check mark (green)
   def warn = s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
 
-  def statusPadded(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
+  def statusPadded(res: CompileResult) = (res.exitCode, res.lines) match {
     case (0, Nil) => "ok   "
     case (0, _)   => "warn "
     case (_, _)   => "error"
