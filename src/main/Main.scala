@@ -5,11 +5,13 @@ import scala.language.implicitConversions
 import java.io.{ File, PrintWriter }
 import java.net.URLClassLoader
 import java.nio.file._
+import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
+import scala.util.control.Exception
 
 object Main {
   val cwdAbs = Paths.get("").toAbsolutePath
@@ -47,22 +49,44 @@ object Main {
     if (Files.exists(Paths.get("target/tests")))
       IOUtil.deleteRecursive(Paths.get("target/tests"))
 
-    println(s"Combinations:${combinations.map(i => f"\n  ${i.id}%-9s : ${i.cmd}").mkString}")
+    val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
+    val futures = sourceFiles.map(f => pool.submit[Unit](() => compile1(f, combinations)))
+    pool.shutdown()
 
-    sourceFiles.foreach(compile1(_, combinations))
+    def abort(e: Throwable) = {
+      e match {
+        case null                    => println("Thread pool timeout elapsed before all tests were complete!")
+        case _: InterruptedException => println("Thread pool was interrupted")
+        case _                       => println("Unexpected failure")
+      }
+
+      if (e != null)
+        e.printStackTrace()
+
+      pool.shutdownNow()
+
+      for {
+        f <- futures
+        _ <- allCatcher.opt(f.get(0, NANOSECONDS))
+      } ()
+    }
+
+    try {
+      if (!pool.awaitTermination(10, MINUTES))
+        abort(e = null)
+    } catch {
+      case t: Throwable => abort(t)
+    }
   }
 
   def compile1(sourceFile: Path, combinations: Seq[Invoke]) = {
     val residentCompilers = combinations.map(new CachedInvoke(_))
 
-    print(f"> Testing $sourceFile%-50s")
     if (sourceFile.toString.endsWith(".lines.scala")) {
-      println()
       doCompileLines(sourceFile, combinations)
     } else {
-      print(" ")
-      residentCompilers.foreach(doCompile(sourceFile, _))
-      println()
+      val results = residentCompilers.map(doCompile(sourceFile, _))
+      println(f"> $sourceFile%-40s ${statusLine(results)}")
     }
   }
 
@@ -73,7 +97,7 @@ object Main {
     val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
-    printStatus(res)
+    res
   }
 
   def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
@@ -82,17 +106,15 @@ object Main {
       case re(setup, base, cases) => (setup, base, cases.linesIterator.toList)
     }
 
-    def emptyOrCommented(s: String) = s.isEmpty || s.startsWith("//")
-    input.iterator.zipWithIndex.filter(!_._1.trim.pipe(emptyOrCommented)).foreach { case (line, _idx) =>
+    input.iterator.zipWithIndex.filter(!_._1.trim.pipe(isEmptyOrComment)).foreach { case (line, _idx) =>
       if (Thread.interrupted()) throw new InterruptedException
       val file = CompileFileLine(sourceFile, _idx)
-      print(f"    line ${file.idx} $line%-100s ")
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
       Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
-      val results = combinations.map(invoke => (invoke.id, invoke.compile1(file.src2).tap(printStatus)))
+      val results = combinations.map(invoke => (invoke.id, invoke.compile1(file.src2)))
 
       file.chk.println(s"// src: $line")
 
@@ -109,25 +131,29 @@ object Main {
       file.chk.println()
       file.chk.println(results.map(x => statusPadded(x._2)).mkString(" ").trim)
       file.chk.close()
-      println()
+
+      val lineNo = setup.linesIterator.size + 2 + _idx
+      println(f"> ${s"$sourceFile:$lineNo"}%-40s ${statusLine(results.map(_._2))}$line%-100s")
     }
   }
 
-  def printStatus(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
-    case (0, Nil) => print(pass)
-    case (0, _)   => print(warn)
-    case (_, _)   => print(fail)
-  }
+  def statusLine(xs: Seq[CompileResult]) = xs.iterator.map(statusIcon).mkString
 
-  def fail = s"${Console.RED}\u2717${Console.RESET}"    // cross mark (red)
-  def pass = s"${Console.GREEN}\u2713${Console.RESET}"  // check mark (green)
-  def warn = s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
+  def statusIcon(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
+    case (0, Nil) => s"${Console.GREEN}\u2713${Console.RESET}"  // check mark     (green)
+    case (0, _)   => s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
+    case (_, _)   => s"${Console.RED}\u2717${Console.RESET}"    // cross mark     (red)
+  }
 
   def statusPadded(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
     case (0, Nil) => "ok   "
     case (0, _)   => "warn "
     case (_, _)   => "error"
   }
+
+  def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
+
+  val allCatcher: Exception.Catch[Nothing] = Exception.catchingPromiscuously(Exception.allCatcher)
 }
 
 sealed abstract class CompileFile(val src: Path) {
@@ -146,5 +172,3 @@ final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src
   val src2    = IOUtil.createDirs(Paths.get("target").resolve(dir)).resolve(s"$name.$idx.scala")
   val chkPath = dir.resolve(s"$name.$idx.check")
 }
-
-case class TimeoutException(duration: Duration) extends RuntimeException
