@@ -1,11 +1,11 @@
-val scala2 = "2.13.3"
-val scala3 = "0.26.0"
+val scalaV2 = "2.13.3"
+val scalaV3 = "0.26.0"
 
 inThisBuild(Def.settings(
   organization := "com.dwijnand",
        version := "0.1.0-SNAPSHOT",
      resolvers += "scala-integration" at "https://scala-ci.typesafe.com/artifactory/scala-integration/",
-  scalaVersion := scala2,
+  scalaVersion := scalaV2,
 
   Global / sourcesInBase := false,
   sourceDirectory        := baseDirectory.value / "src",
@@ -36,7 +36,7 @@ lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
 )
 
 lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
-         scalaVersion := scala3,
+         scalaVersion := scalaV3,
   libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
 )
 
