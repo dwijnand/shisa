@@ -59,8 +59,7 @@ def proj(p: Project) = proj1(p).in(file("src") / uncapitalize(p.id.stripPrefix("
   Compile / sourceDirectory            := sourceDirectory.value,
   Compile / scalaSource                := (Compile / sourceDirectory).value,
   Compile / javaSource                 := (Compile / sourceDirectory).value,
-  Compile / unmanagedSourceDirectories += (Compile / scalaSource).value,
-  Compile / unmanagedSourceDirectories += (Compile / javaSource).value,
+  Compile / unmanagedSourceDirectories += (Compile / sourceDirectory).value,
 
   Compile / resourceDirectory := target.value / "src/main/resources",
      Test / sourceDirectory   := target.value / "src/test",
