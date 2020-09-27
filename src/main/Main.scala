@@ -82,7 +82,6 @@ object Main {
   }
 
   def doCompile(sourceFile: Path, invoke: Invoke) = {
-    if (Thread.interrupted()) throw new InterruptedException
     val file = CompileFile1(sourceFile, invoke.id)
     val res = invoke.compile1(file.src)
     val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
