@@ -5,7 +5,7 @@ import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
 
-import dotty.tools.dotc, dotc._, core.Contexts._, reporting._
+import dotty.tools.dotc, dotc._, ast.Positioned, core.Contexts._, reporting._
 
 object ShisaDriver extends Driver {
   override def doCompile(compiler: Compiler, fileNames: List[String])(using Context): Reporter =
@@ -22,7 +22,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     ctx.setSetting(ctx.settings.outputDir, new dotty.tools.io.VirtualDirectory(s"FreshCompiler3 output"))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(config.CommandLineParser.tokenize(cmd), processAll = true).sstate)
-    ast.Positioned.updateDebugPos(using ctx)
+    Positioned.updateDebugPos(using ctx)
     val compiler = new dotty.tools.dotc.Compiler
 
     def compile1(src: Path) = {
