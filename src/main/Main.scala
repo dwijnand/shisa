@@ -86,7 +86,8 @@ object Main {
       doCompileLines(sourceFile, combinations)
     } else {
       val results = residentCompilers.map(doCompile(sourceFile, _))
-      println(f"> $sourceFile%-40s ${statusLine(results)}")
+      val lines = Files.readString(sourceFile).linesIterator.size
+      println(f"> ${s"$sourceFile ($lines lines)"}%-45s ${statusLine(results)}")
     }
   }
 
@@ -133,7 +134,7 @@ object Main {
       file.chk.close()
 
       val lineNo = setup.linesIterator.size + 2 + _idx
-      println(f"> ${s"$sourceFile:$lineNo"}%-40s ${statusLine(results.map(_._2))}$line%-100s")
+      println(f"> ${s"$sourceFile:$lineNo"}%-45s ${statusLine(results.map(_._2))}$line%-100s")
     }
   }
 
