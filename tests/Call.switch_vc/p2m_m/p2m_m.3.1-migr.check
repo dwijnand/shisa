@@ -1,5 +1,5 @@
 // exitCode: 1
--- Error: tests/Call.switch_vc/p2m_m.scala:2:57 --------------------------------
+-- Error: target/tests/Call.switch_vc/p2m_m.scala:2:57 -------------------------
 2 |class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
   |                                                         ^
   |                  error overriding method d in trait PU of type => String;

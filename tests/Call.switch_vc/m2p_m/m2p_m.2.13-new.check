@@ -1,5 +1,5 @@
 // exitCode: 1
-tests/Call.switch_vc/m2p_m.scala:2: error: method without a parameter list overrides a method with a single empty one
+target/tests/Call.switch_vc/m2p_m.scala:2: error: method without a parameter list overrides a method with a single empty one
 class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }
                                                          ^
 1 error

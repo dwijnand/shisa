@@ -1,5 +1,5 @@
 // exitCode: 1
--- [E100] Syntax Error: tests/Call.def/Call.meth_p.scala:3:2 -------------------
+-- [E100] Syntax Error: target/tests/Call.def/Call.meth_p.scala:3:2 ------------
 3 |  meth
   |  ^^^^
   |  method meth must be called with () argument

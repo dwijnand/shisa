@@ -1,5 +1,5 @@
 // exitCode: 1
--- [E050] Type Error: tests/Call.##.scala:6:6 ----------------------------------
+-- [E050] Type Error: target/tests/Call.##.scala:6:6 ---------------------------
 6 |  any.##()
   |  ^^^^^^
   |  method ## in class Any does not take parameters
@@ -9,7 +9,7 @@ Explanation
 You have specified more parameter lists as defined in the method definition(s).
 Nullary methods may not be called with parenthesis
 
--- [E050] Type Error: tests/Call.##.scala:9:6 ----------------------------------
+-- [E050] Type Error: target/tests/Call.##.scala:9:6 ---------------------------
 9 |  ref.##()
   |  ^^^^^^
   |  method ## in class Any does not take parameters

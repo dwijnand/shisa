@@ -14,7 +14,8 @@ import scala.util.chaining._
 import scala.util.control.Exception
 
 object Main {
-  val cwdAbs = Paths.get("").toAbsolutePath
+  val cwdAbs    = Paths.get("").toAbsolutePath
+  val targetDir = Paths.get("target")
 
   val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00_base
   val dotcCl = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
@@ -83,7 +84,7 @@ object Main {
 
   def doCompile(sourceFile: Path, invoke: Invoke) = {
     val file = CompileFile1(sourceFile, invoke.id)
-    val res = invoke.compile1(file.src)
+    val res = invoke.compile1(file.src2)
     val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
@@ -144,7 +145,7 @@ object Main {
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
 }
 
-sealed abstract class CompileFile(val src: Path) {
+sealed abstract class CompileFile(src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
   val dir           = src.resolveSibling(name)
   def chkPath: Path
@@ -153,13 +154,17 @@ sealed abstract class CompileFile(val src: Path) {
   Files.createDirectories(dir)
 }
 
-final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
+final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
+  val src2    = Main.targetDir.resolve(src)
   val chkPath = dir.resolve(s"$name.$id.check")
+
+  Files.createDirectories(src2.getParent)
+  if (!Files.exists(src2)) Files.copy(src, src2)
 }
 
-final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
-  val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
-  val src2    = Paths.get("target").resolve(dir).resolve(s"$name.$idx.scala")
+final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
+  val idx     = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
+  val src2    = Main.targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
   val chkPath = dir.resolve(s"$name.$idx.check")
 
   Files.createDirectories(src2.getParent)

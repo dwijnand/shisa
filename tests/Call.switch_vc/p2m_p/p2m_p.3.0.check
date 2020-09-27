@@ -1,5 +1,5 @@
 // exitCode: 1
--- [E100] Syntax Error: tests/Call.switch_vc/p2m_p.scala:6:9 -------------------
+-- [E100] Syntax Error: target/tests/Call.switch_vc/p2m_p.scala:6:9 ------------
 6 |  p2m_vc.d
   |  ^^^^^^^^
   |  method d must be called with () argument

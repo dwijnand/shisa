@@ -1,6 +1,6 @@
 // src:   val t2g: Any       = prop() _               // error: not enough arguments for method apply
 // 2.13-base error
-target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+target/tests/EtaX/EtaX.prop.06.scala:15: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
 Unspecified value parameter i.
   val t2g: Any       = prop() _               // error: not enough arguments for method apply
                            ^
@@ -9,7 +9,7 @@ Unspecified value parameter i.
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15:30 
+-- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop.06.scala:15:30 -
 15 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type <error unspecified error>
@@ -19,7 +19,7 @@ Explanation
 The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
--- Error: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15:27 -----------------
+-- Error: target/tests/EtaX/EtaX.prop.06.scala:15:27 ---------------------------
 15 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^
    |        missing argument for parameter i of method apply: (i: Int): Char
@@ -27,7 +27,7 @@ To convert to a function value, you need to explicitly write () => x
 1 error found
 
 // 3.0       error
--- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15:30 ---
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.prop.06.scala:15:30 -------------
 15 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type <error unspecified error>
@@ -40,7 +40,7 @@ To convert to a function value, you need to explicitly write () => x
 1 error found
 
 // 3.1-migr  error
--- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15:30 
+-- [E099] Syntax Migration Warning: target/tests/EtaX/EtaX.prop.06.scala:15:30 -
 15 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type <error unspecified error>
@@ -50,7 +50,7 @@ Explanation
 The syntax x _ is no longer supported if x is not a function.
 To convert to a function value, you need to explicitly write () => x
 
--- Error: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15:27 -----------------
+-- Error: target/tests/EtaX/EtaX.prop.06.scala:15:27 ---------------------------
 15 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^
    |        missing argument for parameter i of method apply: (i: Int): Char
@@ -58,7 +58,7 @@ To convert to a function value, you need to explicitly write () => x
 1 error found
 
 // 3.1       error
--- [E099] Syntax Error: target/tests/EtaX/EtaX.prop/EtaX.prop.06.scala:15:30 ---
+-- [E099] Syntax Error: target/tests/EtaX/EtaX.prop.06.scala:15:30 -------------
 15 |  val t2g: Any       = prop() _               // error: not enough arguments for method apply
    |                       ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type <error unspecified error>

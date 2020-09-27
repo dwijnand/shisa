@@ -1,5 +1,5 @@
 // exitCode: 0
--- Migration Warning: tests/Call.switch_vc/m2p_m.scala:2:57 --------------------
+-- Migration Warning: target/tests/Call.switch_vc/m2p_m.scala:2:57 -------------
 2 |class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }
   |                                                         ^
   |                error overriding method d in trait MU of type (): String;

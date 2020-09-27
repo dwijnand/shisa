@@ -1,5 +1,5 @@
 // exitCode: 1
-tests/Call.def/Call.prop_m.scala:3: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
+target/tests/Call.def/Call.prop_m.scala:3: error: not enough arguments for method apply: (i: Int): Char in class StringOps.
 Unspecified value parameter i.
   prop()
       ^

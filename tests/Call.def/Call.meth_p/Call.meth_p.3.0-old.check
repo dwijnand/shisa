@@ -1,5 +1,5 @@
 // exitCode: 0
--- [E100] Syntax Migration Warning: tests/Call.def/Call.meth_p.scala:3:2 -------
+-- [E100] Syntax Migration Warning: target/tests/Call.def/Call.meth_p.scala:3:2 
 3 |  meth
   |  ^^^^
   |  method meth must be called with () argument
