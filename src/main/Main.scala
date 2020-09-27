@@ -146,9 +146,11 @@ object Main {
 
 sealed abstract class CompileFile(val src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
-  val dir           = IOUtil.createDirs(src.resolveSibling(name))
+  val dir           = src.resolveSibling(name)
   def chkPath: Path
   lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
+
+  Files.createDirectories(dir)
 }
 
 final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) {
@@ -157,6 +159,8 @@ final case class CompileFile1(_src: Path, id: String) extends CompileFile(_src) 
 
 final case class CompileFileLine(_src: Path, _idx: Int) extends CompileFile(_src) {
   val idx     = if (_idx < 10) s"0${_idx}" else s"${_idx}"
-  val src2    = IOUtil.createDirs(Paths.get("target").resolve(dir)).resolve(s"$name.$idx.scala")
+  val src2    = Paths.get("target").resolve(dir).resolve(s"$name.$idx.scala")
   val chkPath = dir.resolve(s"$name.$idx.check")
+
+  Files.createDirectories(src2.getParent)
 }
