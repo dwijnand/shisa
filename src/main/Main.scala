@@ -53,29 +53,19 @@ object Main {
     val futures = sourceFiles.map(f => pool.submit[Unit](() => compile1(f, combinations)))
     pool.shutdown()
 
-    def abort(e: Throwable) = {
-      e match {
-        case null                    => println("Thread pool timeout elapsed before all tests were complete!")
-        case _: InterruptedException => println("Thread pool was interrupted")
-        case _                       => println("Unexpected failure")
-      }
-
-      if (e != null)
-        e.printStackTrace()
-
-      pool.shutdownNow()
-
-      for {
-        f <- futures
-        _ <- allCatcher.opt(f.get(0, NANOSECONDS))
-      } ()
+    def abort(e: Throwable) = e match {
+      case null                    => println("Thread pool timeout elapsed before all tests were complete!")
+      case _: InterruptedException => println("Thread pool was interrupted")
+      case _                       => println("Unexpected failure")
     }
 
     try {
       if (!pool.awaitTermination(10, MINUTES))
         abort(e = null)
+      pool.shutdownNow()
+      for (f <- futures) f.get(0, NANOSECONDS)
     } catch {
-      case t: Throwable => abort(t)
+      case t: Throwable => abort(t); t.printStackTrace()
     }
   }
 
@@ -153,8 +143,6 @@ object Main {
   }
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
-
-  val allCatcher: Exception.Catch[Nothing] = Exception.catchingPromiscuously(Exception.allCatcher)
 }
 
 sealed abstract class CompileFile(val src: Path) {
