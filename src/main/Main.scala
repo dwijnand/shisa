@@ -21,10 +21,10 @@ object Main {
   val freshCompiler3Cls  = dotcCl.loadClass("shisa.FreshCompiler3")
   val freshCompiler3Ctor = freshCompiler3Cls.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
 
-  def FreshCompiler3(id: String, cmd: String): Invoke =
-    freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00_base.toArray, cmd).asInstanceOf[Invoke]
+  def FreshCompiler3(id: String, cmd: String): MkCompiler =
+    freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00_base.toArray, cmd).asInstanceOf[MkCompiler]
 
-  val combinations = Seq[Invoke](
+  val mkCompilers = Seq[MkCompiler](
     FreshCompiler2("2.13-base", Deps.scalac_2_13_base, ""),
     FreshCompiler2("2.13-head", Deps.scalac_2_13_head, ""),
     FreshCompiler2("2.13-new",  Deps.scalac_2_13_head, "-Xsource:3"),
@@ -50,60 +50,52 @@ object Main {
       IOUtil.deleteRecursive(Paths.get("target/tests"))
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = sourceFiles.map(f => pool.submit[Unit](() => compile1(f, combinations)))
+    val futures = sourceFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
+
     pool.shutdown()
 
-    def abort(e: Throwable) = e match {
-      case null                    => println("Thread pool timeout elapsed before all tests were complete!")
-      case _: InterruptedException => println("Thread pool was interrupted")
-      case _                       => println("Unexpected failure")
-    }
+    if (!pool.awaitTermination(10, MINUTES))
+      throw new Exception("Thread pool timeout elapsed before all tests were complete!")
 
-    try {
-      if (!pool.awaitTermination(10, MINUTES))
-        abort(e = null)
-      pool.shutdownNow()
-      for (f <- futures) f.get(0, NANOSECONDS)
-    } catch {
-      case t: Throwable => abort(t); t.printStackTrace()
-    }
+    futures.foreach(_.get(0, NANOSECONDS))
   }
 
-  def compile1(sourceFile: Path, combinations: Seq[Invoke]) = {
-    val residentCompilers = combinations.map(new CachedInvoke(_))
+  def compile1(sourceFile: Path, mkCompilers: Seq[MkCompiler]) = {
+    val compilers = mkCompilers.map(_.mkCompiler())
 
     if (sourceFile.toString.endsWith(".lines.scala")) {
-      doCompileLines(sourceFile, combinations)
+      doCompileLines(sourceFile, compilers)
     } else {
-      val results = residentCompilers.map(doCompile(sourceFile, _))
-      val lines = Files.readString(sourceFile).linesIterator.size
+      val results   = compilers.map(doCompile(sourceFile, _))
+      val lines     = Files.readString(sourceFile).linesIterator.size
       println(f"> ${s"$sourceFile ($lines lines)"}%-45s ${statusLine(results)}")
     }
   }
 
-  def doCompile(sourceFile: Path, invoke: Invoke) = {
-    val file = CompileFile1(sourceFile, invoke.id)
-    val res = invoke.compile1(file.src2)
+  def doCompile(sourceFile: Path, compiler: Compiler) = {
+    val file = CompileFile1(sourceFile, compiler.id)
+    val res = compiler.compile1(file.src2)
     val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
     (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
     file.chk.close()
     res
   }
 
-  def doCompileLines(sourceFile: Path, combinations: Seq[Invoke]) = {
-    val re   = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+  val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+
+  def doCompileLines(sourceFile: Path, compilers: Seq[Compiler]) = {
     val (setup, base, input) = Files.readString(sourceFile) match {
-      case re(setup, base, cases) => (setup, base, cases.linesIterator.toList)
+      case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
     }
 
-    input.iterator.zipWithIndex.filter(!_._1.trim.pipe(isEmptyOrComment)).foreach { case (line, _idx) =>
+    input.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, _idx) =>
       val file = CompileFileLine(sourceFile, _idx)
 
       val body = Array.fill(input.size)("")
       body(_idx) = line
       Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
 
-      val results = combinations.map(invoke => (invoke.id, invoke.compile1(file.src2)))
+      val results = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2)))
 
       file.chk.println(s"// src: $line")
 

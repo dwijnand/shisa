@@ -9,8 +9,11 @@ import scala.reflect.internal.Reporter.{ ERROR, WARNING }
 import scala.reflect.io.{ AbstractFile, VirtualDirectory }
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
-final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends Invoke {
-  def mkRunner(): Runner = new Runner {
+final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends MkCompiler {
+  def mkCompiler(): Compiler = new Compiler {
+    val id  = FreshCompiler2.this.id
+    val cmd = FreshCompiler2.this.cmd
+
     val settings = new Settings
     settings.classpath.value   = scalaJars.mkString(File.pathSeparator)
     settings.deprecation.value = true

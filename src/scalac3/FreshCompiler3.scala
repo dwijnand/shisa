@@ -5,15 +5,18 @@ import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
 
-import dotty.tools.dotc, dotc._, ast.Positioned, core.Contexts._, reporting._
+import dotty.tools.dotc, dotc.{ Compiler => _, _ }, ast.Positioned, core.Contexts._, reporting._
 
 object ShisaDriver extends Driver {
-  override def doCompile(compiler: Compiler, fileNames: List[String])(using Context): Reporter =
+  override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(using Context): Reporter =
     super.doCompile(compiler, fileNames)
 }
 
-final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends Invoke {
-  def mkRunner(): Runner = new Runner {
+final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends MkCompiler {
+  def mkCompiler(): Compiler = new Compiler {
+    val id  = FreshCompiler3.this.id
+    val cmd = FreshCompiler3.this.cmd
+
     implicit val ctx: FreshContext = new ContextBase().initialCtx.fresh
     ctx.setSetting(ctx.settings.color, "never")
     ctx.setSetting(ctx.settings.classpath, scalaJars.mkString(File.pathSeparator))
@@ -23,7 +26,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(config.CommandLineParser.tokenize(cmd), processAll = true).sstate)
     Positioned.updateDebugPos(using ctx)
-    val compiler = new dotty.tools.dotc.Compiler
+    val compiler = new dotc.Compiler
 
     def compile1(src: Path) = {
       val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
