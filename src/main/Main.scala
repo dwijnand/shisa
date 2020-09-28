@@ -11,7 +11,6 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
-import scala.util.control.Exception
 
 object Main {
   val cwdAbs    = Paths.get("").toAbsolutePath
@@ -98,7 +97,6 @@ object Main {
     }
 
     input.iterator.zipWithIndex.filter(!_._1.trim.pipe(isEmptyOrComment)).foreach { case (line, _idx) =>
-      if (Thread.interrupted()) throw new InterruptedException
       val file = CompileFileLine(sourceFile, _idx)
 
       val body = Array.fill(input.size)("")
