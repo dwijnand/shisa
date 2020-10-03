@@ -36,25 +36,6 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val callHashHashTestFile = InMemoryTestFile(
-    Paths.get("tests/Call.##.scala"),
-    outerPrelude = Nil,
-    innerPrelude = List[Defn](
-      Defn.Val(Nil, List(Pat.Var(Term.Name("any"))), Some(Type.Name("Any")),    Lit.String("")),
-      Defn.Val(Nil, List(Pat.Var(Term.Name("ref"))), Some(Type.Name("AnyRef")), Lit.String("")),
-    ),
-    testStats = List[List[Stat]](
-      List[Stat](
-        Term.Select(Term.Name("any"), Term.Name("##")),
-        Term.Apply(Term.Select(Term.Name("any"), Term.Name("##")), Nil),
-      ),
-      List[Stat](
-        Term.Select(Term.Name("ref"), Term.Name("##")),
-        Term.Apply(Term.Select(Term.Name("ref"), Term.Name("##")), Nil),
-      ),
-    )
-  )
-
   def main(args: Array[String]): Unit = {
     val sourceFiles = args.toList match {
       case Nil => Nil // Files.find(Paths.get("tests"), /* maxDepth = */ 10, (p, _) => s"$p".endsWith(".scala")).toScala(List).sorted
@@ -64,7 +45,7 @@ object Main {
     if (Files.exists(Paths.get("target/tests")))
       IOUtil.deleteRecursive(Paths.get("target/tests"))
 
-    val testFiles = sourceFiles.map(RealTestFile(_)) :+ callHashHashTestFile
+    val testFiles = sourceFiles.map(RealTestFile(_)) :+ tests.Call_##.testFile
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
