@@ -1,0 +1,51 @@
+// src:   val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
+// 2.13-base warn
+target/testdata/EtaX/EtaX.meth.03.scala:15: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
+or remove the empty argument list from its definition (Java-defined methods are exempt).
+In Scala 3, an unapplied method like this will be eta-expanded into a function.
+  val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
+                                 ^
+1 warning
+
+// 2.13-head warn  <no change>
+// 2.13-new  warn  <no change>
+// 3.0-old   warn
+-- [E100] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.03.scala:15:33 
+15 |  val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
+   |                                 ^^^^
+   |                             method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 warning found
+
+// 3.0       error
+-- [E100] Syntax Error: target/testdata/EtaX/EtaX.meth.03.scala:15:33 ----------
+15 |  val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion
+   |                                 ^^^^
+   |                             method meth must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+1 error found
+
+// 3.1-migr  error <no change>
+// 3.1       error <no change>
+
+warn  warn  warn  warn  error error error

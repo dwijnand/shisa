@@ -1,0 +1,22 @@
+// exitCode: 0
+-- [E100] Syntax Migration Warning: target/testdata/Call.switch_vc/p2m_p.scala:6:9 
+6 |  p2m_vc.d
+  |  ^^^^^^^^
+  |  method d must be called with () argument
+
+Explanation
+===========
+Previously an empty argument list () was implicitly inserted when calling a nullary method without arguments. E.g.
+
+def next(): T = ...
+          |next     // is expanded to next()
+
+In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
+Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
+
+-- Migration Warning: target/testdata/Call.switch_vc/p2m_p.scala:2:57 ----------
+2 |class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
+  |                                                         ^
+  |               error overriding method d in trait PU of type => String;
+  |                 method d of type (): String no longer has compatible type
+2 warnings found

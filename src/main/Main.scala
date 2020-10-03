@@ -38,14 +38,14 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val sourceFiles = args.toList match {
-      case Nil => Nil // Files.find(Paths.get("tests"), /* maxDepth = */ 10, (p, _) => s"$p".endsWith(".scala")).toScala(List).sorted
+      case Nil => Files.find(Paths.get("testdata"), /* maxDepth = */ 10, (p, _) => s"$p".endsWith(".scala")).toScala(List).sorted
       case xs  => xs.map(Paths.get(_)).map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
     }
 
-    if (Files.exists(Paths.get("target/tests")))
-      IOUtil.deleteRecursive(Paths.get("target/tests"))
+    if (Files.exists(Paths.get("target/testdata")))
+      IOUtil.deleteRecursive(Paths.get("target/testdata"))
 
-    val testFiles = sourceFiles.map(RealTestFile(_)) :+ tests.Call_##.testFile
+    val testFiles = sourceFiles.map(RealTestFile(_)) :+ testdata.Call_##.testFile
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))

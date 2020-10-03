@@ -1,0 +1,12 @@
+// exitCode: 1
+target/testdata/Call.switch_vc/p2m_p.scala:6: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
+or remove the empty argument list from its definition (Java-defined methods are exempt).
+In Scala 3, an unapplied method like this will be eta-expanded into a function.
+  p2m_vc.d
+         ^
+target/testdata/Call.switch_vc/p2m_p.scala:2: error: method with a single empty parameter list overrides method without any parameter list
+def d: String (defined in trait PU)
+class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
+                                                         ^
+1 warning
+1 error

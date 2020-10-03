@@ -1,0 +1,6 @@
+// exitCode: 1
+-- Error: target/testdata/Call.def/Call.prop_m.scala:3:6 -----------------------
+3 |  prop()
+  |  ^^^^^^
+  |  missing argument for parameter i of method apply: (i: Int): Char
+1 error found

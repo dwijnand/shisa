@@ -1,5 +1,0 @@
-// exitCode: 0
-target/tests/Call.switch/Call.p2m_m.scala:2: warning: method with a single empty parameter list overrides method without any parameter list
-class P2M extends P { def d() = "" }
-                          ^
-1 warning

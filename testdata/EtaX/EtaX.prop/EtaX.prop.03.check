@@ -1,0 +1,74 @@
+// src:   val t2d: () => Any = prop _                 // ok
+// 2.13-base warn
+target/testdata/EtaX/EtaX.prop.03.scala:12: warning: Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead
+  val t2d: () => Any = prop _                 // ok
+                       ^
+1 warning
+
+// 2.13-head warn  <no change>
+// 2.13-new  error
+target/testdata/EtaX/EtaX.prop.03.scala:12: error: Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead
+  val t2d: () => Any = prop _                 // ok
+                       ^
+1 error
+
+// 3.0-old   warn
+-- [E099] Syntax Migration Warning: target/testdata/EtaX/EtaX.prop.03.scala:12:28 
+12 |  val t2d: () => Any = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
+
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+1 warning found
+
+// 3.0       error
+-- [E099] Syntax Error: target/testdata/EtaX/EtaX.prop.03.scala:12:28 ----------
+12 |  val t2d: () => Any = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
+
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+1 error found
+
+// 3.1-migr  error
+-- [E099] Syntax Migration Warning: target/testdata/EtaX/EtaX.prop.03.scala:12:28 
+12 |  val t2d: () => Any = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
+
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+-- [E007] Type Mismatch Error: target/testdata/EtaX/EtaX.prop.03.scala:12:23 ---
+12 |  val t2d: () => Any = prop _                 // ok
+   |                       ^^^^
+   |                       Found:    String
+   |                       Required: () => Any
+1 warning found
+1 error found
+
+// 3.1       error
+-- [E099] Syntax Error: target/testdata/EtaX/EtaX.prop.03.scala:12:28 ----------
+12 |  val t2d: () => Any = prop _                 // ok
+   |                       ^^^^^^
+   |Only function types can be followed by _ but the current expression has type String
+
+Explanation
+===========
+The syntax x _ is no longer supported if x is not a function.
+To convert to a function value, you need to explicitly write () => x
+
+1 error found
+
+
+warn  warn  error warn  error error error

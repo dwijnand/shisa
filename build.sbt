@@ -2,22 +2,40 @@ val scalaV2 = "2.13.3"
 val scalaV3 = "0.26.0"
 
 inThisBuild(Def.settings(
-  organization := "com.dwijnand",
-       version := "0.1.0-SNAPSHOT",
-     resolvers += "scala-integration" at "https://scala-ci.typesafe.com/artifactory/scala-integration/",
-  scalaVersion := scalaV2,
-
-  Global / sourcesInBase := false,
-  sourceDirectory        := baseDirectory.value / "src",
-  target                 := baseDirectory.value / "target",
-  historyPath            := Some(target.value / ".history"),
+     organization := "com.dwijnand",
+          version := "0.1.0-SNAPSHOT",
+        resolvers += "scala-integration" at "https://scala-ci.typesafe.com/artifactory/scala-integration/",
+     scalaVersion := scalaV2,
+    sourcesInBase := false,
+  sourceDirectory := baseDirectory.value / "src",
+           target := baseDirectory.value / "target",
+      historyPath := Some(target.value / ".history"),
 ))
 
 val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
-aggregateProjects(shisaMain, shisaScalacI, shisaScalac2, shisaScalac3)
-run := (shisaMain / Compile / run).evaluated
+aggregateProjects(shisaScalacI, shisaScalac2, shisaScalac3, shisaMain, shisaTests)
+Compile / run       := (shisaMain / Compile / run).evaluated
+Compile / runMain   := (shisaMain / Compile / runMain).evaluated
+   Test / test      := (shisaTests / Test / test).value
+   Test / testOnly  := (shisaTests / Test / testOnly).evaluated
+   Test / testQuick := (shisaTests / Test / testQuick).evaluated
 
-lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
+val shisaScalacI = proj(project).settings(
+  autoScalaLibrary := false,
+      compileOrder := CompileOrder.JavaThenScala,
+        crossPaths := false,
+)
+
+val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
+  libraryDependencies += scalaOrganization.value  % "scala-compiler" % scalaVersion.value,
+)
+
+val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
+         scalaVersion := scalaV3,
+  libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
+)
+
+val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
   buildInfoPackage := "shisa",
   buildInfoKeys := Seq[BuildInfoKey](
     classesDir(shisaScalac3, Compile).taskValue.named("scalac3Dir"),
@@ -29,19 +47,12 @@ lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).setting
   )
 ).enablePlugins(BuildInfoPlugin)
 
-lazy val shisaScalacI = proj(project).settings(
-  autoScalaLibrary := false,
-      compileOrder := CompileOrder.JavaThenScala,
-        crossPaths := false,
-)
-
-lazy val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
-  libraryDependencies += scalaOrganization.value  % "scala-compiler" % scalaVersion.value,
-)
-
-lazy val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
-         scalaVersion := scalaV3,
-  libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
+val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(
+  Compile / unmanagedSourceDirectories := Nil,
+     Test / unmanagedSourceDirectories += (Test / sourceDirectory).value,
+     Test / sourceDirectory            := sourceDirectory.value,
+                   libraryDependencies += "org.scalameta" %% "munit" % "0.7.13" % Test,
+                        testFrameworks += new TestFramework("munit.Framework"),
 )
 
 def proj1(p: Project) = p.settings(
@@ -53,9 +64,9 @@ def proj(p: Project) = proj1(p).in(file("src") / uncapitalize(p.id.stripPrefix("
 
   // IntelliJ's project import works better when these are set correctly.
   Seq(Compile, Test).flatMap(inConfig(_)(Seq(
-    managedSourceDirectories := Nil,
-    managedResourceDirectories := Nil,
-    unmanagedSourceDirectories := Nil,
+        managedSourceDirectories := Nil,
+      unmanagedSourceDirectories := Nil,
+      managedResourceDirectories := Nil,
     unmanagedResourceDirectories := Nil,
   ))),
 

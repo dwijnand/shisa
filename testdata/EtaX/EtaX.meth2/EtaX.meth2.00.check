@@ -1,0 +1,24 @@
+// src:   val t4a: () => Any = meth2     // eta-expansion, but lint warning
+// 2.13-base ok
+// 2.13-head ok    <no change>
+// 2.13-new  ok    <no change>
+// 3.0-old   ok    <no change>
+// 3.0       ok    <no change>
+// 3.1-migr  warn
+-- Migration Warning: target/testdata/EtaX/EtaX.meth2.00.scala:9:23 ------------
+9 |  val t4a: () => Any = meth2     // eta-expansion, but lint warning
+  |                       ^^^^^
+  |                       The syntax `<function> _` is no longer supported;
+  |                       you can use `(() => <function>())` instead
+1 warning found
+
+// 3.1       error
+-- Error: target/testdata/EtaX/EtaX.meth2.00.scala:9:23 ------------------------
+9 |  val t4a: () => Any = meth2     // eta-expansion, but lint warning
+  |                       ^^^^^
+  |                       The syntax `<function> _` is no longer supported;
+  |                       you can use `(() => <function>())` instead
+1 error found
+
+
+ok    ok    ok    ok    ok    warn  error

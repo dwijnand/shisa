@@ -1,0 +1,8 @@
+// exitCode: 1
+target/testdata/Call.##.scala:6: error: Int does not take parameters
+  any.##()
+        ^
+target/testdata/Call.##.scala:9: error: Int does not take parameters
+  ref.##()
+        ^
+2 errors
