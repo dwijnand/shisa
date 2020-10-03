@@ -45,7 +45,10 @@ object Main {
     if (Files.exists(Paths.get("target/testdata")))
       IOUtil.deleteRecursive(Paths.get("target/testdata"))
 
-    val testFiles = sourceFiles.map(RealTestFile(_)) :+ testdata.Call_##.testFile
+    val testFiles =
+      testdata.Call_##.testFile ::
+      testdata.Call_pos.testFile ::
+        sourceFiles.map(RealTestFile(_))
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
@@ -144,7 +147,7 @@ sealed trait TestFile { def src: Path }
 final case class RealTestFile(src: Path) extends TestFile
 final case class InMemoryTestFile(
     src: Path,
-    outerPrelude: List[Defn],
+    outerPrelude: List[List[Defn]],
     innerPrelude: List[Defn],
     testStats: List[List[Stat]],
 ) extends TestFile

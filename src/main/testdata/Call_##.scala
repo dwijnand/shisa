@@ -10,7 +10,6 @@ import scala.meta._
 object Call_## {
   val path = Paths.get("testdata/Call.##.scala")
 
-  val hashHash = q"##"
   val variants = List(q"any" -> t"Any", q"ref" -> t"AnyRef")
 
   val innerPrelude = variants.map { case (nme, tpe) =>
@@ -18,7 +17,7 @@ object Call_## {
   }
 
   val testStats = variants.map { case (nme, _) =>
-    val sel = Term.Select(nme, hashHash)
+    val sel = Term.Select(nme, q"##")
     List(sel, Term.Apply(sel, Nil))
   }
 

@@ -22,11 +22,11 @@ object ShisaMeta {
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
     val cls    = s("class Test {", body, n("}"))
 
-    val main =
-      if (outerPrelude.isEmpty) cls
-      else s(r(outerPrelude.map(i(_))), n(cls))
+    val outer =
+      if (outerPrelude.isEmpty) Show.None
+      else s(r(outerPrelude, EOL + EOL)(Show(defns => r(defns, EOL)(syntax[Defn]))), EOL, EOL)
 
-    s(main, EOL).toString
+    s(outer, cls, EOL).toString
   }
 
   implicit def syntaxMods: Syntax[List[Mod]]           = Syntax(mods    => if (mods.isEmpty)    s() else r2(mods, " "))
