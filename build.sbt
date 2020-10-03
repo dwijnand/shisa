@@ -22,7 +22,11 @@ lazy val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).setting
   buildInfoKeys := Seq[BuildInfoKey](
     classesDir(shisaScalac3, Compile).taskValue.named("scalac3Dir"),
   ),
-  libraryDependencies += "io.get-coursier" %% "coursier" % "2.0.0-RC6-25",
+  libraryDependencies ++= List(
+    "io.get-coursier" %% "coursier"          % "2.0.0-RC6-25",
+    "ch.epfl.scala"   %  "scalafix-cli"      % "0.9.21"        cross CrossVersion.full,
+    "org.scalameta"   %  "semanticdb-scalac" % "4.3.22"        cross CrossVersion.full,
+  )
 ).enablePlugins(BuildInfoPlugin)
 
 lazy val shisaScalacI = proj(project).settings(

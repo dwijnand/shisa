@@ -12,6 +12,8 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
 
+import scala.meta._
+
 object Main {
   val cwdAbs    = Paths.get("").toAbsolutePath
   val targetDir = Paths.get("target")
@@ -34,23 +36,38 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
+  val callHashHashTestFile = InMemoryTestFile(
+    Paths.get("tests/Call.##.scala"),
+    outerPrelude = Nil,
+    innerPrelude = List[Defn](
+      Defn.Val(Nil, List(Pat.Var(Term.Name("any"))), Some(Type.Name("Any")),    Lit.String("")),
+      Defn.Val(Nil, List(Pat.Var(Term.Name("ref"))), Some(Type.Name("AnyRef")), Lit.String("")),
+    ),
+    testStats = List[List[Stat]](
+      List[Stat](
+        Term.Select(Term.Name("any"), Term.Name("##")),
+        Term.Apply(Term.Select(Term.Name("any"), Term.Name("##")), Nil),
+      ),
+      List[Stat](
+        Term.Select(Term.Name("ref"), Term.Name("##")),
+        Term.Apply(Term.Select(Term.Name("ref"), Term.Name("##")), Nil),
+      ),
+    )
+  )
+
   def main(args: Array[String]): Unit = {
     val sourceFiles = args.toList match {
-      case Nil =>
-        val fs = Files.find(Paths.get("tests"), /* maxDepth = */ 10, (p, _) => s"$p".endsWith(".scala")).toScala(List).sorted
-        fs.tap(fs => println(s"Files: ${fs.mkString("[", ", ", "]")}"))
-      case xs => xs.map(Paths.get(_)).map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
+      case Nil => Nil // Files.find(Paths.get("tests"), /* maxDepth = */ 10, (p, _) => s"$p".endsWith(".scala")).toScala(List).sorted
+      case xs  => xs.map(Paths.get(_)).map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
     }
-
-    val missing = sourceFiles.filter(!Files.exists(_))
-    if (missing.nonEmpty)
-      sys.error(s"Missing source files: ${missing.mkString("[", ", ", "]")}")
 
     if (Files.exists(Paths.get("target/tests")))
       IOUtil.deleteRecursive(Paths.get("target/tests"))
 
+    val testFiles = sourceFiles.map(RealTestFile(_)) :+ callHashHashTestFile
+
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = sourceFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
+    val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
 
     pool.shutdown()
 
@@ -60,14 +77,21 @@ object Main {
     futures.foreach(_.get(0, NANOSECONDS))
   }
 
-  def compile1(sourceFile: Path, mkCompilers: Seq[MkCompiler]) = {
+  def compile1(testFile: TestFile, mkCompilers: Seq[MkCompiler]) = {
+    val sourceFile = testFile.src
     val compilers = mkCompilers.map(_.mkCompiler())
 
     if (sourceFile.toString.endsWith(".lines.scala")) {
       doCompileLines(sourceFile, compilers)
     } else {
-      val results   = compilers.map(doCompile(sourceFile, _))
-      val lines     = Files.readString(sourceFile).linesIterator.size
+      val src2 = Main.targetDir.resolve(sourceFile)
+      Files.createDirectories(src2.getParent)
+      testFile match {
+        case RealTestFile(_)                   => Files.copy(sourceFile, src2)
+        case tf @ InMemoryTestFile(_, _, _, _) => Files.writeString(src2, ShisaMeta.testFileSource(tf))
+      }
+      val results = compilers.map(doCompile(sourceFile, _))
+      val lines   = Files.readString(src2).linesIterator.size
       println(f"> ${s"$sourceFile ($lines lines)"}%-45s ${statusLine(results)}")
     }
   }
@@ -135,6 +159,15 @@ object Main {
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
 }
 
+sealed trait TestFile { def src: Path }
+final case class RealTestFile(src: Path) extends TestFile
+final case class InMemoryTestFile(
+    src: Path,
+    outerPrelude: List[Defn],
+    innerPrelude: List[Defn],
+    testStats: List[List[Stat]],
+) extends TestFile
+
 sealed abstract class CompileFile(src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
   val dir           = src.resolveSibling(name)
@@ -147,9 +180,6 @@ sealed abstract class CompileFile(src: Path) {
 final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
   val src2    = Main.targetDir.resolve(src)
   val chkPath = dir.resolve(s"$name.$id.check")
-
-  Files.createDirectories(src2.getParent)
-  if (!Files.exists(src2)) Files.copy(src, src2)
 }
 
 final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
