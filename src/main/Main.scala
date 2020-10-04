@@ -164,6 +164,15 @@ final case class InMemoryTestFile(
     testStats: List[List[Stat]],
 ) extends TestFile
 
+trait MkInMemoryTestFile {
+  def path: Path
+  def outerPrelude: List[List[Defn]]
+  def innerPrelude: List[Defn]
+  def testStats: List[List[Stat]]
+
+  def testFile = InMemoryTestFile(path, outerPrelude, innerPrelude, testStats)
+}
+
 sealed abstract class CompileFile(src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
   val dir           = src.resolveSibling(name)
