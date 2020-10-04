@@ -16,10 +16,7 @@ object Call_## {
     Defn.Val(Nil, List(Pat.Var(nme)), Some(tpe), Lit.String(""))
   }
 
-  val testStats = variants.map { case (nme, _) =>
-    val sel = Term.Select(nme, q"##")
-    List(sel, Term.Apply(sel, Nil))
-  }
+  val testStats = variants.map { case (nme, _) => List(q"$nme.##", q"$nme.##()") }
 
   val testFile = InMemoryTestFile(path, outerPrelude = Nil, innerPrelude, testStats)
 }

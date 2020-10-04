@@ -10,85 +10,57 @@ import scala.meta._
 object Call_pos {
   val path = Paths.get("testdata/Call.pos.scala")
 
-  val memberVariants = List(
+  val vals = List(
     q"any" -> t"Any",
     q"ref" -> t"AnyRef",
     q"obj" -> t"Object",
     q"str" -> t"String",
   )
 
-  val  cr  = q"""new CR()"""
-  val  cs  = q"""new CS()"""
-  val  cj  = q"""new CJ()"""
+  val cr  = q"""class  CR extends Runnable { def run() = () }"""
+  val vcr = q"""class VCR(val x: String) extends AnyVal"""
 
-  val  vcr = q"""new VCR("")"""
-  val  vcs = q"""new VCS("")"""
-  val  vcj = q"""new VCJ("")"""
-
-  val  ccr = q"""CCR()"""
-  val  ccs = q"""CCS()"""
-  val  ccj = q"""CCJ()"""
-
-  val vccr = q"""VCCR("")"""
-  val vccs = q"""VCCS("")"""
-  val vccj = q"""VCCJ("")"""
-
-  val outerPrelude = List(
-    List(
-      q"""class CR extends Runnable { def run() = () }""",
-      q"""class CS { override def toString   = "" }""",
-      q"""class CJ { override def toString() = "" }""",
-    ),
-    List(
-      q"""case class CCR() extends Runnable { def run() = () }""",
-      q"""case class CCS() { override def toString   = "" }""",
-      q"""case class CCJ() { override def toString() = "" }""",
-    ),
-    List(
-      q"""class VCR(val x: String) extends AnyVal""",
-      q"""class VCS(val x: String) extends AnyVal { override def toString   = "" }""",
-      q"""class VCJ(val x: String) extends AnyVal { override def toString() = "" }""",
-    ),
-    List(
-      q"""case class VCCR(x: String) extends AnyVal""",
-      q"""case class VCCS(x: String) extends AnyVal { override def toString   = "" }""",
-      q"""case class VCCJ(x: String) extends AnyVal { override def toString() = "" }""",
-    ),
+  def classAlt(cls: Defn.Class, suff: Char, paramss: List[List[Term.Param]]) = cls.copy(
+    name = Type.Name(cls.name.value.dropRight(1) + suff),
+    templ = cls.templ.copy(
+      inits = cls.templ.inits.filter { case Init(Type.Name(n), _, _) => n != "Runnable" },
+      stats = List(q"""override def toString(...$paramss) = """""),
+    )
   )
 
-  val innerPrelude = memberVariants.map { case (nme, tpe) =>
-    Defn.Val(Nil, List(Pat.Var(nme)), Some(tpe), Lit.String(""))
-  }
-
-  val testStats = memberVariants.map { case (nme, _) => (
-    Term.Select(nme, q"##")
-     :: invokeBothWays(nme, q"getClass")
-    ::: invokeBothWays(nme, q"hashCode")
-    ::: invokeBothWays(nme, q"toString")
-  )} ::: List(
-    invokeBothWays(cr, q"run")
-    ::: invokeBothWays(cr, q"toString")
-    ::: invokeBothWays(cs, q"toString")
-    ::: invokeBothWays(cj, q"toString")
-  ) ::: List(
-        invokeBothWays(vcr, q"toString")
-    ::: invokeBothWays(vcs, q"toString")
-    ::: invokeBothWays(vcj, q"toString")
-  )::: List(
-    invokeBothWays(ccr, q"run")
-    ::: invokeBothWays(ccr, q"toString")
-    ::: invokeBothWays(ccs, q"toString")
-    ::: invokeBothWays(ccj, q"toString")
-  ) ::: List(
-    invokeBothWays(vccr, q"toString")
-    ::: invokeBothWays(vccs, q"toString")
-    ::: invokeBothWays(vccj, q"toString")
+  def makeCaseClass(cls: Defn.Class) = cls.copy(
+    mods = List(Mod.Case()),
+    name = Type.Name(cls.name.value.stripSuffix("CR") + "CCR"),
+    ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
+      case Nil => List(Nil)
+      case xss => xss.map(_.map(param => param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))))
+    }),
   )
 
-  def invokeBothWays(qual: Term, name: Term.Name) = {
-    val sel = Term.Select(qual, name)
-    List(sel, Term.Apply(sel, Nil))
+  def classesList(cls: Defn.Class)  = List(cls, classAlt(cls, 'S', Nil), classAlt(cls, 'J', List(Nil)))
+  def classesLists(cls: Defn.Class) = List(classesList(cls), classesList(makeCaseClass(cls)))
+
+  val outerPrelude = classesLists(cr) ::: classesLists(vcr)
+  val innerPrelude = vals.map { case (nme, tpe) => val patVar = Pat.Var(nme); q"""val $patVar: $tpe = """"" }
+
+  val testStats =
+    vals.map { case (nme, _) =>
+      q"$nme.##" :: duo(nme, q"getClass") ::: duo(nme, q"hashCode") ::: duo(nme, q"toString")
+    } :::
+    List(toStringsAndRun(q"new CR()")) :::
+    List(toStrings(q"""new VCR("")""")) :::
+    List(toStringsAndRun(q"CCR()")) :::
+    List(toStrings(q"""VCCR("")"""))
+
+  def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
+
+  def alt(t: Term, suff: Char) = t match {
+    case q"new ${Name(name)}(...$argss)" => q"new ${Type.Name(name.dropRight(1) + suff)}(...$argss)"
+    case q"${Name(name)}(..$args)"       => q"${Term.Name(name.dropRight(1) + suff)}(..$args)"
   }
+
+  def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
+  def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
 
   val testFile = InMemoryTestFile(path, outerPrelude, innerPrelude, testStats)
 }
