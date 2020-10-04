@@ -7,7 +7,7 @@ import java.nio.file._
 
 import scala.meta._
 
-object Call_pos {
+object Call_pos extends MkInMemoryTestFile {
   val path = Paths.get("testdata/Call.pos.scala")
 
   val vals = List(
@@ -61,6 +61,4 @@ object Call_pos {
 
   def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
   def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
-
-  val testFile = InMemoryTestFile(path, outerPrelude, innerPrelude, testStats)
 }

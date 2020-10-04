@@ -14,6 +14,8 @@ import scala.util.chaining._
 
 import scala.meta._
 
+import shisa.testdata._
+
 object Main {
   val cwdAbs    = Paths.get("").toAbsolutePath
   val targetDir = Paths.get("target")
@@ -36,19 +38,31 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
+  val inMemoryTestFiles = List(Call_##, Call_pos).map { mk =>
+    InMemoryTestFile(mk.path, mk.outerPrelude, mk.innerPrelude, mk.testStats)
+  }
+  val inMemoryTestFilesMap = inMemoryTestFiles.map(tf => tf.src -> tf).toMap
+
   def main(args: Array[String]): Unit = {
-    val sourceFiles = args.toList match {
-      case Nil => Files.find(Paths.get("testdata"), /* maxDepth = */ 10, (p, _) => s"$p".endsWith(".scala")).toScala(List).sorted
-      case xs  => xs.map(Paths.get(_)).map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
+    val testFiles = args.toList match {
+      case Nil =>
+        val realTestFiles = Files.find(Paths.get("testdata"), 10, (p, _) => s"$p".endsWith(".scala")).toScala(List)
+          .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
+          .map(RealTestFile(_))
+        (realTestFiles ::: inMemoryTestFiles).sortBy(_.src)
+          .tap(fs => println(s"Files: ${fs.map(_.src).mkString("[", ", ", "]")}"))
+      case xs  => xs
+        .map(Paths.get(_))
+        .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
+        .map(p => inMemoryTestFilesMap.getOrElse(p, RealTestFile(p)))
     }
 
-    if (Files.exists(Paths.get("target/testdata")))
-      IOUtil.deleteRecursive(Paths.get("target/testdata"))
+    val missing = testFiles.collect { case RealTestFile(p) if !Files.exists(p) => p }
+    if (missing.nonEmpty)
+      sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
 
-    val testFiles =
-      testdata.Call_##.testFile ::
-      testdata.Call_pos.testFile ::
-        sourceFiles.map(RealTestFile(_))
+    if (Files.exists(Paths.get("tests/testdata")))
+      IOUtil.deleteRecursive(Paths.get("tests/testdata"))
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
@@ -151,6 +165,13 @@ final case class InMemoryTestFile(
     innerPrelude: List[Defn],
     testStats: List[List[Stat]],
 ) extends TestFile
+
+trait MkInMemoryTestFile {
+  def path: Path
+  def outerPrelude: List[List[Defn]]
+  def innerPrelude: List[Defn]
+  def testStats: List[List[Stat]]
+}
 
 sealed abstract class CompileFile(src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
