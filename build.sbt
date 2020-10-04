@@ -14,11 +14,14 @@ inThisBuild(Def.settings(
 
 val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
 aggregateProjects(shisaScalacI, shisaScalac2, shisaScalac3, shisaMain, shisaTests)
-Compile / run       := (shisaMain / Compile / run).evaluated
-Compile / runMain   := (shisaMain / Compile / runMain).evaluated
-   Test / test      := (shisaTests / Test / test).value
-   Test / testOnly  := (shisaTests / Test / testOnly).evaluated
-   Test / testQuick := (shisaTests / Test / testQuick).evaluated
+
+Compile / console      := (shisaMain / Compile / console).value
+Compile / consoleQuick := (shisaMain / Compile / consoleQuick).value
+Compile / run          := (shisaMain / Compile / run).evaluated
+Compile / runMain      := (shisaMain / Compile / runMain).evaluated
+   Test / test         := (shisaTests / Test / test).value
+   Test / testOnly     := (shisaTests / Test / testOnly).evaluated
+   Test / testQuick    := (shisaTests / Test / testQuick).evaluated
 
 val shisaScalacI = proj(project).settings(
   autoScalaLibrary := false,
