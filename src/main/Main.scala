@@ -38,9 +38,7 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryTestFiles = List(Call_##, Call_pos).map { mk =>
-    InMemoryTestFile(mk.path, mk.outerPrelude, mk.innerPrelude, mk.testStats)
-  }
+  val inMemoryTestFiles = List(Call.hashHash, Call.pos).map(_.testFile)
   val inMemoryTestFilesMap = inMemoryTestFiles.map(tf => tf.src -> tf).toMap
 
   def main(args: Array[String]): Unit = {
@@ -165,13 +163,6 @@ final case class InMemoryTestFile(
     innerPrelude: List[Defn],
     testStats: List[List[Stat]],
 ) extends TestFile
-
-trait MkInMemoryTestFile {
-  def path: Path
-  def outerPrelude: List[List[Defn]]
-  def innerPrelude: List[Defn]
-  def testStats: List[List[Stat]]
-}
 
 sealed abstract class CompileFile(src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")

@@ -6,8 +6,8 @@ import shisa.testdata._
 import munit._
 
 class TestFileSourceTest extends FunSuite {
-  test("Call_## toSource")(compareToSource(Call_##.testFile, Call_hashhash_expected))
-  test("Call_pos toSource")(compareToSource(Call_pos.testFile, Call_pos_expected))
+  test("Call_## toSource")(compareToSource(Call.hashHash, Call_hashhash_expected))
+  test("Call_pos toSource")(compareToSource(Call.pos, Call_pos_expected))
 
   def Call_hashhash_expected =
     """class Test {
@@ -111,8 +111,8 @@ class TestFileSourceTest extends FunSuite {
       |}
       |""".stripMargin
 
-  def compareToSource(testFile: InMemoryTestFile, expected: String) = {
-    val obtained = scala.meta.ShisaMeta.testFileSource(testFile)
+  def compareToSource(mk: MkInMemoryTestFile, expected: String) = {
+    val obtained = scala.meta.ShisaMeta.testFileSource(mk.testFile)
     assertEquals(obtained, expected)
   }
 }
