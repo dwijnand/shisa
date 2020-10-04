@@ -17,27 +17,30 @@ object Call {
     val str = Val(q"str", t"String")
   }
 
+  def altName(name: Name, suff: Char) = name.value.dropRight(1) + suff
+
+  def alt(t: Term, suff: Char) = t match {
+    case q"new ${n @ Name(_)}(...$argss)" => q"new ${Type.Name(altName(n, suff))}(...$argss)"
+    case q"${n @ Name(_)}(..$args)"       => q"${Term.Name(altName(n, suff))}(..$args)"
+  }
+
   object hashHash extends MkInMemoryTestFile {
-    val path = Paths.get("testdata/Call.##.scala")
-
-    val variants = List(Call.vals.any, Call.vals.ref)
-
+    val path         = Paths.get("testdata/Call.##.scala")
+    val variants     = List(Call.vals.any, Call.vals.ref)
     val outerPrelude = Nil
-
     val innerPrelude = variants.map(_.defn)
     val testStats    = variants.map { case Val(nme, _) => List(q"$nme.##", q"$nme.##()") }
   }
 
   object pos extends MkInMemoryTestFile {
     val path = Paths.get("testdata/Call.pos.scala")
-
     val vals = List(Call.vals.any, Call.vals.ref, Call.vals.obj, Call.vals.str)
 
     val cr  = q"""class  CR extends Runnable { def run() = () }"""
     val vcr = q"""class VCR(val x: String) extends AnyVal"""
 
     def classAlt(cls: Defn.Class, suff: Char, paramss: List[List[Term.Param]]) = cls.copy(
-      name = Type.Name(cls.name.value.dropRight(1) + suff),
+      name = Type.Name(altName(cls.name, suff)),
       templ = cls.templ.copy(
         inits = cls.templ.inits.filter { case Init(Type.Name(n), _, _) => n != "Runnable" },
         stats = List(q"""override def toString(...$paramss) = """""),
@@ -48,8 +51,8 @@ object Call {
       mods = List(Mod.Case()),
       name = Type.Name(cls.name.value.stripSuffix("CR") + "CCR"),
       ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
-        case Nil => List(Nil)
-        case xss => xss.map(_.map(param => param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))))
+        case Nil => List(Nil) // `case class Foo()` not `case class Foo`
+        case xss => xss.map(_.map(p => p.copy(mods = p.mods.filter(_.isNot[Mod.ValParam]))))
       }),
     )
 
@@ -69,11 +72,6 @@ object Call {
           List(toStrings(q"""VCCR("")"""))
 
     def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
-
-    def alt(t: Term, suff: Char) = t match {
-      case q"new ${Name(name)}(...$argss)" => q"new ${Type.Name(name.dropRight(1) + suff)}(...$argss)"
-      case q"${Name(name)}(..$args)"       => q"${Term.Name(name.dropRight(1) + suff)}(..$args)"
-    }
 
     def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
     def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
