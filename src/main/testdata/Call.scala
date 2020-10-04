@@ -10,66 +10,79 @@ final case class Val(name: Term.Name, tpe: Type.Name) {
 }
 
 object Call {
-  val vals     = List(Val(q"any", t"Any"), Val(q"ref", t"AnyRef"), Val(q"obj", t"Object"), Val(q"str", t"String"))
-  val valDefns = vals.map(_.defn)
-  val valNames = vals.map(_.name)
+  def idF[A]: A => A = x => x
+
+  implicit class ListOps[A](private val xs: List[A]) extends AnyVal {
+    def onNil[B](z: => B, f: List[A] => B): B = if (xs.isEmpty) z else f(xs)
+  }
 
   implicit class NameOps[N <: Name](private val name: N) extends AnyVal {
-    def altName(suff: Char): N = name match {
-      case n @ Term.Name(v) => n.copy(value = v.dropRight(1) + suff).asInstanceOf[N]
-      case n @ Type.Name(v) => n.copy(value = v.dropRight(1) + suff).asInstanceOf[N]
+    def chSuff(ch: Char) = name match {
+      case n @ Term.Name(v) => n.copy(value = v.dropRight(1) + ch).asInstanceOf[N]
+      case n @ Type.Name(v) => n.copy(value = v.dropRight(1) + ch).asInstanceOf[N]
     }
   }
 
+  implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
+    def notValParam = param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))
+    def  toValParam = param.copy(mods = param.mods :+ Mod.ValParam())
+  }
+
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
-    def toCaseClass: Defn.Class = cls.copy(
-      mods = List(Mod.Case()),
-      name = Type.Name(cls.name.value.stripSuffix("CR") + "CCR"),
+    def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
+    def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = init :: cls.templ.inits))
+    def chNamePre(ch: Char) = cls.copy(name = cls.name.copy(value = cls.name.value.stripSuffix("CR") + s"${ch}CR"))
+
+    def toCaseClass = cls.chNamePre('C').copy(
+      mods = cls.mods :+ Mod.Case(),
+      ctor = cls.ctor.copy(paramss = cls.ctor.paramss.onNil(List(Nil), idF).map(_.map(_.notValParam))),
+    )
+
+    def toValueClass = cls.chNamePre('V').addInit(init"AnyVal").copy(
       ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
-        case Nil => List(Nil) // `case class Foo()` not `case class Foo`
-        case xss => xss.map(_.map(p => p.copy(mods = p.mods.filter(_.isNot[Mod.ValParam]))))
+        case Nil           => List(List(param"val x: String"))
+        case List(List(p)) => List(List(p.toValParam))
+        case paramss       => sys.error(s"Can't toValueClass ${cls.name} b/c of paramss: $paramss")
       }),
     )
+
+    def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
   }
+
+  val vals = List(Val(q"any", t"Any"), Val(q"ref", t"AnyRef"), Val(q"obj", t"Object"), Val(q"str", t"String"))
 
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
 
   object hashHash extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/Call.##.scala")
     val outerPrelude = Nil
-    val innerPrelude = valDefns
-    val testStats    = valNames.map(duo(_, q"##"))
+    val innerPrelude = vals.map(_.defn)
+    val testStats    = vals.map(_.name).map(duo(_, q"##"))
   }
 
   object pos extends MkInMemoryTestFile {
     val path = Paths.get("testdata/Call.pos.scala")
 
-    val cr  = q"""class  CR extends Runnable { def run() = () }"""
-    val vcr = q"""class VCR(val x: String) extends AnyVal"""
-
-    def classAlt(cls: Defn.Class, suff: Char, paramss: List[List[Term.Param]]) = cls.copy(
-      name = cls.name.altName(suff),
-      templ = cls.templ.copy(
-        inits = cls.templ.inits.filter { case Init(Type.Name(n), _, _) => n != "Runnable" },
-        stats = List(q"""override def toString(...$paramss) = """""),
-      )
-    )
-
-    def classesList(cls: Defn.Class)  = List(cls, classAlt(cls, 'S', Nil), classAlt(cls, 'J', List(Nil)))
-    def classesLists(cls: Defn.Class) = List(classesList(cls), classesList(cls.toCaseClass))
-
     def alt(t: Term, suff: Char) = t match {
-      case q"new ${n @ Type.Name(_)}(...$argss)" => q"new ${n.altName(suff)}(...$argss)"
-      case q"${n @ Term.Name(_)}(..$args)"       => q"${n.altName(suff)}(..$args)"
+      case q"new ${n @ Type.Name(_)}(...$argss)" => q"new ${n.chSuff(suff)}(...$argss)"
+      case q"${n @ Term.Name(_)}(..$args)"       => q"${n.chSuff(suff)}(..$args)"
     }
 
     def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
     def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
 
-    val outerPrelude = classesLists(cr) ::: classesLists(vcr)
-    val innerPrelude = valDefns
+    def classesList(cls: Defn.Class)  = List(
+      cls,
+      cls.copy(name = cls.name.chSuff('S')).addStat(q"""override def toString  = """""),
+      cls.copy(name = cls.name.chSuff('J')).addStat(q"""override def toString() = """""),
+    )
 
-    val testStats = valNames.map { nme =>
+    def classesLists(cls: Defn.Class) = List(classesList(cls), classesList(cls.toCaseClass))
+
+    val outerPrelude = classesLists(q"class CR".withRunnable) ::: classesLists(q"class CR".toValueClass)
+    val innerPrelude = vals.map(_.defn)
+
+    val testStats = vals.map(_.name).map { nme =>
         duo(nme, q"getClass") ::: duo(nme, q"hashCode") ::: duo(nme, q"toString")
       } :::
         List(toStringsAndRun(q"new CR()"))  :::

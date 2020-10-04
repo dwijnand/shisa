@@ -32,12 +32,24 @@ class TestFileSourceTest extends FunSuite {
 
   def Call_pos_expected =
     """class CR extends Runnable { def run() = () }
-      |class CS { override def toString = "" }
-      |class CJ { override def toString() = "" }
+      |class CS extends Runnable {
+      |  def run() = ()
+      |  override def toString = ""
+      |}
+      |class CJ extends Runnable {
+      |  def run() = ()
+      |  override def toString() = ""
+      |}
       |
       |case class CCR() extends Runnable { def run() = () }
-      |case class CCS() { override def toString = "" }
-      |case class CCJ() { override def toString() = "" }
+      |case class CCS() extends Runnable {
+      |  def run() = ()
+      |  override def toString = ""
+      |}
+      |case class CCJ() extends Runnable {
+      |  def run() = ()
+      |  override def toString() = ""
+      |}
       |
       |class VCR(val x: String) extends AnyVal
       |class VCS(val x: String) extends AnyVal { override def toString = "" }
