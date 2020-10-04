@@ -18,7 +18,7 @@ object ShisaMeta {
 
   def testFileSource(testFile: InMemoryTestFile): String = {
     val InMemoryTestFile(_, outerPrelude, innerPrelude, testStatss) = testFile
-    val statss = if (innerPrelude.isEmpty) testStatss else innerPrelude :: testStatss
+    val statss = if (innerPrelude.isEmpty) testStatss else innerPrelude ::: testStatss
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
     val cls    = s("class Test {", body, n("}"))
 

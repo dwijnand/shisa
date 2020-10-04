@@ -160,14 +160,14 @@ final case class RealTestFile(src: Path) extends TestFile
 final case class InMemoryTestFile(
     src: Path,
     outerPrelude: List[List[Defn]],
-    innerPrelude: List[Defn],
+    innerPrelude: List[List[Defn]],
     testStats: List[List[Stat]],
 ) extends TestFile
 
 trait MkInMemoryTestFile {
   def path: Path
   def outerPrelude: List[List[Defn]]
-  def innerPrelude: List[Defn]
+  def innerPrelude: List[List[Defn]]
   def testStats: List[List[Stat]]
 
   def testFile = InMemoryTestFile(path, outerPrelude, innerPrelude, testStats)
