@@ -1,6 +1,6 @@
 // exitCode: 1
--- [E050] Type Error: target/testdata/Call.##.scala:6:6 ------------------------
-6 |  any.##()
+-- [E050] Type Error: target/testdata/Call.##.scala:8:6 ------------------------
+8 |  any.##()
   |  ^^^^^^
   |  method ## in class Any does not take parameters
 
@@ -9,14 +9,34 @@ Explanation
 You have specified more parameter lists as defined in the method definition(s).
 Nullary methods may not be called with parenthesis
 
--- [E050] Type Error: target/testdata/Call.##.scala:9:6 ------------------------
-9 |  ref.##()
-  |  ^^^^^^
-  |  method ## in class Any does not take parameters
+-- [E050] Type Error: target/testdata/Call.##.scala:11:6 -----------------------
+11 |  ref.##()
+   |  ^^^^^^
+   |  method ## in class Any does not take parameters
 
 Explanation
 ===========
 You have specified more parameter lists as defined in the method definition(s).
 Nullary methods may not be called with parenthesis
 
-2 errors found
+-- [E050] Type Error: target/testdata/Call.##.scala:14:6 -----------------------
+14 |  obj.##()
+   |  ^^^^^^
+   |  method ## in class Any does not take parameters
+
+Explanation
+===========
+You have specified more parameter lists as defined in the method definition(s).
+Nullary methods may not be called with parenthesis
+
+-- [E050] Type Error: target/testdata/Call.##.scala:17:6 -----------------------
+17 |  str.##()
+   |  ^^^^^^
+   |  method ## in class Any does not take parameters
+
+Explanation
+===========
+You have specified more parameter lists as defined in the method definition(s).
+Nullary methods may not be called with parenthesis
+
+4 errors found

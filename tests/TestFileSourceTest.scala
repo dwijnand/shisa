@@ -13,12 +13,20 @@ class TestFileSourceTest extends FunSuite {
     """class Test {
       |  val any: Any = ""
       |  val ref: AnyRef = ""
+      |  val obj: Object = ""
+      |  val str: String = ""
       |
       |  any.##
       |  any.##()
       |
       |  ref.##
       |  ref.##()
+      |
+      |  obj.##
+      |  obj.##()
+      |
+      |  str.##
+      |  str.##()
       |}
       |""".stripMargin
 
@@ -45,7 +53,6 @@ class TestFileSourceTest extends FunSuite {
       |  val obj: Object = ""
       |  val str: String = ""
       |
-      |  any.##
       |  any.getClass
       |  any.getClass()
       |  any.hashCode
@@ -53,7 +60,6 @@ class TestFileSourceTest extends FunSuite {
       |  any.toString
       |  any.toString()
       |
-      |  ref.##
       |  ref.getClass
       |  ref.getClass()
       |  ref.hashCode
@@ -61,7 +67,6 @@ class TestFileSourceTest extends FunSuite {
       |  ref.toString
       |  ref.toString()
       |
-      |  obj.##
       |  obj.getClass
       |  obj.getClass()
       |  obj.hashCode
@@ -69,7 +74,6 @@ class TestFileSourceTest extends FunSuite {
       |  obj.toString
       |  obj.toString()
       |
-      |  str.##
       |  str.getClass
       |  str.getClass()
       |  str.hashCode
