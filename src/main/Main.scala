@@ -148,19 +148,28 @@ object Main {
 
 final case class TestContents(
     outerPrelude: List[List[Defn]],
-    innerPrelude: List[List[Defn]],
+    innerPrelude: List[Defn],
     testStats: List[List[Stat]],
-)
+) {
+  def ++(that: TestContents) = {
+    TestContents(
+      (outerPrelude ++ that.outerPrelude).distinct,
+      (innerPrelude ++ that.innerPrelude).distinct,
+      (testStats ++ that.testStats).distinct,
+    )
+  }
+}
 
 final case class TestFile(src: Path, contents: Option[TestContents])
 
 trait MkInMemoryTestFile {
   def path: Path
   def outerPrelude: List[List[Defn]]
-  def innerPrelude: List[List[Defn]]
+  def innerPrelude: List[Defn]
   def testStats: List[List[Stat]]
 
-  def testFile = TestFile(path, Some(TestContents(outerPrelude, innerPrelude, testStats)))
+  def contents = TestContents(outerPrelude, innerPrelude, testStats)
+  def testFile = TestFile(path, Some(contents))
 }
 
 sealed abstract class CompileFile(src: Path) {

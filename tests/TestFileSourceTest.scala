@@ -128,7 +128,7 @@ class TestFileSourceTest extends FunSuite {
       |""".stripMargin
 
   def compareToSource(mk: MkInMemoryTestFile, expected: String) = {
-    val obtained = scala.meta.ShisaMeta.testFileSource(mk.testFile)
+    val obtained = scala.meta.ShisaMeta.testFileSource(mk.contents)
     assertEquals(obtained, expected)
   }
 }

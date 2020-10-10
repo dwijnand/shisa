@@ -54,10 +54,13 @@ object Call {
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
 
   object hashHash extends MkInMemoryTestFile {
-    val path         = Paths.get("testdata/Call.##.scala")
-    val outerPrelude = Nil
-    val innerPrelude = List(vals.map(_.defn))
-    val testStats    = vals.map(_.name).map(duo(_, q"##"))
+    val path              = Paths.get("testdata/Call.##.scala")
+    val hashHash          = q"##"
+    val contentss         = vals.map(v => TestContents(Nil, List(v.defn), List(duo(v.name, hashHash))))
+    override val contents = contentss.reduce(_ ++ _)
+    val outerPrelude      = contents.outerPrelude
+    val innerPrelude      = contents.innerPrelude
+    val testStats         = contents.testStats
   }
 
   object pos extends MkInMemoryTestFile {
@@ -80,7 +83,7 @@ object Call {
     def classesLists(cls: Defn.Class) = List(classesList(cls), classesList(cls.toCaseClass))
 
     val outerPrelude = classesLists(q"class CR".withRunnable) ::: classesLists(q"class CR".toValueClass)
-    val innerPrelude = List(vals.map(_.defn))
+    val innerPrelude = vals.map(_.defn)
 
     val testStats = vals.map(_.name).map { nme =>
         duo(nme, q"getClass") ::: duo(nme, q"hashCode") ::: duo(nme, q"toString")
