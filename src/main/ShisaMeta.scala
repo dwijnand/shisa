@@ -16,8 +16,8 @@ object ShisaMeta {
   def i[A: Syntax](x: A)                          = Show.indent(x)
   def r2[A: Syntax](x: List[A], sep: String = "") = Show.repeat(x, sep)
 
-  def testFileSource(testFile: InMemoryTestFile): String = {
-    val InMemoryTestFile(_, outerPrelude, innerPrelude, testStatss) = testFile
+  def testFileSource(contents: TestContents): String = {
+    val TestContents(outerPrelude, innerPrelude, testStatss) = contents
     val statss = if (innerPrelude.isEmpty) testStatss else innerPrelude ::: testStatss
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
     val cls    = s("class Test {", body, n("}"))
