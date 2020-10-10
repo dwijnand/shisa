@@ -12,6 +12,8 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
 
+import cats.data.Chain
+
 import scala.meta._
 
 import shisa.testdata._
@@ -117,18 +119,17 @@ object Main {
 
       val results = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2)))
 
-      file.chk.println(s"// src: $line")
-
-      results.foldLeft(new CompileResult(-127, Nil.asJava)) { case (prevRes, (id, res)) =>
+      val (_, lines) = results.foldLeft((new CompileResult(-127, Nil.asJava), Chain.empty[String])) { case ((prevRes, lines), (id, res)) =>
         val result = statusPadded(res)
         val writeBody = if (res == prevRes)
-          Seq(f"// $id%-9s $result <no change>")
+          Chain.one(f"// $id%-9s $result <no change>")
         else
-          Seq(f"// $id%-9s $result".trim) ++ (if (res.lines.isEmpty) Nil else res.lines.asScala :+ "")
-        writeBody.foreach(file.chk.println)
-        res
+          f"// $id%-9s $result".trim +: (if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines.asScala.toSeq) :+ "")
+        (res, lines ++ writeBody)
       }
 
+      file.chk.println(s"// src: $line")
+      lines.iterator.foreach(file.chk.println)
       file.chk.println()
       file.chk.println(results.map(x => statusPadded(x._2)).mkString(" ").trim)
       file.chk.close()
