@@ -88,7 +88,7 @@ object Main {
         case RealTestFile(_)                   => Files.copy(sourceFile, src2)
         case tf @ InMemoryTestFile(_, _, _, _) => Files.writeString(src2, ShisaMeta.testFileSource(tf))
       }
-      val results = compilers.map(doCompile(sourceFile, _))
+      val results = compilers.map(doCompile(sourceFile, _)).map(resToStatus)
       val lines   = Files.readString(src2).linesIterator.size
       println(f"> ${s"$sourceFile ($lines lines)"}%-45s ${statusLine(results)}")
     }
@@ -110,45 +110,65 @@ object Main {
 
     input.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, _idx) =>
       val file = CompileFileLine(sourceFile, _idx)
+      val body = List.fill(_idx)("") ::: line :: List.fill(input.size - _idx - 1)("")
+      val code = List(s"package p${file.idx}", "", setup, s"class Test $base{") ::: body ::: List("}", "")
 
-      val body = Array.fill(input.size)("")
-      body(_idx) = line
-      Files.writeString(file.src2, s"package p${file.idx}\n\n$setup\nclass Test $base{\n${body.mkString("\n")}\n}\n")
+      Files.createDirectories(file.src2.getParent)
+      Files.writeString(file.src2, code.mkString("\n"))
 
-      val results = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2)))
+      val resultsWithId = compilers.map(compiler => (compiler.id, resToStatus(compiler.compile1(file.src2))))
+      val results       = resultsWithId.map(_._2)
 
-      val (_, lines) = results.foldLeft((new CompileResult(-127, Nil.asJava), Chain.empty[String])) { case ((prevRes, lines), (id, res)) =>
-        val resStart = s"// ${id.padTo(9, ' ')} ${statusPadded(res)}"
-        val resLines = if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines.asScala.toSeq) :+ ""
+      val initialRes = (CompileWarn(Nil): CompileStatus, Chain.empty[String])
+      val (_, lines) = resultsWithId.foldLeft(initialRes) { case ((prevRes, lines), (id, res)) =>
+        val resStart = s"// ${id.padTo(9, ' ')} ${res.toStatusPadded}"
+        val resLines = if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines) :+ ""
         val newLines = if (res == prevRes) s"$resStart <no change>" +: Chain.empty else s"$resStart".trim +: resLines
         (res, lines ++ newLines)
       }
 
-      val statusSummary = results.map { case (_, res) => statusPadded(res) }.mkString(" ").trim
+      val statusSummary = results.map(_.toStatusPadded).mkString(" ").trim
 
       file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
 
       val lineNo = setup.linesIterator.size + 2 + _idx
-      println(f"> ${s"$sourceFile:$lineNo"}%-45s ${statusLine(results.map(_._2))}$line%-100s")
+      println(f"> ${s"$sourceFile:$lineNo"}%-45s ${statusLine(results)}$line%-100s")
     }
   }
 
-  def statusLine(xs: Seq[CompileResult]) = xs.iterator.map(statusIcon).mkString
-
-  def statusIcon(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
-    case (0, Nil) => s"${Console.GREEN}\u2713${Console.RESET}"  // check mark     (green)
-    case (0, _)   => s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
-    case (_, _)   => s"${Console.RED}\u2717${Console.RESET}"    // cross mark     (red)
+  def resToStatus(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
+    case (0, Nil)   => CompileOk
+    case (0, lines) => CompileWarn(lines)
+    case (_, lines) => CompileErr(lines)
   }
 
-  def statusPadded(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
-    case (0, Nil) => "ok   "
-    case (0, _)   => "warn "
-    case (_, _)   => "error"
-  }
+  def statusLine(xs: Seq[CompileStatus]) = xs.iterator.map(_.toStatusIcon).mkString
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
 }
+
+sealed trait CompileStatus {
+  def lines: List[String] = this match {
+    case CompileOk          => Nil
+    case CompileWarn(lines) => lines
+    case CompileErr(lines)  => lines
+  }
+
+  def toStatusIcon = this match {
+    case CompileOk      => s"${Console.GREEN}\u2713${Console.RESET}"  // check mark     (green)
+    case CompileWarn(_) => s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
+    case CompileErr(_)  => s"${Console.RED}\u2717${Console.RESET}"    // cross mark     (red)
+  }
+
+  def toStatusPadded = this match {
+    case CompileOk      => "ok   "
+    case CompileWarn(_) => "warn "
+    case CompileErr(_)  => "error"
+  }
+}
+      case object CompileOk                                     extends CompileStatus
+final case class  CompileWarn(override val lines: List[String]) extends CompileStatus
+final case class  CompileErr(override val lines: List[String])  extends CompileStatus
 
 sealed trait TestFile { def src: Path }
 final case class RealTestFile(src: Path) extends TestFile
@@ -169,27 +189,27 @@ trait MkInMemoryTestFile {
 }
 
 sealed abstract class CompileFile(src: Path) {
-  val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
-  val dir           = src.resolveSibling(name)
-  def chkPath: Path
+  val name    = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
+  def name2: String
 
-  Files.createDirectories(dir)
-
-  def writeLines(xs: List[String]) = xs match {
-    case init :+ last => Files.writeString(chkPath, (init :+ last.stripLineEnd :+ "").mkString("\n"))
-    case _            => Files.writeString(chkPath, "")
+  def writeLines(xs: List[String]) = {
+    val dir     = src.resolveSibling(name)
+    val chkPath = dir.resolve(s"$name2.check")
+    Files.createDirectories(dir)
+    xs match {
+      case init :+ last => Files.writeString(chkPath, (init :+ last.stripLineEnd :+ "").mkString("\n"))
+      case _            => Files.writeString(chkPath, "")
+    }
   }
 }
 
 final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
-  val src2    = Main.targetDir.resolve(src)
-  val chkPath = dir.resolve(s"$name.$id.check")
+  val name2 = s"$name.$id"
+  val src2  = Main.targetDir.resolve(src)
 }
 
 final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
-  val idx     = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-  val src2    = Main.targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
-  val chkPath = dir.resolve(s"$name.$idx.check")
-
-  Files.createDirectories(src2.getParent)
+  val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
+  val name2 = s"$name.$idx"
+  val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
 }
