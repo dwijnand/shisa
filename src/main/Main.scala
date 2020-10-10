@@ -59,8 +59,8 @@ object Main {
     if (missing.nonEmpty)
       sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
 
-    if (Files.exists(Paths.get("tests/testdata")))
-      IOUtil.deleteRecursive(Paths.get("tests/testdata"))
+    if (Files.exists(Paths.get("target/testdata")))
+      IOUtil.deleteRecursive(Paths.get("target/testdata"))
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
