@@ -75,12 +75,22 @@ object Main {
     futures.foreach(_.get(0, NANOSECONDS))
   }
 
+  val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+
   def compile1(testFile: TestFile, mkCompilers: Seq[MkCompiler]) = {
     val sourceFile = testFile.src
     val compilers = mkCompilers.map(_.mkCompiler())
 
     if (sourceFile.toString.endsWith(".lines.scala")) {
-      doCompileLines(sourceFile, compilers)
+      val (setup, base, input) = Files.readString(sourceFile) match {
+        case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
+      }
+
+      input.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, idx) =>
+        val results = doCompileLine(CompileFileLine(sourceFile, idx), compilers, setup, base, input.size, line)
+        val lineNo = setup.linesIterator.size + 2 + idx
+        println(f"> ${s"$sourceFile:$lineNo"}%-45s ${results.map(_.toStatusIcon).mkString}$line%-100s")
+      }
     } else {
       val src2 = Main.targetDir.resolve(sourceFile)
       Files.createDirectories(src2.getParent)
@@ -88,9 +98,9 @@ object Main {
         case RealTestFile(_)                   => Files.copy(sourceFile, src2)
         case tf @ InMemoryTestFile(_, _, _, _) => Files.writeString(src2, ShisaMeta.testFileSource(tf))
       }
-      val results = compilers.map(doCompile(sourceFile, _)).map(resToStatus)
+      val results = compilers.map(doCompile(sourceFile, _)).map(_.toStatus)
       val lines   = Files.readString(src2).linesIterator.size
-      println(f"> ${s"$sourceFile ($lines lines)"}%-45s ${statusLine(results)}")
+      println(f"> ${s"$sourceFile ($lines lines)"}%-45s ${results.map(_.toStatusIcon).mkString}")
     }
   }
 
@@ -101,48 +111,38 @@ object Main {
     res
   }
 
-  val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+  def doCompileLine(file: CompileFileLine, compilers: Seq[Compiler], setup: String, base: String, count: Int, line: String) = {
+    val body = List.fill(file.idxInt)("") ::: line :: List.fill(count - file.idxInt - 1)("")
+    val code = List(s"package p${file.idx}", "", setup, s"class Test $base{") ::: body ::: List("}", "")
 
-  def doCompileLines(sourceFile: Path, compilers: Seq[Compiler]) = {
-    val (setup, base, input) = Files.readString(sourceFile) match {
-      case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
+    Files.createDirectories(file.src2.getParent)
+    Files.writeString(file.src2, code.mkString("\n"))
+
+    val resultsWithId = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2).toStatus))
+    val results = resultsWithId.map(_._2)
+
+    val initialRes = (CompileWarn(Nil): CompileStatus, Chain.empty[String])
+    val (_, lines) = resultsWithId.foldLeft(initialRes) { case ((prevRes, lines), (id, res)) =>
+      val resStart = s"// ${id.padTo(9, ' ')} ${res.toStatusPadded}"
+      val resLines = if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines) :+ ""
+      val newLines = if (res == prevRes) s"$resStart <no change>" +: Chain.empty else s"$resStart".trim +: resLines
+      (res, lines ++ newLines)
     }
 
-    input.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, _idx) =>
-      val file = CompileFileLine(sourceFile, _idx)
-      val body = List.fill(_idx)("") ::: line :: List.fill(input.size - _idx - 1)("")
-      val code = List(s"package p${file.idx}", "", setup, s"class Test $base{") ::: body ::: List("}", "")
+    val statusSummary = results.map(_.toStatusPadded).mkString(" ").trim
 
-      Files.createDirectories(file.src2.getParent)
-      Files.writeString(file.src2, code.mkString("\n"))
+    file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
 
-      val resultsWithId = compilers.map(compiler => (compiler.id, resToStatus(compiler.compile1(file.src2))))
-      val results       = resultsWithId.map(_._2)
+    results
+  }
 
-      val initialRes = (CompileWarn(Nil): CompileStatus, Chain.empty[String])
-      val (_, lines) = resultsWithId.foldLeft(initialRes) { case ((prevRes, lines), (id, res)) =>
-        val resStart = s"// ${id.padTo(9, ' ')} ${res.toStatusPadded}"
-        val resLines = if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines) :+ ""
-        val newLines = if (res == prevRes) s"$resStart <no change>" +: Chain.empty else s"$resStart".trim +: resLines
-        (res, lines ++ newLines)
-      }
-
-      val statusSummary = results.map(_.toStatusPadded).mkString(" ").trim
-
-      file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
-
-      val lineNo = setup.linesIterator.size + 2 + _idx
-      println(f"> ${s"$sourceFile:$lineNo"}%-45s ${statusLine(results)}$line%-100s")
+  implicit class CompileResultOps(private val res: CompileResult) extends AnyVal {
+    def toStatus: CompileStatus = (res.exitCode, res.lines.asScala.toList) match {
+      case (0, Nil)   => CompileOk
+      case (0, lines) => CompileWarn(lines)
+      case (_, lines) => CompileErr(lines)
     }
   }
-
-  def resToStatus(res: CompileResult) = (res.exitCode, res.lines.asScala.toList) match {
-    case (0, Nil)   => CompileOk
-    case (0, lines) => CompileWarn(lines)
-    case (_, lines) => CompileErr(lines)
-  }
-
-  def statusLine(xs: Seq[CompileStatus]) = xs.iterator.map(_.toStatusIcon).mkString
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
 }
