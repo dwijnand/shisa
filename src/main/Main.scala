@@ -97,9 +97,7 @@ object Main {
   def doCompile(sourceFile: Path, compiler: Compiler) = {
     val file = CompileFile1(sourceFile, compiler.id)
     val res = compiler.compile1(file.src2)
-    val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala :+ ""
-    val allLines = writeBody.init :+ writeBody.last.stripLineEnd
-    Files.writeString(file.chkPath, allLines.iterator.mkString("\n"))
+    file.writeLines((s"// exitCode: ${res.exitCode}" +: res.lines.asScala).toList)
     res
   }
 
@@ -127,9 +125,8 @@ object Main {
       }
 
       val statusSummary = results.map { case (_, res) => statusPadded(res) }.mkString(" ").trim
-      val allLines = s"// src: $line" +: lines :+ "" :+ statusSummary :+ ""
 
-      Files.writeString(file.chkPath, allLines.iterator.mkString("\n"))
+      file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
 
       val lineNo = setup.linesIterator.size + 2 + _idx
       println(f"> ${s"$sourceFile:$lineNo"}%-45s ${statusLine(results.map(_._2))}$line%-100s")
@@ -177,6 +174,11 @@ sealed abstract class CompileFile(src: Path) {
   def chkPath: Path
 
   Files.createDirectories(dir)
+
+  def writeLines(xs: List[String]) = xs match {
+    case init :+ last => Files.writeString(chkPath, (init :+ last.stripLineEnd :+ "").mkString("\n"))
+    case _            => Files.writeString(chkPath, "")
+  }
 }
 
 final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
