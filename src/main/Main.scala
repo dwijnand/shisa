@@ -97,9 +97,9 @@ object Main {
   def doCompile(sourceFile: Path, compiler: Compiler) = {
     val file = CompileFile1(sourceFile, compiler.id)
     val res = compiler.compile1(file.src2)
-    val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala
-    (writeBody.init :+ writeBody.last.stripLineEnd).foreach(file.chk.println)
-    file.chk.close()
+    val writeBody = s"// exitCode: ${res.exitCode}" +: res.lines.asScala :+ ""
+    val allLines = writeBody.init :+ writeBody.last.stripLineEnd
+    Files.writeString(file.chkPath, allLines.iterator.mkString("\n"))
     res
   }
 
@@ -120,19 +120,16 @@ object Main {
       val results = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2)))
 
       val (_, lines) = results.foldLeft((new CompileResult(-127, Nil.asJava), Chain.empty[String])) { case ((prevRes, lines), (id, res)) =>
-        val result = statusPadded(res)
-        val writeBody = if (res == prevRes)
-          Chain.one(f"// $id%-9s $result <no change>")
-        else
-          f"// $id%-9s $result".trim +: (if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines.asScala.toSeq) :+ "")
-        (res, lines ++ writeBody)
+        val resStart = s"// ${id.padTo(9, ' ')} ${statusPadded(res)}"
+        val resLines = if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines.asScala.toSeq) :+ ""
+        val newLines = if (res == prevRes) s"$resStart <no change>" +: Chain.empty else s"$resStart".trim +: resLines
+        (res, lines ++ newLines)
       }
 
-      file.chk.println(s"// src: $line")
-      lines.iterator.foreach(file.chk.println)
-      file.chk.println()
-      file.chk.println(results.map(x => statusPadded(x._2)).mkString(" ").trim)
-      file.chk.close()
+      val statusSummary = results.map { case (_, res) => statusPadded(res) }.mkString(" ").trim
+      val allLines = s"// src: $line" +: lines :+ "" :+ statusSummary :+ ""
+
+      Files.writeString(file.chkPath, allLines.iterator.mkString("\n"))
 
       val lineNo = setup.linesIterator.size + 2 + _idx
       println(f"> ${s"$sourceFile:$lineNo"}%-45s ${statusLine(results.map(_._2))}$line%-100s")
@@ -178,7 +175,6 @@ sealed abstract class CompileFile(src: Path) {
   val name          = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
   val dir           = src.resolveSibling(name)
   def chkPath: Path
-  lazy val chk      = new PrintWriter(Files.newBufferedWriter(chkPath), true)
 
   Files.createDirectories(dir)
 }
