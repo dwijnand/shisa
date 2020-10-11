@@ -15,21 +15,19 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
     val cmd = FreshCompiler2.this.cmd
 
     val settings = new Settings
-    settings.classpath.value   = scalaJars.mkString(File.pathSeparator)
+    settings.classpath.value = scalaJars.mkString(File.pathSeparator)
     settings.deprecation.value = true
     settings.outputDirs.setSingleOutput(new VirtualDirectory("FreshCompiler2 output", None))
     settings.processArgumentString(cmd)
     val reporter = new StoreReporter(settings)
     val compiler = Global(settings, reporter)
 
-    def compile1(src: Path) = {
+    def compile1(src: Path) = try {
       new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
       FreshCompiler2.finish(reporter)
       val lines = reporter.infos.toList.map(FreshCompiler2.display)
-      val res   = new CompileResult(reporter.hasErrors, lines.asJava)
-      reporter.reset()
-      res
-    }
+      new CompileResult(reporter.hasErrors, lines.asJava)
+    } finally reporter.reset()
   }
 }
 

@@ -8,11 +8,6 @@ import scala.jdk.CollectionConverters._
 import dotty.tools.dotc, dotc.{ Compiler => _, _ }, ast.Positioned, config.CommandLineParser, core.Contexts._, reporting._
 import dotty.tools.io.VirtualDirectory
 
-object ShisaDriver extends Driver {
-  override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(using Context): Reporter =
-    super.doCompile(compiler, fileNames)
-}
-
 final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends MkCompiler {
   def mkCompiler(): Compiler = new Compiler {
     val id  = FreshCompiler3.this.id
@@ -23,18 +18,17 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     ctx.setSetting(ctx.settings.classpath, scalaJars.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.migration, true)
-    ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory(s"FreshCompiler3 output"))
+    ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory("FreshCompiler3 output"))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(CommandLineParser.tokenize(cmd), processAll = true).sstate)
     Positioned.updateDebugPos
     val compiler = new dotc.Compiler
 
     def compile1(src: Path) = {
-      val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
-      ctx.setReporter(reporter)
-      ShisaDriver.doCompile(compiler, List(src.toString))
-      val lines = reporter.removeBufferedMessages.toList.map(FreshCompiler3.display)
-      new CompileResult(reporter.hasErrors, lines.asJava)
+      ctx.setReporter(new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages)
+      FreshCompiler3.Driver.doCompile(compiler, List(src.toString))
+      val lines = ctx.reporter.removeBufferedMessages.map(FreshCompiler3.display)
+      new CompileResult(ctx.reporter.hasErrors, lines.asJava)
     }
   }
 }
@@ -61,5 +55,10 @@ object FreshCompiler3 {
       b ++= ("\nlonger explanation available when compiling with `-explain`")
 
     b.result()
+  }
+
+  object Driver extends dotc.Driver {
+    override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(using Context): Reporter =
+        super.doCompile(compiler, fileNames)
   }
 }

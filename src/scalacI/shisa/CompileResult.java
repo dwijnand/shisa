@@ -13,7 +13,6 @@ public final class CompileResult {
         this.lines = lines;
     }
 
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof CompileResult)) return false;
@@ -21,7 +20,6 @@ public final class CompileResult {
         return hasErrors == that.hasErrors && lines.equals(that.lines);
     }
 
-    @Override
     public int hashCode() {
         return Objects.hash(hasErrors, lines);
     }
@@ -34,31 +32,14 @@ public final class CompileResult {
     }
 }
 
-// severity: ERROR WARNING INFO
-
-// Diagnostic:  Error
-//     FeatureWarning
-// DeprecationWarning
-//   UncheckedWarning
-//   MigrationWarning
-//            Warning
-//               Info
-
-// AbstractFile {
-//     name: String
-//     path: String
-//     jfile: Optional[File]
-// }
-
-// SourceFile <: AbstractFile {
-//     content: Array[Char]
-// }
-
+// scalac2: ERROR WARNING INFO
+// scalac3: Error FeatureWarning DeprecationWarning UncheckedWarning MigrationWarning Warning Info
+// AbstractFile { name: String, path: String, jfile: Optional[File] }
+// SourceFile <: AbstractFile { content: Array[Char] }
 // SourcePosition {
-//     source: SourceFile
-//     lineContent: String
-//
-//     point,      line,      column: Int
-//     start, startLine, startColumn: Int
-//       end,   endLine,   endColumn: Int
+//          source: SourceFile,
+//     lineContent: String,
+//     point,      line,      column: Int,
+//     start, startLine, startColumn: Int,
+//       end,   endLine,   endColumn: Int,
 // }
