@@ -1,4 +1,4 @@
-// exitCode: 1
+// hasErrors: true
 target/testdata/Call.##.scala:8: error: Int does not take parameters
   any.##()
         ^

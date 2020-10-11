@@ -1,4 +1,4 @@
-// exitCode: 1
+// hasErrors: true
 -- [E100] Syntax Error: target/testdata/Call.switch/Call.p2m_p.scala:6:6 -------
 6 |  p2m.d
   |  ^^^^^

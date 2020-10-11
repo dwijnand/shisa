@@ -1,4 +1,4 @@
-// exitCode: 0
+// hasErrors: false
 -- [E100] Syntax Migration Warning: target/testdata/Call.def/Call.meth_p.scala:3:2 
 3 |  meth
   |  ^^^^

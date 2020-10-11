@@ -1,4 +1,4 @@
-// exitCode: 0
+// hasErrors: false
 -- [E100] Syntax Migration Warning: target/testdata/Call.switch_vc/p2m_p.scala:6:9 
 6 |  p2m_vc.d
   |  ^^^^^^^^

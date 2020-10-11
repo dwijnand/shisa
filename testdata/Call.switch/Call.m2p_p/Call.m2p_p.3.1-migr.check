@@ -1,4 +1,4 @@
-// exitCode: 1
+// hasErrors: true
 -- Error: target/testdata/Call.switch/Call.m2p_p.scala:2:26 --------------------
 2 |class M2P extends M { def d   = "" }
   |                          ^

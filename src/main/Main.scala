@@ -14,7 +14,7 @@ import scala.util.chaining._
 
 import cats.data.Chain
 
-import scala.meta._
+import scala.meta._, contrib._
 
 import shisa.testdata._
 
@@ -103,7 +103,7 @@ object Main {
       val results = compilers.map { compiler =>
         val file = CompileFile1(srcFile, compiler.id)
         val res  = compiler.compile1(src2)
-        file.writeLines((s"// exitCode: ${res.exitCode}" +: res.lines.asScala).toList)
+        file.writeLines((s"// hasErrors: ${res.hasErrors}" +: res.lines.asScala).toList)
         res
       }
       val lines = Files.readString(src2).linesIterator.size
@@ -136,10 +136,10 @@ object Main {
   }
 
   implicit class CompileResultOps(private val res: CompileResult) extends AnyVal {
-    def toStatus: CompileStatus = (res.exitCode, res.lines.asScala.toList) match {
-      case (0, Nil)   => CompileOk
-      case (0, lines) => CompileWarn(lines)
-      case (_, lines) => CompileErr(lines)
+    def toStatus: CompileStatus = (res.hasErrors, res.lines.asScala.toList) match {
+      case (false, Nil)   => CompileOk
+      case (false, lines) => CompileWarn(lines)
+      case (true,  lines) => CompileErr(lines)
     }
   }
 
@@ -147,14 +147,14 @@ object Main {
 }
 
 final case class TestContents(
-    outerPrelude: List[List[Defn]],
-    innerPrelude: List[Defn],
+    outerDefns: List[List[Defn]],
+    innerDefns: List[Defn],
     testStats: List[List[Stat]],
 ) {
   def ++(that: TestContents) = {
     TestContents(
-      (outerPrelude ++ that.outerPrelude).distinct,
-      (innerPrelude ++ that.innerPrelude).distinct,
+      (outerDefns ++ that.outerDefns).distinct,
+      (innerDefns ++ that.innerDefns).distinct,
       (testStats ++ that.testStats).distinct,
     )
   }
@@ -164,11 +164,11 @@ final case class TestFile(src: Path, contents: Option[TestContents])
 
 trait MkInMemoryTestFile {
   def path: Path
-  def outerPrelude: List[List[Defn]]
-  def innerPrelude: List[Defn]
+  def outerDefns: List[List[Defn]]
+  def innerDefns: List[Defn]
   def testStats: List[List[Stat]]
 
-  def contents = TestContents(outerPrelude, innerPrelude, testStats)
+  def contents = TestContents(outerDefns, innerDefns, testStats)
   def testFile = TestFile(path, Some(contents))
 }
 
@@ -218,4 +218,3 @@ sealed trait CompileStatus {
       case object CompileOk                                     extends CompileStatus
 final case class  CompileWarn(override val lines: List[String]) extends CompileStatus
 final case class  CompileErr(override val lines: List[String])  extends CompileStatus
-

@@ -7,7 +7,7 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.internal.util.{ Position, StringOps }
 import scala.reflect.internal.Reporter.{ ERROR, WARNING }
 import scala.reflect.io.{ AbstractFile, VirtualDirectory }
-import scala.tools.nsc, nsc._, reporters.StoreReporter
+import scala.tools.nsc, nsc._, reporters.{ Reporter, StoreReporter }
 
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends MkCompiler {
   def mkCompiler(): Compiler = new Compiler {
@@ -24,13 +24,16 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
 
     def compile1(src: Path) = {
       new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
-      finish(reporter)
-      val res = new CompileResult(if (reporter.hasErrors) 1 else 0, reporter.infos.toList.map(display).asJava)
+      FreshCompiler2.finish(reporter)
+      val lines = reporter.infos.toList.map(FreshCompiler2.display)
+      val res   = new CompileResult(reporter.hasErrors, lines.asJava)
       reporter.reset()
       res
     }
   }
+}
 
+object FreshCompiler2 {
   // from nsc.reporters.PrintReporter
   def display(info: StoreReporter.Info): String = {
     val label = info.severity match {
@@ -38,7 +41,7 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
       case WARNING => "warning: "
       case _       => ""
     }
-    val msg  = reporters.Reporter.explanation(info.msg)
+    val msg  = Reporter.explanation(info.msg)
     val text = Position.formatMessage(info.pos, s"$label$msg", shortenFile = false)
     StringOps.trimAllTrailingSpace(text)
   }

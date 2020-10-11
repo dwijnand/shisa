@@ -1,4 +1,4 @@
-// exitCode: 0
+// hasErrors: false
 target/testdata/Call.switch/Call.m2p_m.scala:2: warning: method without a parameter list overrides a method with a single empty one
 class M2P extends M { def d   = "" }
                           ^

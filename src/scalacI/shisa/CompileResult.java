@@ -5,30 +5,60 @@ import java.util.Objects;
 import java.util.StringJoiner;
 
 public final class CompileResult {
-    public final int exitCode;
+    public final boolean hasErrors;
     public final List<String> lines;
 
-    public CompileResult(int exitCode, List<String> lines) {
-        this.exitCode = exitCode;
+    public CompileResult(boolean hasErrors, List<String> lines) {
+        this.hasErrors = hasErrors;
         this.lines = lines;
     }
 
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof CompileResult)) return false;
         CompileResult that = (CompileResult) o;
-        return exitCode == that.exitCode &&
-                lines.equals(that.lines);
+        return hasErrors == that.hasErrors && lines.equals(that.lines);
     }
 
+    @Override
     public int hashCode() {
-        return Objects.hash(exitCode, lines);
+        return Objects.hash(hasErrors, lines);
     }
 
     public String toString() {
         return new StringJoiner(", ", CompileResult.class.getSimpleName() + "[", "]")
-                .add("exitCode=" + exitCode)
+                .add("hasErrors=" + hasErrors)
                 .add("lines=" + lines)
                 .toString();
     }
 }
+
+// severity: ERROR WARNING INFO
+
+// Diagnostic:  Error
+//     FeatureWarning
+// DeprecationWarning
+//   UncheckedWarning
+//   MigrationWarning
+//            Warning
+//               Info
+
+// AbstractFile {
+//     name: String
+//     path: String
+//     jfile: Optional[File]
+// }
+
+// SourceFile <: AbstractFile {
+//     content: Array[Char]
+// }
+
+// SourcePosition {
+//     source: SourceFile
+//     lineContent: String
+//
+//     point,      line,      column: Int
+//     start, startLine, startColumn: Int
+//       end,   endLine,   endColumn: Int
+// }

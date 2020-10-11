@@ -1,4 +1,4 @@
-// exitCode: 0
+// hasErrors: false
 -- Migration Warning: target/testdata/Call.switch/Call.p2m_m.scala:2:26 --------
 2 |class P2M extends P { def d() = "" }
   |                          ^

@@ -5,7 +5,8 @@ import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
 
-import dotty.tools.dotc, dotc.{ Compiler => _, _ }, ast.Positioned, core.Contexts._, reporting._
+import dotty.tools.dotc, dotc.{ Compiler => _, _ }, ast.Positioned, config.CommandLineParser, core.Contexts._, reporting._
+import dotty.tools.io.VirtualDirectory
 
 object ShisaDriver extends Driver {
   override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(using Context): Reporter =
@@ -22,41 +23,43 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     ctx.setSetting(ctx.settings.classpath, scalaJars.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.migration, true)
-    ctx.setSetting(ctx.settings.outputDir, new dotty.tools.io.VirtualDirectory(s"FreshCompiler3 output"))
+    ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory(s"FreshCompiler3 output"))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
-    ctx.setSettings(ctx.settings.processArguments(config.CommandLineParser.tokenize(cmd), processAll = true).sstate)
-    Positioned.updateDebugPos(using ctx)
+    ctx.setSettings(ctx.settings.processArguments(CommandLineParser.tokenize(cmd), processAll = true).sstate)
+    Positioned.updateDebugPos
     val compiler = new dotc.Compiler
 
     def compile1(src: Path) = {
       val reporter = new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages
       ctx.setReporter(reporter)
       ShisaDriver.doCompile(compiler, List(src.toString))
-      new CompileResult(if (reporter.hasErrors) 1 else 0, reporter.removeBufferedMessages.toList.map(display).asJava)
+      val lines = reporter.removeBufferedMessages.toList.map(FreshCompiler3.display)
+      new CompileResult(reporter.hasErrors, lines.asJava)
     }
   }
+}
 
+object FreshCompiler3 {
   // from dotc.reporting.ConsoleReporter
   def display(dia: Diagnostic)(implicit ctx: Context): String = {
-    import Diagnostic._
     val doIt = dia match {
-      case dia: ConditionalWarning => dia.enablingOption.value
-      case _                       => true
+      case dia: Diagnostic.ConditionalWarning => dia.enablingOption.value
+      case _                                  => true
     }
+    if (doIt) display1(dia) else ""
+  }
 
-    if (doIt) {
-      val rendering = new MessageRendering {}; import rendering._
-      val builder   = new StringBuilder("")
-      def addMsg    = builder ++= (_: String)
+  private object rendering extends MessageRendering
+  import rendering._
 
-      addMsg(messageAndPos(dia.msg, dia.pos, diagnosticLevel(dia)))
+  private def display1(dia: Diagnostic)(implicit ctx: Context): String = {
+    val b = new StringBuilder(messageAndPos(dia.msg, dia.pos, diagnosticLevel(dia)))
 
-      if (shouldExplain(dia))
-        addMsg("\n" + explanation(dia.msg))
-      else if (dia.msg.explanation.nonEmpty)
-        addMsg("\nlonger explanation available when compiling with `-explain`")
+    if (Diagnostic.shouldExplain(dia))
+      b ++= ("\n" + explanation(dia.msg))
+    else if (dia.msg.explanation.nonEmpty)
+      b ++= ("\nlonger explanation available when compiling with `-explain`")
 
-      builder.result()
-    } else ""
+    b.result()
   }
 }

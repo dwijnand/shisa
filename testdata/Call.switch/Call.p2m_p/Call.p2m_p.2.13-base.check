@@ -1,4 +1,4 @@
-// exitCode: 0
+// hasErrors: false
 target/testdata/Call.switch/Call.p2m_p.scala:6: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.

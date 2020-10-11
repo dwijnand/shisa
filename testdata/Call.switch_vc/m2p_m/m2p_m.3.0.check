@@ -1,4 +1,4 @@
-// exitCode: 1
+// hasErrors: true
 -- Error: target/testdata/Call.switch_vc/m2p_m.scala:2:57 ----------------------
 2 |class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }
   |                                                         ^

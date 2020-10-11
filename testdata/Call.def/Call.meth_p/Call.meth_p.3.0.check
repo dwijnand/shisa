@@ -1,4 +1,4 @@
-// exitCode: 1
+// hasErrors: true
 -- [E100] Syntax Error: target/testdata/Call.def/Call.meth_p.scala:3:2 ---------
 3 |  meth
   |  ^^^^

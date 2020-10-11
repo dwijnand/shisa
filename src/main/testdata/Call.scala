@@ -3,11 +3,7 @@ package testdata
 
 import java.nio.file._
 
-import scala.meta._
-
-final case class Val(name: Term.Name, tpe: Type.Name) {
-  def defn = q"""val ${Pat.Var(name)}: $tpe = """""
-}
+import scala.meta._, contrib._
 
 object Call {
   def idF[A]: A => A = x => x
@@ -28,17 +24,66 @@ object Call {
     def  toValParam = param.copy(mods = param.mods :+ Mod.ValParam())
   }
 
+  sealed trait ClassVariant
+  object ClassVariant {
+    case object Case     extends ClassVariant
+    case object Value    extends ClassVariant
+    case object Runnable extends ClassVariant
+  }
+
+  sealed trait ClassMethOverride
+  object ClassMethOverride {
+    case object No        extends ClassMethOverride
+    case object  JavaMeth extends ClassMethOverride
+    case object ScalaMeth extends ClassMethOverride
+  }
+
+  final case class Cls(variants: List[ClassVariant]) {
+    val name: Type.Name = variants.foldRight(t"CR") {
+      case (ClassVariant.Case,     name) => name.copy("C" + name.value)
+      case (ClassVariant.Value,    name) => name.copy("V" + name.value)
+      case (ClassVariant.Runnable, name) => name
+    }
+
+    val defn = {
+      if (variants.isEmpty) q"class $name".withRunnable
+      else {
+        variants.foldLeft(q"class $name") {
+          case (cls, ClassVariant.Case)     => cls.toCaseClass
+          case (cls, ClassVariant.Value)    => cls.toValueClass
+          case (cls, ClassVariant.Runnable) => cls.withRunnable
+        }
+      }
+    }
+
+    val defns = List(
+      defn,
+      defn.copy(name = defn.name.chSuff('S')).addStat(q"""override def toString   = """""),
+      defn.copy(name = defn.name.chSuff('J')).addStat(q"""override def toString() = """""),
+    )
+  }
+
+  val any  = Val(q"any", t"Any")
+  val ref  = Val(q"ref", t"AnyRef")
+  val obj  = Val(q"obj", t"Object")
+  val str  = Val(q"str", t"String")
+  val vals = List(any, ref, obj, str)
+
+  val   CR = Cls(List(ClassVariant.Runnable))
+  val  CCR = Cls(List(ClassVariant.Runnable, ClassVariant.Case))
+  val  VCR = Cls(List(ClassVariant.Value))
+  val VCCR = Cls(List(ClassVariant.Value, ClassVariant.Case))
+
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
     def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = init :: cls.templ.inits))
-    def chNamePre(ch: Char) = cls.copy(name = cls.name.copy(value = cls.name.value.stripSuffix("CR") + s"${ch}CR"))
 
-    def toCaseClass = cls.chNamePre('C').copy(
+    def toCaseClass = cls.copy(
       mods = cls.mods :+ Mod.Case(),
       ctor = cls.ctor.copy(paramss = cls.ctor.paramss.onNil(List(Nil), idF).map(_.map(_.notValParam))),
     )
 
-    def toValueClass = cls.chNamePre('V').addInit(init"AnyVal").copy(
+    def toValueClass = cls.addInit(init"AnyVal").copy(
       ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
         case Nil           => List(List(param"val x: String"))
         case List(List(p)) => List(List(p.toValParam))
@@ -49,22 +94,29 @@ object Call {
     def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
   }
 
-  val vals = List(Val(q"any", t"Any"), Val(q"ref", t"AnyRef"), Val(q"obj", t"Object"), Val(q"str", t"String"))
+  final case class Val(name: Term.Name, tpe: Type.Name) {
+    val defn = q"""val ${Pat.Var(name)}: $tpe = """""
+  }
 
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
 
+  // TODO: Abstract over problem/line-number
+
   object hashHash extends MkInMemoryTestFile {
     val path              = Paths.get("testdata/Call.##.scala")
-    val hashHash          = q"##"
-    val contentss         = vals.map(v => TestContents(Nil, List(v.defn), List(duo(v.name, hashHash))))
+    //val contentss       = for (v <- vals; stat <- duo(v.name, q"##")) yield TestContents(Nil, List(v.defn), List(List(stat)))
+    val contentss         = vals.map(v => TestContents(Nil, List(v.defn), List(duo(v.name,  q"##"))))
     override val contents = contentss.reduce(_ ++ _)
-    val outerPrelude      = contents.outerPrelude
-    val innerPrelude      = contents.innerPrelude
+    val outerDefns        = contents.outerDefns
+    val innerDefns        = contents.innerDefns
     val testStats         = contents.testStats
   }
 
   object pos extends MkInMemoryTestFile {
     val path = Paths.get("testdata/Call.pos.scala")
+
+    val outerDefns = List(CR.defns, CCR.defns, VCR.defns, VCCR.defns)
+    val innerDefns = vals.map(_.defn)
 
     def alt(t: Term, suff: Char) = t match {
       case q"new ${n @ Type.Name(_)}(...$argss)" => q"new ${n.chSuff(suff)}(...$argss)"
@@ -73,17 +125,6 @@ object Call {
 
     def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
     def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
-
-    def classesList(cls: Defn.Class)  = List(
-      cls,
-      cls.copy(name = cls.name.chSuff('S')).addStat(q"""override def toString  = """""),
-      cls.copy(name = cls.name.chSuff('J')).addStat(q"""override def toString() = """""),
-    )
-
-    def classesLists(cls: Defn.Class) = List(classesList(cls), classesList(cls.toCaseClass))
-
-    val outerPrelude = classesLists(q"class CR".withRunnable) ::: classesLists(q"class CR".toValueClass)
-    val innerPrelude = vals.map(_.defn)
 
     val testStats = vals.map(_.name).map { nme =>
         duo(nme, q"getClass") ::: duo(nme, q"hashCode") ::: duo(nme, q"toString")

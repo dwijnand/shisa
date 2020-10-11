@@ -1,4 +1,4 @@
-// exitCode: 1
+// hasErrors: true
 -- [E050] Type Error: target/testdata/Call.##.scala:8:6 ------------------------
 8 |  any.##()
   |  ^^^^^^

@@ -17,14 +17,14 @@ object ShisaMeta {
   def r2[A: Syntax](x: List[A], sep: String = "") = Show.repeat(x, sep)
 
   def testFileSource(contents: TestContents): String = {
-    val TestContents(outerPrelude, innerPrelude, testStatss) = contents
-    val statss = if (innerPrelude.isEmpty) testStatss else innerPrelude :: testStatss
+    val TestContents(outerDefns, innerDefns, testStatss) = contents
+    val statss = if (innerDefns.isEmpty) testStatss else innerDefns :: testStatss
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
     val cls    = s("class Test {", body, n("}"))
 
     val outer =
-      if (outerPrelude.isEmpty) Show.None
-      else s(r(outerPrelude, EOL + EOL)(Show(defns => r(defns, EOL)(syntax[Defn]))), EOL, EOL)
+      if (outerDefns.isEmpty) Show.None
+      else s(r(outerDefns, EOL + EOL)(Show(defns => r(defns, EOL)(syntax[Defn]))), EOL, EOL)
 
     s(outer, cls, EOL).toString
   }
