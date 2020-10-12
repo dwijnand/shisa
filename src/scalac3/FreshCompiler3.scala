@@ -4,9 +4,14 @@ import java.io.File
 import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
-
-import dotty.tools.dotc, dotc.{ Compiler => _, _ }, ast.Positioned, config.CommandLineParser, core.Contexts._, reporting._
+import dotty.tools.dotc
+import dotc.{ Compiler => _, _ }
+import ast.Positioned
+import config.CommandLineParser
+import core.Contexts._
+import reporting._
 import dotty.tools.io.VirtualDirectory
+import shisa.FreshCompiler3.diaToMsg
 
 final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends MkCompiler {
   def mkCompiler(): Compiler = new Compiler {
@@ -27,36 +32,60 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     def compile1(src: Path) = {
       ctx.setReporter(new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages)
       FreshCompiler3.Driver.doCompile(compiler, List(src.toString))
-      val lines = ctx.reporter.removeBufferedMessages.map(FreshCompiler3.display)
-      new CompileResult(ctx.reporter.hasErrors, lines.asJava)
+      new CompileResult(ctx.reporter.removeBufferedMessages.map(diaToMsg(_)).asJava)
     }
   }
 }
 
 object FreshCompiler3 {
-  // from dotc.reporting.ConsoleReporter
-  def display(dia: Diagnostic)(implicit ctx: Context): String = {
-    val doIt = dia match {
-      case dia: Diagnostic.ConditionalWarning => dia.enablingOption.value
-      case _                                  => true
-    }
-    if (doIt) display1(dia) else ""
+  def diaToMsg(dia: Diagnostic)(implicit ctx: Context): Msg = {
+    val pos = dia.pos.nonInlined
+    new Msg(diaSeverity(dia), pos.source.file.path, pos.line, dia.message, FreshCompiler3.display(dia))
   }
 
-  private object rendering extends MessageRendering
-  import rendering._
+  def diaSeverity(dia: Diagnostic) = dia match {
+    case _: Diagnostic.Error              => Severity.Error
+    case _: Diagnostic.FeatureWarning     => Severity.Warning
+    case _: Diagnostic.DeprecationWarning => Severity.Warning
+    case _: Diagnostic.UncheckedWarning   => Severity.Warning
+    case _: Diagnostic.MigrationWarning   => Severity.Warning
+    case _: Diagnostic.Warning            => Severity.Warning
+    case _: Diagnostic.Info               => Severity.Info
+  }
+
+  // from dotc.reporting.ConsoleReporter
+  def display(dia: Diagnostic)(implicit ctx: Context): String = dia match {
+    case dia: Diagnostic.ConditionalWarning => if (dia.enablingOption.value) display1(dia) else ""
+    case _                                  => display1(dia)
+  }
 
   private def display1(dia: Diagnostic)(implicit ctx: Context): String = {
-    val b = new StringBuilder(messageAndPos(dia.msg, dia.pos, diagnosticLevel(dia)))
-
-    if (Diagnostic.shouldExplain(dia))
-      b ++= ("\n" + explanation(dia.msg))
-    else if (dia.msg.explanation.nonEmpty)
-      b ++= ("\nlonger explanation available when compiling with `-explain`")
-
-    b.result()
+    val diaLvl  = rendering.diagnosticLevel(dia) // Error/Warning/Info/Feature Warning/Deprecation Warning/Unchecked Warning/Migration Warning
+    val msgPos  = rendering.messageAndPos(dia.msg, dia.pos, diaLvl)
+    val explain = if (dia.msg.explanation.isEmpty) "" else "\n" + rendering.explanation(dia.msg)
+    msgPos + explain
+    // -- [E050] Type Error: target/testdata/Call.##.scala:8:6 ------------------------
+    // 8 |  any.##()
+    //   |  ^^^^^^
+    //   |  method ## in class Any does not take parameters
+    //
+    // Explanation
+    // ===========
+    // You have specified more parameter lists as defined in the method definition(s).
+    // Nullary methods may not be called with parenthesis
   }
+  // AbstractFile { name: String, path: String, jfile: Optional[File] }
+  // SourceFile <: AbstractFile { content: Array[Char] }
+  // SourcePosition {
+  //          source: SourceFile,
+  //     lineContent: String,
+  //     point,      line,      column: Int,
+  //     start, startLine, startColumn: Int,
+  //       end,   endLine,   endColumn: Int,
+  // }
+  // Diagnostic (level): Error Warning Info FeatureWarning DeprecationWarning UncheckedWarning MigrationWarning
 
+  object rendering extends MessageRendering
   object Driver extends dotc.Driver {
     override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(using Context): Reporter =
         super.doCompile(compiler, fileNames)

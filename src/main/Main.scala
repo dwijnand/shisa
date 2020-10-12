@@ -103,7 +103,7 @@ object Main {
       val results = compilers.map { compiler =>
         val file = CompileFile1(srcFile, compiler.id)
         val res  = compiler.compile1(src2)
-        file.writeLines((s"// hasErrors: ${res.hasErrors}" +: res.lines.asScala).toList)
+        file.writeLines((s"// hasErrors: ${res.hasErrors}" :: res.lines))
         res
       }
       val lines = Files.readString(src2).linesIterator.size
@@ -136,7 +136,10 @@ object Main {
   }
 
   implicit class CompileResultOps(private val res: CompileResult) extends AnyVal {
-    def toStatus: CompileStatus = (res.hasErrors, res.lines.asScala.toList) match {
+    def msgs: List[Msg]         = res.msgs.asScala.toList
+    def hasErrors: Boolean      = msgs.exists(_.severity == Severity.Error)
+    def lines: List[String]     = msgs.map(_.output)
+    def toStatus: CompileStatus = (res.hasErrors, res.lines) match {
       case (false, Nil)   => CompileOk
       case (false, lines) => CompileWarn(lines)
       case (true,  lines) => CompileErr(lines)

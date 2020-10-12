@@ -1,0 +1,43 @@
+package shisa;
+
+import java.util.Objects;
+import java.util.StringJoiner;
+
+public final class Msg {
+    public final Severity severity;
+    public final String path;
+    public final int lineNo;
+    public final String text;
+    public final String output;
+
+    public Msg(Severity severity, String path, int lineNo, String text, String output) {
+        this.severity = severity;
+        this.path = path;
+        this.lineNo = lineNo;
+        this.text = text;
+        this.output = output;
+    }
+
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Msg)) return false;
+        Msg msg = (Msg) o;
+        return lineNo == msg.lineNo &&
+                severity == msg.severity &&
+                path.equals(msg.path) &&
+                text.equals(msg.text) &&
+                output.equals(msg.output);
+    }
+
+    public int hashCode() { return Objects.hash(severity, path, lineNo, text, output); }
+
+    public String toString() {
+        return new StringJoiner(", ", Msg.class.getSimpleName() + "[", "]")
+                .add("severity=" + severity)
+                .add("path='" + path + "'")
+                .add("lineNo=" + lineNo)
+                .add("text='" + text + "'")
+                .add("output='" + output + "'")
+                .toString();
+    }
+}
