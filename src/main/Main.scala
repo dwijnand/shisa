@@ -75,39 +75,57 @@ object Main {
     futures.foreach(_.get(0, NANOSECONDS))
   }
 
-  val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+  implicit class CompileResultOps(private val res: CompileResult) extends AnyVal {
+    def msgs: List[Msg]         = res.msgs.asScala.toList
+    def hasErrors: Boolean      = msgs.exists(_.severity == Severity.Error)
+    def lines: List[String]     = msgs.map(_.output)
+    def toStatus: CompileStatus = (res.hasErrors, res.lines) match {
+      case (false, Nil)   => CompileOk
+      case (false, lines) => CompileWarn(lines)
+      case (true,  lines) => CompileErr(lines)
+    }
+  }
 
   def compile1(testFile: TestFile, mkCompilers: Seq[MkCompiler]) = {
     val srcFile   = testFile.src
     val compilers = mkCompilers.map(_.mkCompiler())
-
     if (srcFile.toString.endsWith(".lines.scala")) {
-      val (setup, base, cases) = Files.readString(srcFile) match {
-        case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
-      }
-
-      cases.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, idx) =>
-        val file        = CompileFileLine(srcFile, idx)
-        val results     = doCompileLine(file, compilers, setup, base, cases.size, line)
-        val lineNo      = setup.linesIterator.size + 2 + idx
-        val statusIcons = results.map(_.toStatusIcon).mkString
-        println(f"> ${s"$srcFile:$lineNo"}%-45s $statusIcons$line%-100s")
-      }
+      doLines(srcFile, compilers)
     } else {
-      val src2 = targetDir.resolve(srcFile)
-      Files.createDirectories(src2.getParent)
-      testFile match {
-        case TestFile(_, Some(cnts)) => Files.writeString(src2, ShisaMeta.testFileSource(cnts))
-        case _                       => Files.copy(srcFile, src2)
-      }
-      val results = compilers.map { compiler =>
-        val file = CompileFile1(srcFile, compiler.id)
-        val res  = compiler.compile1(src2)
-        file.writeLines((s"// hasErrors: ${res.hasErrors}" :: res.lines))
-        res
-      }
-      val lines = Files.readString(src2).linesIterator.size
-      println(f"> ${s"$srcFile ($lines lines)"}%-45s ${results.map(_.toStatus.toStatusIcon).mkString}")
+      doUnit(testFile, srcFile, compilers)
+    }
+  }
+
+  def doUnit(testFile: TestFile, srcFile: Path, compilers: Seq[Compiler]) = {
+    val src2 = targetDir.resolve(srcFile)
+    Files.createDirectories(src2.getParent)
+    testFile match {
+      case TestFile(_, Some(cnts)) => Files.writeString(src2, ShisaMeta.testFileSource(cnts))
+      case _                       => Files.copy(srcFile, src2)
+    }
+    val results = compilers.map { compiler =>
+      val file = CompileFile1(srcFile, compiler.id)
+      val res = compiler.compile1(src2)
+      file.writeLines((s"// hasErrors: ${res.hasErrors}" :: res.lines))
+      res
+    }
+    val lines = Files.readString(src2).linesIterator.size
+    println(f"> ${s"$srcFile ($lines lines)"}%-45s ${results.map(_.toStatus.toStatusIcon).mkString}")
+  }
+
+  val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
+
+  def doLines(srcFile: Path, compilers: Seq[Compiler]) = {
+    val (setup, base, cases) = Files.readString(srcFile) match {
+      case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
+    }
+
+    cases.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, idx) =>
+      val file = CompileFileLine(srcFile, idx)
+      val results = doCompileLine(file, compilers, setup, base, cases.size, line)
+      val lineNo = setup.linesIterator.size + 2 + idx
+      val statusIcons = results.map(_.toStatusIcon).mkString
+      println(f"> ${s"$srcFile:$lineNo"}%-45s $statusIcons$line%-100s")
     }
   }
 
@@ -133,17 +151,6 @@ object Main {
     val statusSummary = results.map(_.toStatusPadded).mkString(" ").trim
     file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
     results
-  }
-
-  implicit class CompileResultOps(private val res: CompileResult) extends AnyVal {
-    def msgs: List[Msg]         = res.msgs.asScala.toList
-    def hasErrors: Boolean      = msgs.exists(_.severity == Severity.Error)
-    def lines: List[String]     = msgs.map(_.output)
-    def toStatus: CompileStatus = (res.hasErrors, res.lines) match {
-      case (false, Nil)   => CompileOk
-      case (false, lines) => CompileWarn(lines)
-      case (true,  lines) => CompileErr(lines)
-    }
   }
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
