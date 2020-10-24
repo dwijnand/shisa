@@ -57,9 +57,10 @@ object Main {
         .map(p => inMemoryTestFilesMap.getOrElse(p, TestFile(p, None)))
     }
 
-    val missing = testFiles.collect { case TestFile(p, None) if !Files.exists(p) => p }
-    if (missing.nonEmpty)
-      sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
+    testFiles.collect { case TestFile(p, None) if !Files.exists(p) => p } match {
+      case Nil     =>
+      case missing => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
+    }
 
     if (Files.exists(Paths.get("target/testdata")))
       IOUtil.deleteRecursive(Paths.get("target/testdata"))
@@ -76,9 +77,10 @@ object Main {
   }
 
   implicit class CompileResultOps(private val res: CompileResult) extends AnyVal {
-    def msgs: List[Msg]         = res.msgs.asScala.toList
-    def hasErrors: Boolean      = msgs.exists(_.severity == Severity.Error)
-    def lines: List[String]     = msgs.map(_.output)
+    def msgs: List[Msg]     = res.msgs.asScala.toList
+    def hasErrors: Boolean  = msgs.exists(_.severity == Severity.Error)
+    def lines: List[String] = msgs.map(_.output)
+
     def toStatus: CompileStatus = (res.hasErrors, res.lines) match {
       case (false, Nil)   => CompileOk
       case (false, lines) => CompileWarn(lines)
@@ -92,12 +94,37 @@ object Main {
     if (srcFile.toString.endsWith(".lines.scala")) {
       doLines(srcFile, compilers)
     } else {
-      doUnit(testFile, srcFile, compilers)
+      doUnit(testFile, compilers)
     }
   }
 
-  def doUnit(testFile: TestFile, srcFile: Path, compilers: Seq[Compiler]) = {
-    val src2 = targetDir.resolve(srcFile)
+  sealed abstract class CompileFile(src: Path) {
+    val name = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
+    def name2: String
+
+    def writeLines(xs: List[String]) = {
+      val chk = src.resolveSibling(name).resolve(s"$name2.check")
+      Files.createDirectories(chk.getParent)
+      xs match {
+        case init :+ last => Files.writeString(chk, (init :+ last.stripLineEnd :+ "").mkString("\n"))
+        case _            => Files.writeString(chk, "")
+      }
+    }
+  }
+
+  final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
+    val name2 = s"$name.$id"
+  }
+
+  final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
+    val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
+    val name2 = s"$name.$idx"
+    val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
+  }
+
+  def doUnit(testFile: TestFile, compilers: Seq[Compiler]) = {
+    val srcFile = testFile.src
+    val src2    = targetDir.resolve(srcFile)
     Files.createDirectories(src2.getParent)
     testFile match {
       case TestFile(_, Some(cnts)) => Files.writeString(src2, ShisaMeta.testFileSource(cnts))
@@ -121,9 +148,9 @@ object Main {
     }
 
     cases.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, idx) =>
-      val file = CompileFileLine(srcFile, idx)
-      val results = doCompileLine(file, compilers, setup, base, cases.size, line)
-      val lineNo = setup.linesIterator.size + 2 + idx
+      val file        = CompileFileLine(srcFile, idx)
+      val results     = doCompileLine(file, compilers, setup, base, cases.size, line)
+      val lineNo      = setup.linesIterator.size + 2 + idx
       val statusIcons = results.map(_.toStatusIcon).mkString
       println(f"> ${s"$srcFile:$lineNo"}%-45s $statusIcons$line%-100s")
     }
@@ -182,30 +209,6 @@ trait MkInMemoryTestFile {
   def testFile = TestFile(path, Some(contents))
 }
 
-sealed abstract class CompileFile(src: Path) {
-  val name = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
-  def name2: String
-
-  def writeLines(xs: List[String]) = {
-    val chk = src.resolveSibling(name).resolve(s"$name2.check")
-    Files.createDirectories(chk.getParent)
-    xs match {
-      case init :+ last => Files.writeString(chk, (init :+ last.stripLineEnd :+ "").mkString("\n"))
-      case _            => Files.writeString(chk, "")
-    }
-  }
-}
-
-final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
-  val name2 = s"$name.$id"
-}
-
-final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
-  val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-  val name2 = s"$name.$idx"
-  val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
-}
-
 sealed trait CompileStatus {
   def lines: List[String] = this match {
     case CompileOk          => Nil
@@ -227,4 +230,4 @@ sealed trait CompileStatus {
 }
       case object CompileOk                                     extends CompileStatus
 final case class  CompileWarn(override val lines: List[String]) extends CompileStatus
-final case class  CompileErr(override val lines: List[String])  extends CompileStatus
+final case class  CompileErr (override val lines: List[String]) extends CompileStatus
