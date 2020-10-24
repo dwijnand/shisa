@@ -89,13 +89,11 @@ object Main {
   }
 
   def compile1(testFile: TestFile, mkCompilers: Seq[MkCompiler]) = {
-    val srcFile   = testFile.src
     val compilers = mkCompilers.map(_.mkCompiler())
-    if (srcFile.toString.endsWith(".lines.scala")) {
-      doLines(srcFile, compilers)
-    } else {
+    if (testFile.src.toString.endsWith(".lines.scala"))
+      doLines(testFile.src, compilers)
+    else
       doUnit(testFile, compilers)
-    }
   }
 
   sealed abstract class CompileFile(src: Path) {
@@ -112,8 +110,8 @@ object Main {
     }
   }
 
-  final case class CompileFile1(src: Path, id: String) extends CompileFile(src) {
-    val name2 = s"$name.$id"
+  final case class CompileFile1(src: Path, compiler: Compiler) extends CompileFile(src) {
+    val name2 = s"$name.${compiler.id}"
   }
 
   final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
@@ -123,21 +121,51 @@ object Main {
   }
 
   def doUnit(testFile: TestFile, compilers: Seq[Compiler]) = {
-    val srcFile = testFile.src
-    val src2    = targetDir.resolve(srcFile)
+    val src  = testFile.src
+    val src2 = targetDir.resolve(src)
     Files.createDirectories(src2.getParent)
     testFile match {
-      case TestFile(_, Some(cnts)) => Files.writeString(src2, ShisaMeta.testFileSource(cnts))
-      case _                       => Files.copy(srcFile, src2)
+      case TestFile(_, Some(contents)) => Files.writeString(src2, ShisaMeta.testFileSource(contents))
+      case _                           => Files.copy(src, src2)
     }
-    val results = compilers.map { compiler =>
-      val file = CompileFile1(srcFile, compiler.id)
-      val res = compiler.compile1(src2)
+    val files   = compilers.map(CompileFile1(src, _))
+    val results = files.map(file => file.compiler.compile1(src2) -> (file: CompileFile))
+    for ((res, file) <- results)
       file.writeLines((s"// hasErrors: ${res.hasErrors}" :: res.lines))
-      res
-    }
     val lines = Files.readString(src2).linesIterator.size
-    println(f"> ${s"$srcFile ($lines lines)"}%-45s ${results.map(_.toStatus.toStatusIcon).mkString}")
+    println(f"> ${s"$src ($lines lines)"}%-45s ${results.map(_._1.toStatus.toStatusIcon).mkString}")
+    testFile match {
+      case TestFile(_, Some(contents)) =>
+        val noMsg  = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
+        val noRes  = new CompileResult(List(noMsg).asJava)
+        val noFile = CompileFileLine(Paths.get("nopath.scala"), -1)
+        for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
+          val obtMsgs = res.msgs.asScala.toList
+          def showSev(sev: Severity) = sev match {
+            case Severity.Error   => "  error"
+            case Severity.Warning => "warning"
+            case Severity.Info    => "   info"
+          }
+          def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text}"
+          def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString
+          def id(file: CompileFile) = file match {
+            case CompileFile1(_, compiler) => compiler.id
+            case CompileFileLine(_, _)     => "<unknown>"
+          }
+          expMsgs.zipAll(obtMsgs, noMsg, noMsg).collect { case (exp, obt) if exp != obt =>
+            val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
+            val line2 = s"Obtained: ${showMsg(obt)}"
+            val line3 = s"Expected: ${showMsg(exp)}"
+            s"\n$line1\n$line2\n$line3"
+          }.mkString match {
+            case ""    =>
+            case lines =>
+              System.err.println(lines)
+              throw new Exception(lines)
+          }
+        }
+      case _                           =>
+    }
   }
 
   val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
@@ -159,25 +187,29 @@ object Main {
   def doCompileLine(file: CompileFileLine, compilers: Seq[Compiler],
       setup: String, base: String, count: Int, line: String) = {
     val body = List.fill(file.idxInt)("") ::: line :: List.fill(count - file.idxInt - 1)("")
-    val code = List(s"package p${file.idx}", "", setup, s"class Test $base{") ::: body ::: List("}", "")
-
     Files.createDirectories(file.src2.getParent)
-    Files.writeString(file.src2, code.mkString("\n"))
+    Files.writeString(file.src2,
+      s"""package p${file.idx}
+         |
+         |$setup
+         |class Test $base{
+         |${body.mkString("\n")}
+         |}
+         |""".stripMargin
+    )
 
-    val resultsWithId = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2).toStatus))
-    val results       = resultsWithId.map(_._2)
-
+    val results    = compilers.map(compiler => (compiler.id, compiler.compile1(file.src2).toStatus))
     val initialRes = (CompileWarn(Nil): CompileStatus, Chain.empty[String])
-    val (_, lines) = resultsWithId.foldLeft(initialRes) { case ((prevRes, lines), (id, res)) =>
-      val resIdStatus = s"// ${id.padTo(9, ' ')} ${res.toStatusPadded}"
+    val (_, lines) = results.foldLeft(initialRes) { case ((prevRes, lines), (id, res)) =>
+      val idStatus = s"// ${id.padTo(9, ' ')} ${res.toStatusPadded}"
       val resLines = if (res.lines.isEmpty) Chain.empty else Chain.fromSeq(res.lines) :+ ""
-      val newLines = if (res == prevRes) Chain.one(s"$resIdStatus <no change>") else resIdStatus.trim +: resLines
+      val newLines = if (res == prevRes) Chain.one(s"$idStatus <no change>") else idStatus.trim +: resLines
       (res, lines ++ newLines)
     }
 
-    val statusSummary = results.map(_.toStatusPadded).mkString(" ").trim
+    val statusSummary = results.map(_._2.toStatusPadded).mkString(" ").trim
     file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
-    results
+    results.map(_._2)
   }
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
@@ -187,12 +219,14 @@ final case class TestContents(
     outerDefns: List[List[Defn]],
     innerDefns: List[Defn],
     testStats: List[List[Stat]],
+    expectedMsgs: List[List[Msg]],
 ) {
   def ++(that: TestContents) = {
     TestContents(
       (outerDefns ++ that.outerDefns).distinct,
       (innerDefns ++ that.innerDefns).distinct,
       (testStats ++ that.testStats).distinct,
+      (expectedMsgs ++ that.expectedMsgs).distinct,
     )
   }
 }
@@ -204,8 +238,9 @@ trait MkInMemoryTestFile {
   def outerDefns: List[List[Defn]]
   def innerDefns: List[Defn]
   def testStats: List[List[Stat]]
+  def expectedMsgs: List[List[Msg]]
 
-  def contents = TestContents(outerDefns, innerDefns, testStats)
+  def contents = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
   def testFile = TestFile(path, Some(contents))
 }
 

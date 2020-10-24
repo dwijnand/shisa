@@ -25,11 +25,10 @@ public final class Msg {
         return lineNo == msg.lineNo &&
                 severity == msg.severity &&
                 path.equals(msg.path) &&
-                text.equals(msg.text) &&
-                output.equals(msg.output);
+                text.equals(msg.text);
     }
 
-    public int hashCode() { return Objects.hash(severity, path, lineNo, text, output); }
+    public int hashCode() { return Objects.hash(severity, path, lineNo, text); }
 
     public String toString() {
         return new StringJoiner(", ", Msg.class.getSimpleName() + "[", "]")
@@ -37,7 +36,6 @@ public final class Msg {
                 .add("path='" + path + "'")
                 .add("lineNo=" + lineNo)
                 .add("text='" + text + "'")
-                .add("output='" + output + "'")
                 .toString();
     }
 }

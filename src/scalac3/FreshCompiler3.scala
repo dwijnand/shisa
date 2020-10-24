@@ -60,7 +60,8 @@ object FreshCompiler3 {
   }
 
   private def display1(dia: Diagnostic)(implicit ctx: Context): String = {
-    val diaLvl  = rendering.diagnosticLevel(dia) // Error/Warning/Info/Feature Warning/Deprecation Warning/Unchecked Warning/Migration Warning
+    // Error/Warning/Info/Feature Warning/Deprecation Warning/Unchecked Warning/Migration Warning
+    val diaLvl  = rendering.diagnosticLevel(dia)
     val msgPos  = rendering.messageAndPos(dia.msg, dia.pos, diaLvl)
     val explain = if (dia.msg.explanation.isEmpty) "" else "\n" + rendering.explanation(dia.msg)
     msgPos + explain

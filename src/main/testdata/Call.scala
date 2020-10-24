@@ -105,11 +105,18 @@ object Call {
   object hashHash extends MkInMemoryTestFile {
     val path              = Paths.get("testdata/Call.##.scala")
     //val contentss       = for (v <- vals; stat <- duo(v.name, q"##")) yield TestContents(Nil, List(v.defn), List(List(stat)))
-    val contentss         = vals.map(v => TestContents(Nil, List(v.defn), List(duo(v.name,  q"##"))))
-    override val contents = contentss.reduce(_ ++ _)
+    val msgs2             = List(msg2(8), msg2(11), msg2(14), msg2(17), sum2)
+    val msgs3             = List(msg3(7), msg3(10), msg3(13), msg3(16), sum3)
+    val expectedMsgs      = List(msgs2, msgs2, msgs2, msgs3, msgs3, msgs3, msgs3)
+    val contentss         = vals.map(v => TestContents(Nil, List(v.defn), List(duo(v.name,  q"##")), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
+    override val contents = contentss.reduce(_ ++ _).copy(expectedMsgs = hashHash.expectedMsgs)
     val outerDefns        = contents.outerDefns
     val innerDefns        = contents.innerDefns
     val testStats         = contents.testStats
+    def msg2(lineNo: Int) = new Msg(Severity.Error, "target/testdata/Call.##.scala", lineNo, "Int does not take parameters", "")
+    def msg3(lineNo: Int) = new Msg(Severity.Error, "target/testdata/Call.##.scala", lineNo, "method ## in class Any does not take parameters", "")
+    def sum2              = new Msg(Severity.Info, "<no file>", 0, "4 errors", "")
+    def sum3              = new Msg(Severity.Info, "", -1, "4 errors found", "")
   }
 
   object pos extends MkInMemoryTestFile {
@@ -133,5 +140,7 @@ object Call {
         List(toStrings(q"""new VCR("")""")) :::
         List(toStringsAndRun(q"CCR()"))     :::
         List(toStrings(q"""VCCR("")"""))
+
+    val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
   }
 }

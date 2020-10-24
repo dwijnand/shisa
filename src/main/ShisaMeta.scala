@@ -11,7 +11,7 @@ import shisa._
 
 object ShisaMeta {
   def testFileSource(contents: TestContents): String = {
-    val TestContents(outerDefns, innerDefns, testStatss) = contents
+    val TestContents(outerDefns, innerDefns, testStatss, _) = contents
     val statss = if (innerDefns.isEmpty) testStatss else innerDefns :: testStatss
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
     val cls    = s("class Test {", body, n("}"))
