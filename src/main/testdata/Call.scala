@@ -129,8 +129,8 @@ object Call {
     def path: Path
     def contents: TestContents
 
-    final def warn(lineNo: Int, str: String) = Call.warn(Paths.get(s"target/$path"), lineNo, str)
-    final def  err(lineNo: Int, str: String) =  Call.err(Paths.get(s"target/$path"), lineNo, str)
+    final def warn(lineNo: Int, str: String) = Call.warn(path, lineNo, str)
+    final def  err(lineNo: Int, str: String) =  Call.err(path, lineNo, str)
   }
 
   val str1 = "(): String"
@@ -163,9 +163,9 @@ object Call {
 
   def p2m_m_msgs(path: Path, traitName: String) = {
     def warns2 = List(warn(path, 2, p2mMsg))
-    def errs2  = List( err(path, 2, p2mErr("P")))
-    def warns3 = List(warn(path, 2, errOverride3A("P", str2, str1)))
-    def  errs3 = List( err(path, 2, errOverride3B("P", str2, str1)))
+    def errs2  = List( err(path, 2, p2mErr(traitName)))
+    def warns3 = List(warn(path, 2, errOverride3A(traitName, str2, str1)))
+    def  errs3 = List( err(path, 2, errOverride3B(traitName, str2, str1)))
     List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
   }
 
@@ -192,7 +192,7 @@ object Call {
   object switch_m2p_p    extends SwitchFile(switch_m2p_p_path,    TestContents(List(List(M,  M2P)),    List(m2p),    List(List(q"m2p.d")),      m2p_p_msgs(switch_m2p_p_path,    "M")))
   object switch_p2m_m    extends SwitchFile(switch_p2m_m_path,    TestContents(List(List(P,  P2M)),    List(p2m),    List(List(q"p2m.d()")),    p2m_m_msgs(switch_p2m_m_path,    "P")))
   object switch_p2m_p    extends SwitchFile(switch_p2m_p_path,    TestContents(List(List(P,  P2M)),    List(p2m),    List(List(q"p2m.d")),      p2m_p_msgs(switch_p2m_p_path,    "P")))
-  object switch_vc_m2p_m extends SwitchFile(switch_vc_m2p_m_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d()")), m2p_p_msgs(switch_vc_m2p_m_path, "MU")))
+  object switch_vc_m2p_m extends SwitchFile(switch_vc_m2p_m_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d()")), m2p_m_msgs(switch_vc_m2p_m_path, "MU")))
   object switch_vc_m2p_p extends SwitchFile(switch_vc_m2p_p_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d")),   m2p_p_msgs(switch_vc_m2p_p_path, "MU")))
   object switch_vc_p2m_m extends SwitchFile(switch_vc_p2m_m_path, TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d()")), p2m_m_msgs(switch_vc_p2m_m_path, "PU")))
   object switch_vc_p2m_p extends SwitchFile(switch_vc_p2m_p_path, TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d")),   p2m_p_msgs(switch_vc_p2m_p_path, "PU")))
