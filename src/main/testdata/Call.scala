@@ -122,12 +122,15 @@ object Call {
   val m2p_vc = q"""val m2p_vc = new M2P_VC("")"""
   val p2m_vc = q"""val p2m_vc = new P2M_VC("")"""
 
+  def warn(path: Path, lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
+  def  err(path: Path, lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
+
   trait MkInMemoryTestFile {
     def path: Path
     def contents: TestContents
 
-    final def warn(lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
-    final def  err(lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
+    final def warn(lineNo: Int, str: String) = Call.warn(Paths.get(s"target/$path"), lineNo, str)
+    final def  err(lineNo: Int, str: String) =  Call.err(Paths.get(s"target/$path"), lineNo, str)
   }
 
   val str1 = "(): String"
@@ -142,69 +145,57 @@ object Call {
   def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
   def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
 
-  abstract class switch_m2p_m_Gen(traitName: String, override val path: Path) extends MkInMemoryTestFile {
-    val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
-    def warns2       = List(warn(2, errOverride2))
-    def  errs2       = List( err(2, errOverride2))
-    def warns3       = List(warn(2, errOverride3A(traitName, str1, str2)))
-    def  errs3       = List( err(2, errOverride3B(traitName, str1, str2)))
+  def m2p_m_msgs(path: Path, traitName: String) = {
+    def warns2 = List(warn(path, 2, errOverride2))
+    def  errs2 = List( err(path, 2, errOverride2))
+    def warns3 = List(warn(path, 2, errOverride3A(traitName, str1, str2)))
+    def  errs3 = List( err(path, 2, errOverride3B(traitName, str1, str2)))
+    List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
   }
 
-  abstract class switch_m2p_p_Gen(traitName: String, override val path: Path) extends MkInMemoryTestFile {
-    val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
-    def warns2       = List(warn(7, autoApp2("d")), warn(2, errOverride2))
-    def warnErr2     = List( err(2, errOverride2),  warn(7, autoApp2("d")))
-    def warns3       = List(warn(2, errOverride3A(traitName, str1, str2)))
-    def  errs3       = List( err(2, errOverride3B(traitName, str1, str2)))
+  def m2p_p_msgs(path: Path, traitName: String) = {
+    def warns2   = List(warn(path, 7, autoApp2("d")), warn(path, 2, errOverride2))
+    def warnErr2 = List( err(path, 2, errOverride2),  warn(path, 7, autoApp2("d")))
+    def warns3   = List(warn(path, 2, errOverride3A(traitName, str1, str2)))
+    def  errs3   = List( err(path, 2, errOverride3B(traitName, str1, str2)))
+    List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }
 
-  abstract class switch_p2m_m_Gen(traitName: String, override val path: Path) extends MkInMemoryTestFile {
-    val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
-    def warns2       = List(warn(2, p2mMsg))
-    def errs2        = List( err(2, p2mErr("P")))
-    def warns3       = List(warn(2, errOverride3A("P", str2, str1)))
-    def  errs3       = List( err(2, errOverride3B("P", str2, str1)))
+  def p2m_m_msgs(path: Path, traitName: String) = {
+    def warns2 = List(warn(path, 2, p2mMsg))
+    def errs2  = List( err(path, 2, p2mErr("P")))
+    def warns3 = List(warn(path, 2, errOverride3A("P", str2, str1)))
+    def  errs3 = List( err(path, 2, errOverride3B("P", str2, str1)))
+    List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
   }
 
-  abstract class switch_p2m_p_Gen(traitName: String, override val path: Path) extends MkInMemoryTestFile {
-    val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
-    def warns2       = List(warn(7, autoApp2("d")),    warn(2, p2mMsg))
-    def warnErr2     = List(warn(7, autoApp2("d")),     err(2, p2mErr(traitName)))
-    def warns3       = List(warn(7, parensCall3("d")), warn(2, errOverride3A(traitName, str2, str1)))
-    def  errs3       = List( err(7, parensCall3("d")))
+  def p2m_p_msgs(path: Path, traitName: String) = {
+    def warns2   = List(warn(path, 7, autoApp2("d")),    warn(path, 2, p2mMsg))
+    def warnErr2 = List(warn(path, 7, autoApp2("d")),     err(path, 2, p2mErr(traitName)))
+    def warns3   = List(warn(path, 7, parensCall3("d")), warn(path, 2, errOverride3A(traitName, str2, str1)))
+    def  errs3   = List( err(path, 7, parensCall3("d")))
+    List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }
 
-  object switch_m2p_m extends switch_m2p_m_Gen("M", Paths.get("testdata/Call.switch/Call.m2p_m.scala")) {
-    def contents = TestContents(List(List(M, M2P)), List(m2p), List(List(q"m2p.d()")), expectedMsgs)
-  }
+  val switch_m2p_m_path    = Paths.get("testdata/Call.switch/Call.m2p_m.scala")
+  val switch_m2p_p_path    = Paths.get("testdata/Call.switch/Call.m2p_p.scala")
+  val switch_p2m_m_path    = Paths.get("testdata/Call.switch/Call.p2m_m.scala")
+  val switch_p2m_p_path    = Paths.get("testdata/Call.switch/Call.p2m_p.scala")
+  val switch_vc_m2p_m_path = Paths.get("testdata/Call.switch_vc/m2p_m.scala")
+  val switch_vc_m2p_p_path = Paths.get("testdata/Call.switch_vc/m2p_p.scala")
+  val switch_vc_p2m_m_path = Paths.get("testdata/Call.switch_vc/p2m_m.scala")
+  val switch_vc_p2m_p_path = Paths.get("testdata/Call.switch_vc/p2m_p.scala")
 
-  object switch_m2p_p extends switch_m2p_p_Gen("M", Paths.get("testdata/Call.switch/Call.m2p_p.scala")) {
-    def contents = TestContents(List(List(M, M2P)), List(m2p), List(List(q"m2p.d")), expectedMsgs)
-  }
+  sealed class SwitchFile(val path: Path, val contents: TestContents) extends MkInMemoryTestFile
 
-  object switch_p2m_m extends switch_p2m_m_Gen("P", Paths.get("testdata/Call.switch/Call.p2m_m.scala")) {
-    def contents  = TestContents(List(List(P, P2M)), List(p2m), List(List(q"p2m.d()")), expectedMsgs)
-  }
-
-  object switch_p2m_p extends switch_p2m_p_Gen("P", Paths.get("testdata/Call.switch/Call.p2m_p.scala")) {
-    def contents = TestContents(List(List(P, P2M)), List(p2m), List(List(q"p2m.d")), expectedMsgs)
-  }
-
-  object switch_vc_m2p_m extends switch_m2p_m_Gen("MU", Paths.get("testdata/Call.switch_vc/m2p_m.scala")) {
-    def contents = TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d()")), expectedMsgs)
-  }
-
-  object switch_vc_m2p_p extends switch_m2p_p_Gen("MU", Paths.get("testdata/Call.switch_vc/m2p_p.scala")) {
-    def contents = TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d")), expectedMsgs)
-  }
-
-  object switch_vc_p2m_m extends switch_p2m_m_Gen("PU", Paths.get("testdata/Call.switch_vc/p2m_m.scala")) {
-    def contents = TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d()")), expectedMsgs)
-  }
-
-  object switch_vc_p2m_p extends switch_p2m_p_Gen("PU", Paths.get("testdata/Call.switch_vc/p2m_p.scala")) {
-    def contents = TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d")), expectedMsgs)
-  }
+  object switch_m2p_m    extends SwitchFile(switch_m2p_m_path,    TestContents(List(List(M,  M2P)),    List(m2p),    List(List(q"m2p.d()")),    m2p_m_msgs(switch_m2p_m_path,    "M")))
+  object switch_m2p_p    extends SwitchFile(switch_m2p_p_path,    TestContents(List(List(M,  M2P)),    List(m2p),    List(List(q"m2p.d")),      m2p_p_msgs(switch_m2p_p_path,    "M")))
+  object switch_p2m_m    extends SwitchFile(switch_p2m_m_path,    TestContents(List(List(P,  P2M)),    List(p2m),    List(List(q"p2m.d()")),    p2m_m_msgs(switch_p2m_m_path,    "P")))
+  object switch_p2m_p    extends SwitchFile(switch_p2m_p_path,    TestContents(List(List(P,  P2M)),    List(p2m),    List(List(q"p2m.d")),      p2m_p_msgs(switch_p2m_p_path,    "P")))
+  object switch_vc_m2p_m extends SwitchFile(switch_vc_m2p_m_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d()")), m2p_p_msgs(switch_vc_m2p_m_path, "MU")))
+  object switch_vc_m2p_p extends SwitchFile(switch_vc_m2p_p_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d")),   m2p_p_msgs(switch_vc_m2p_p_path, "MU")))
+  object switch_vc_p2m_m extends SwitchFile(switch_vc_p2m_m_path, TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d()")), p2m_m_msgs(switch_vc_p2m_m_path, "PU")))
+  object switch_vc_p2m_p extends SwitchFile(switch_vc_p2m_p_path, TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d")),   p2m_p_msgs(switch_vc_p2m_p_path, "PU")))
 
   object def_meth_p extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/Call.def/Call.meth_p.scala")
@@ -221,22 +212,20 @@ object Call {
     val path         = Paths.get("testdata/Call.def/Call.prop_m.scala")
     val innerDefns   = List(q"""def prop = """"")
     val testStats    = List(List(q"prop()"))
-    val expectedMsgs = multi(err(4, msg2), err(4, msg3))
-    def msg2         = "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i."
-    def msg3         = "missing argument for parameter i of method apply: (i: Int): Char"
+    val expectedMsgs = multi(err2, err3)
+    def err2         = err(4, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
+    def err3         = err(4, "missing argument for parameter i of method apply: (i: Int): Char")
     def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
   }
 
   object hashHash extends MkInMemoryTestFile {
     val path = Paths.get("testdata/Call.##.scala")
 
-    def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo))
-
     val contentss         = List(
-      TestContents(Nil, List(any.defn), List(duo(any.name, q"##")), errs(8)),
-      TestContents(Nil, List(ref.defn), List(duo(ref.name, q"##")), errs(11)),
-      TestContents(Nil, List(obj.defn), List(duo(obj.name, q"##")), errs(14)),
-      TestContents(Nil, List(str.defn), List(duo(str.name, q"##")), errs(17)),
+      TestContents(Nil, List(any.defn), List(duo(any.name, q"##")), multi(err2( 8), err3( 8))),
+      TestContents(Nil, List(ref.defn), List(duo(ref.name, q"##")), multi(err2(11), err3(11))),
+      TestContents(Nil, List(obj.defn), List(duo(obj.name, q"##")), multi(err2(14), err3(14))),
+      TestContents(Nil, List(str.defn), List(duo(str.name, q"##")), multi(err2(17), err3(17))),
     )
     val contents = contentss.reduce(_ ++ _)
 
