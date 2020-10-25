@@ -49,6 +49,10 @@ object Main {
     Call.switch_m2p_p,
     Call.switch_p2m_m,
     Call.switch_p2m_p,
+    Call.switch_vc_m2p_m,
+    Call.switch_vc_m2p_p,
+    Call.switch_vc_p2m_m,
+    Call.switch_vc_p2m_p,
   )
   val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 

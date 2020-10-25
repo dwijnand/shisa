@@ -1,5 +1,5 @@
 // hasErrors: true
-target/testdata/Call.switch_vc/p2m_p.scala:6: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
+target/testdata/Call.switch_vc/p2m_p.scala:7: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   p2m_vc.d

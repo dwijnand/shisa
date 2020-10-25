@@ -1,6 +1,6 @@
 // hasErrors: false
 -- Migration Warning: target/testdata/Call.switch_vc/m2p_p.scala:2:57 ----------
-2 |class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }
+2 |class M2P_VC(val x: String) extends AnyVal with MU { def d = "" }
   |                                                         ^
   |                error overriding method d in trait MU of type (): String;
   |                  method d of type => String no longer has compatible type

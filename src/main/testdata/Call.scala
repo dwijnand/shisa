@@ -135,7 +135,7 @@ object Call {
     |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
   def parensCall3(meth: String) = s"method $meth must be called with () argument"
   def p2mMsg = "method with a single empty parameter list overrides method without any parameter list"
-  def p2mErr = s"$p2mMsg\ndef d: String (defined in trait P)"
+  def p2mErr(nme: String) = s"$p2mMsg\ndef d: String (defined in trait $nme)"
   def errOverride2                                         = "method without a parameter list overrides a method with a single empty one"
   def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
   def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
@@ -148,8 +148,8 @@ object Call {
     val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(2, errOverride2))
     def  errs2       = List( err(2, errOverride2))
-    def warns3       = List(warn(2, errOverride3A("M", "(): String", "=> String")))
-    def  errs3       = List( err(2, errOverride3B("M", "(): String", "=> String")))
+    def warns3       = List(warn(2, errOverride3A("MU", "(): String", "=> String")))
+    def  errs3       = List( err(2, errOverride3B("MU", "(): String", "=> String")))
     def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
   }
 
@@ -161,8 +161,8 @@ object Call {
     val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(7, autoApp2("d")), warn(2, errOverride2))
     def warnErr2     = List( err(2, errOverride2),  warn(7, autoApp2("d")))
-    def warns3       = List(warn(2, errOverride3A("M", "(): String", "=> String")))
-    def  errs3       = List( err(2, errOverride3B("M", "(): String", "=> String")))
+    def warns3       = List(warn(2, errOverride3A("MU", "(): String", "=> String")))
+    def  errs3       = List( err(2, errOverride3B("MU", "(): String", "=> String")))
     def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
   }
 
@@ -173,9 +173,9 @@ object Call {
     val testStats    = List(List(q"p2m_vc.d()"))
     val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(2, p2mMsg))
-    def errs2        = List( err(2, p2mErr))
-    def warns3       = List(warn(2, errOverride3A("P", "=> String", "(): String")))
-    def  errs3       = List( err(2, errOverride3B("P", "=> String", "(): String")))
+    def errs2        = List( err(2, p2mErr("PU")))
+    def warns3       = List(warn(2, errOverride3A("PU", "=> String", "(): String")))
+    def  errs3       = List( err(2, errOverride3B("PU", "=> String", "(): String")))
     def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
   }
 
@@ -186,8 +186,8 @@ object Call {
     val testStats    = List(List(q"p2m_vc.d"))
     val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(7, autoApp2("d")),    warn(2, p2mMsg))
-    def warnErr2     = List(warn(7, autoApp2("d")),     err(2, p2mErr))
-    def warns3       = List(warn(7, parensCall3("d")), warn(2, errOverride3A("P", "=> String", "(): String")))
+    def warnErr2     = List(warn(7, autoApp2("d")),     err(2, p2mErr("PU")))
+    def warns3       = List(warn(7, parensCall3("d")), warn(2, errOverride3A("PU", "=> String", "(): String")))
     def  errs3       = List( err(7, parensCall3("d")))
     def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
   }
@@ -225,7 +225,7 @@ object Call {
     val testStats    = List(List(q"p2m.d()"))
     val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(2, p2mMsg))
-    def errs2        = List( err(2, p2mErr))
+    def errs2        = List( err(2, p2mErr("P")))
     def warns3       = List(warn(2, errOverride3A("P", "=> String", "(): String")))
     def  errs3       = List( err(2, errOverride3B("P", "=> String", "(): String")))
     def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
@@ -238,7 +238,7 @@ object Call {
     val testStats    = List(List(q"p2m.d"))
     val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(7, autoApp2("d")),    warn(2, p2mMsg))
-    def warnErr2     = List(warn(7, autoApp2("d")),     err(2, p2mErr))
+    def warnErr2     = List(warn(7, autoApp2("d")),     err(2, p2mErr("P")))
     def warns3       = List(warn(7, parensCall3("d")), warn(2, errOverride3A("P", "=> String", "(): String")))
     def  errs3       = List( err(7, parensCall3("d")))
     def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
