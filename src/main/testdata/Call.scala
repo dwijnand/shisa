@@ -177,25 +177,19 @@ object Call {
     List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }
 
-  val switch_m2p_m_path    = Paths.get("testdata/Call.switch/Call.m2p_m.scala")
-  val switch_m2p_p_path    = Paths.get("testdata/Call.switch/Call.m2p_p.scala")
-  val switch_p2m_m_path    = Paths.get("testdata/Call.switch/Call.p2m_m.scala")
-  val switch_p2m_p_path    = Paths.get("testdata/Call.switch/Call.p2m_p.scala")
-  val switch_vc_m2p_m_path = Paths.get("testdata/Call.switch_vc/m2p_m.scala")
-  val switch_vc_m2p_p_path = Paths.get("testdata/Call.switch_vc/m2p_p.scala")
-  val switch_vc_p2m_m_path = Paths.get("testdata/Call.switch_vc/p2m_m.scala")
-  val switch_vc_p2m_p_path = Paths.get("testdata/Call.switch_vc/p2m_p.scala")
+  sealed class SwitchFile(pathStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, testStat: Stat, expectedMsgs: (Path, String) => List[List[Msg]]) extends MkInMemoryTestFile {
+    val path     = Paths.get(s"testdata/$pathStr")
+    val contents = TestContents(List(traitDefn, clsDefn), List(valDefn), List(testStat), expectedMsgs(path, traitDefn.name.value))
+  }
 
-  sealed class SwitchFile(val path: Path, val contents: TestContents) extends MkInMemoryTestFile
-
-  object switch_m2p_m    extends SwitchFile(switch_m2p_m_path,    TestContents(List(List(M,  M2P)),    List(m2p),    List(List(q"m2p.d()")),    m2p_m_msgs(switch_m2p_m_path,    "M")))
-  object switch_m2p_p    extends SwitchFile(switch_m2p_p_path,    TestContents(List(List(M,  M2P)),    List(m2p),    List(List(q"m2p.d")),      m2p_p_msgs(switch_m2p_p_path,    "M")))
-  object switch_p2m_m    extends SwitchFile(switch_p2m_m_path,    TestContents(List(List(P,  P2M)),    List(p2m),    List(List(q"p2m.d()")),    p2m_m_msgs(switch_p2m_m_path,    "P")))
-  object switch_p2m_p    extends SwitchFile(switch_p2m_p_path,    TestContents(List(List(P,  P2M)),    List(p2m),    List(List(q"p2m.d")),      p2m_p_msgs(switch_p2m_p_path,    "P")))
-  object switch_vc_m2p_m extends SwitchFile(switch_vc_m2p_m_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d()")), m2p_m_msgs(switch_vc_m2p_m_path, "MU")))
-  object switch_vc_m2p_p extends SwitchFile(switch_vc_m2p_p_path, TestContents(List(List(MU, M2P_VC)), List(m2p_vc), List(List(q"m2p_vc.d")),   m2p_p_msgs(switch_vc_m2p_p_path, "MU")))
-  object switch_vc_p2m_m extends SwitchFile(switch_vc_p2m_m_path, TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d()")), p2m_m_msgs(switch_vc_p2m_m_path, "PU")))
-  object switch_vc_p2m_p extends SwitchFile(switch_vc_p2m_p_path, TestContents(List(List(PU, P2M_VC)), List(p2m_vc), List(List(q"p2m_vc.d")),   p2m_p_msgs(switch_vc_p2m_p_path, "PU")))
+  object switch_m2p_m    extends SwitchFile("Call.switch/Call.m2p_m.scala", M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
+  object switch_m2p_p    extends SwitchFile("Call.switch/Call.m2p_p.scala", M,  M2P,    m2p,    q"m2p.d",      m2p_p_msgs)
+  object switch_p2m_m    extends SwitchFile("Call.switch/Call.p2m_m.scala", P,  P2M,    p2m,    q"p2m.d()",    p2m_m_msgs)
+  object switch_p2m_p    extends SwitchFile("Call.switch/Call.p2m_p.scala", P,  P2M,    p2m,    q"p2m.d",      p2m_p_msgs)
+  object switch_vc_m2p_m extends SwitchFile("Call.switch_vc/m2p_m.scala",   MU, M2P_VC, m2p_vc, q"m2p_vc.d()", m2p_m_msgs)
+  object switch_vc_m2p_p extends SwitchFile("Call.switch_vc/m2p_p.scala",   MU, M2P_VC, m2p_vc, q"m2p_vc.d",   m2p_p_msgs)
+  object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m.scala",   PU, P2M_VC, p2m_vc, q"p2m_vc.d()", p2m_m_msgs)
+  object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p.scala",   PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
 
   object def_meth_p extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/Call.def/Call.meth_p.scala")
