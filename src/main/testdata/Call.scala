@@ -107,23 +107,101 @@ object Call {
     List(msg3), List(msg3), List(msg3), List(msg3),
   )
 
+  val M = q"trait M { def d() : String }"
+  val P = q"trait P { def d   : String }"
+
+  val M2P = q"""class M2P extends M { def d   = "" }"""
+  val P2M = q"""class P2M extends P { def d() = "" }"""
+
+  val m2p = q"val m2p = new M2P"
+  val p2m = q"val p2m = new P2M"
+
+  trait MkInMemoryTestFile {
+    def path: Path
+    def contents: TestContents
+
+    final def warn(lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
+    final def  err(lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
+  }
+
+  def autoApp2(meth: String) = s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
+    |or remove the empty argument list from its definition (Java-defined methods are exempt).
+    |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
+  def parensCall3(meth: String) = s"method $meth must be called with () argument"
+  def p2mMsg = "method with a single empty parameter list overrides method without any parameter list"
+  def p2mErr = s"$p2mMsg\ndef d: String (defined in trait P)"
+  def errOverride2 = "method without a parameter list overrides a method with a single empty one"
+  def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
+  def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
+
+  object switch_m2p_m extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch/Call.m2p_m.scala")
+    val outerDefns   = List(List(M, M2P))
+    val innerDefns   = List(m2p)
+    val testStats    = List(List(q"m2p.d()"))
+    val expectedMsgs = List(warns2, warns2, errs2,
+                            warns3, errs3, errs3, errs3)
+    def warns2       = List(warn(2, errOverride2))
+    def  errs2       = List( err(2, errOverride2))
+    def warns3       = List(warn(2, errOverride3A("M", "(): String", "=> String")))
+    def  errs3       = List( err(2, errOverride3B("M", "(): String", "=> String")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
+  object switch_m2p_p extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch/Call.m2p_p.scala")
+    val outerDefns   = List(List(M, M2P))
+    val innerDefns   = List(m2p)
+    val testStats    = List(List(q"m2p.d"))
+    val expectedMsgs = List(warns2, warns2, warnErr2,
+                            warns3, errs3, errs3, errs3)
+    def warns2       = List(warn(7, autoApp2("d")), warn(2, errOverride2))
+    def warnErr2     = List( err(2, errOverride2), warn(7, autoApp2("d")))
+    def warns3       = List(warn(2, errOverride3A("M", "(): String", "=> String")))
+    def errs3        = List( err(2, errOverride3B("M", "(): String", "=> String")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
+  object switch_p2m_m extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch/Call.p2m_m.scala")
+    val outerDefns   = List(List(P, P2M))
+    val innerDefns   = List(p2m)
+    val testStats    = List(List(q"p2m.d()"))
+    val expectedMsgs = List(warns2, warns2, err2,
+                            warns3, errs3, errs3, errs3)
+    def warn2        = warn(2, p2mMsg)
+    def warns2       = List(warn2)
+    def err2         = List(err(2, p2mErr))
+    def warn3        = warn(2, p2mMsg)
+    def warns3       = List(warn(2, errOverride3A("P", "=> String", "(): String")))
+    def  errs3       = List( err(2, errOverride3B("P", "=> String", "(): String")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
+  object switch_p2m_p extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch/Call.p2m_p.scala")
+    val outerDefns   = List(List(P, P2M))
+    val innerDefns   = List(p2m)
+    val testStats    = List(List(q"p2m.d"))
+    val expectedMsgs = List(warns2, warns2, warnErr2,
+                            warns3, List(err3), List(err3), List(err3))
+    def warns2       = List(warn(7, autoApp2("d")), warn(2, p2mMsg))
+    def warnErr2     = List(warn(7, autoApp2("d")),  err(2, p2mErr))
+    def warns3       = List(warn3, warn(2, errOverride3A("P", "=> String", "(): String")))
+    def warn3        = warn(7, parensCall3("d"))
+    def err3         =  err(7, parensCall3("d"))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
   object def_meth_p extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/Call.def/Call.meth_p.scala")
     val innerDefns   = List(q"""def meth() = """"")
     val testStats    = List(List(q"meth"))
-    val expectedMsgs = List(
-      List(warn(4, msg2)), List(warn(4, msg2)), List(warn(4, msg2)),
-      List(warn(4, msg3)), List( err(4, msg3)), List( err(4, msg3)), List(err(4, msg3)),
-    )
-
-    def msg2 = """Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
-      |or remove the empty argument list from its definition (Java-defined methods are exempt).
-      |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
-    def msg3 = "method meth must be called with () argument"
-
-    def warn(lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
-    def  err(lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
-
+    val expectedMsgs = List(List(warn2), List(warn2), List(warn2),
+                            List(warn3), List(err3), List(err3), List(err3))
+    def warn2        = warn(4, autoApp2("meth"))
+    def warn3        = warn(4, parensCall3("meth"))
+    def  err3        =  err(4, parensCall3("meth"))
     def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
   }
 
@@ -137,8 +215,6 @@ object Call {
       |Unspecified value parameter i.""".stripMargin
     def msg3 = "missing argument for parameter i of method apply: (i: Int): Char"
 
-    def err(lineNo: Int, str: String) = new Msg(Severity.Error, s"target/$path", lineNo, str, "")
-
     def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
   }
 
@@ -146,6 +222,7 @@ object Call {
     val path = Paths.get("testdata/Call.##.scala")
 
     def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo))
+
     val contentss         = List(
       TestContents(Nil, List(any.defn), List(duo(any.name, q"##")), errs(8)),
       TestContents(Nil, List(ref.defn), List(duo(ref.name, q"##")), errs(11)),
@@ -154,9 +231,8 @@ object Call {
     )
     val contents = contentss.reduce(_ ++ _)
 
-    def err2(lineNo: Int)             = err(lineNo, "Int does not take parameters")
-    def err3(lineNo: Int)             = err(lineNo, "method ## in class Any does not take parameters")
-    def err(lineNo: Int, str: String) = new Msg(Severity.Error, s"target/$path", lineNo, str, "")
+    def err2(lineNo: Int) = err(lineNo, "Int does not take parameters")
+    def err3(lineNo: Int) = err(lineNo, "method ## in class Any does not take parameters")
   }
 
   object pos extends MkInMemoryTestFile {

@@ -1,6 +1,6 @@
 // hasErrors: false
--- [E100] Syntax Migration Warning: target/testdata/Call.switch/Call.p2m_p.scala:6:6 
-6 |  p2m.d
+-- [E100] Syntax Migration Warning: target/testdata/Call.switch/Call.p2m_p.scala:7:6 
+7 |  p2m.d
   |  ^^^^^
   |  method d must be called with () argument
 

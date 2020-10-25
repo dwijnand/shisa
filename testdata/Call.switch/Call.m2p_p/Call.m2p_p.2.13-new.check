@@ -1,8 +1,8 @@
 // hasErrors: true
 target/testdata/Call.switch/Call.m2p_p.scala:2: error: method without a parameter list overrides a method with a single empty one
-class M2P extends M { def d   = "" }
+class M2P extends M { def d = "" }
                           ^
-target/testdata/Call.switch/Call.m2p_p.scala:6: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
+target/testdata/Call.switch/Call.m2p_p.scala:7: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method d,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   m2p.d

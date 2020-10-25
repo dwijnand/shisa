@@ -40,7 +40,16 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryMkTest = List(Call.hashHash, Call.pos, Call.def_meth_p, Call.def_prop_m)
+  val inMemoryMkTest = List(
+    Call.hashHash,
+    Call.pos,
+    Call.def_meth_p,
+    Call.def_prop_m,
+    Call.switch_m2p_m,
+    Call.switch_m2p_p,
+    Call.switch_p2m_m,
+    Call.switch_p2m_p,
+  )
   val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 
   def main(args: Array[String]): Unit = {
@@ -137,36 +146,37 @@ object Main {
     for ((res, file) <- results)
       file.writeLines((s"// hasErrors: ${res.hasErrors}" :: res.lines))
     val lines = Files.readString(src2).linesIterator.size
-    println(f"> ${s"$src ($lines lines)"}%-45s ${results.map(_._1.toStatus.toStatusIcon).mkString}")
+    println(f"* ${s"$src ($lines lines)"}%-45s ${results.map(_._1.toStatus.toStatusIcon).mkString}")
     testFile match {
       case TestFile(_, Some(contents)) =>
         for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
-          val obtMsgs = res.msgs.asScala.toList.dropRight(1) // drop summary ("3 errors"/"3 errors found")
+          val obtMsgs = res.msgs.asScala.toList.takeWhile { msg =>
+            // drop summary ("3 errors"/"3 errors found")
+            (msg.path, msg.lineNo) match {
+              case ("", 0)          => false // stop
+              case ("<no file>", 0) => false // stop
+              case _                => true  // continue
+            }
+          }
+          def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
+          def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
           expMsgs.zipAll(obtMsgs, null, null).collect {
-            case (exp, null) if exp != null =>
-              val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
-              val line2 = s"Expected: ${showMsg(exp)}"
-              s"\n$line1\n$line2"
-            case (null, obt) if obt != null =>
-              val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
-              val line2 = s"Obtained: ${showMsg(obt)}"
-              s"\n$line1\n$line2"
-            case (exp, obt) if exp != obt =>
-              val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
-              val line2 = s"Obtained: ${showMsg(obt)}"
-              val line3 = s"Expected: ${showMsg(exp)}"
-              s"\n$line1\n$line2\n$line3"
-          }.mkString match {
+            case ( exp, null) if exp != null => showExp(exp)
+            case (null,  obt) if obt != null => showObt(obt)
+            case ( exp,  obt) if exp != obt  => showExp(exp) + showObt(obt)
+          }.filter(_ != "").mkString match {
             case ""    =>
             case lines =>
-              System.err.println(lines)
-              throw new Exception(lines)
+              val str = s"${file.name}: message mismatch (compiler ${id(file)}) (-expected/+obtained):$lines"
+              println(str)
+              throw new Exception(str)
           }
         }
       case _                           =>
     }
   }
 
+  val LineStart = "(?m)^".r
   val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
 
   def doLines(srcFile: Path, compilers: Seq[Compiler]) = {
@@ -179,7 +189,7 @@ object Main {
       val results     = doCompileLine(file, compilers, setup, base, cases.size, line)
       val lineNo      = setup.linesIterator.size + 2 + idx
       val statusIcons = results.map(_.toStatusIcon).mkString
-      println(f"> ${s"$srcFile:$lineNo"}%-45s $statusIcons$line%-100s")
+      println(f"* ${s"$srcFile:$lineNo"}%-45s $statusIcons$line%-100s")
     }
   }
 
@@ -243,11 +253,6 @@ final case class TestContents(
 }
 
 final case class TestFile(src: Path, contents: Option[TestContents])
-
-trait MkInMemoryTestFile {
-  def path: Path
-  def contents: TestContents
-}
 
 sealed trait CompileStatus {
   def lines: List[String] = this match {
