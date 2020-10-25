@@ -142,17 +142,6 @@ object Main {
       case TestFile(_, Some(contents)) =>
         for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
           val obtMsgs = res.msgs.asScala.toList.dropRight(1) // drop summary ("3 errors"/"3 errors found")
-          def showSev(sev: Severity) = sev match {
-            case Severity.Error   => "  error"
-            case Severity.Warning => "warning"
-            case Severity.Info    => "   info"
-          }
-          def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text}"
-          def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString
-          def id(file: CompileFile) = file match {
-            case CompileFile1(_, compiler) => compiler.id
-            case CompileFileLine(_, _)     => "<unknown>"
-          }
           expMsgs.zipAll(obtMsgs, noMsg, noMsg).collect { case (exp, obt) if exp != obt =>
             val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
             val line2 = s"Obtained: ${showMsg(obt)}"
@@ -211,6 +200,18 @@ object Main {
     val statusSummary = results.map(_._2.toStatusPadded).mkString(" ").trim
     file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
     results.map(_._2)
+  }
+
+  def showSev(sev: Severity) = sev match {
+    case Severity.Error   => "  error"
+    case Severity.Warning => "warning"
+    case Severity.Info    => "   info"
+  }
+  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text}"
+  def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString
+  def id(file: CompileFile) = file match {
+    case CompileFile1(_, compiler) => compiler.id
+    case CompileFileLine(_, _)     => "<unknown>"
   }
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")

@@ -109,7 +109,7 @@ object Call {
       List(msg3), List(msg3), List(msg3), List(msg3),
     )
 
-    def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo - 1))
+    def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo))
     val contentss         = List(
       TestContents(Nil, List(any.defn), List(duo(any.name, q"##")), errs(8)),
       TestContents(Nil, List(ref.defn), List(duo(ref.name, q"##")), errs(11)),
@@ -118,10 +118,9 @@ object Call {
     )
     val contents = contentss.reduce(_ ++ _)
 
-    def err2(lineNo: Int) = msg(Severity.Error, path2, lineNo, "Int does not take parameters")
-    def err3(lineNo: Int) = msg(Severity.Error, path2, lineNo, "method ## in class Any does not take parameters")
-
-    def msg(sev: Severity, path: String, lineNo: Int, str: String) = new Msg(sev, path, lineNo, str, "")
+    def err2(lineNo: Int)             = err(lineNo, "Int does not take parameters")
+    def err3(lineNo: Int)             = err(lineNo, "method ## in class Any does not take parameters")
+    def err(lineNo: Int, str: String) = new Msg(Severity.Error, path2, lineNo, str, "")
   }
 
   object pos extends MkInMemoryTestFile {
