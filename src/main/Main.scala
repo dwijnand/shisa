@@ -40,8 +40,8 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryTestFiles    = List(Call.hashHash, Call.pos).map(mk => TestFile(mk.path, Some(mk.contents)))
-  val inMemoryTestFilesMap = inMemoryTestFiles.map(tf => tf.src -> tf).toMap
+  val inMemoryMkTest = List(Call.hashHash, Call.pos, Call.def_meth_p, Call.def_prop_m)
+  val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 
   def main(args: Array[String]): Unit = {
     val testFiles = args.toList match {
@@ -49,12 +49,12 @@ object Main {
         val realTestFiles = Files.find(Paths.get("testdata"), 10, (p, _) => s"$p".endsWith(".scala")).toScala(List)
           .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
           .map(TestFile(_, None))
-        (realTestFiles ::: inMemoryTestFiles).sortBy(_.src)
+        (realTestFiles ::: inMemoryTests).sortBy(_.src)
           .tap(fs => println(s"Files: ${fs.map(_.src).mkString("[", ", ", "]")}"))
       case xs  => xs
         .map(Paths.get(_))
         .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
-        .map(p => inMemoryTestFilesMap.getOrElse(p, TestFile(p, None)))
+        .map(p => inMemoryTests.find(_.src == p).getOrElse(TestFile(p, None)))
     }
 
     testFiles.collect { case TestFile(p, None) if !Files.exists(p) => p } match {
@@ -142,11 +142,20 @@ object Main {
       case TestFile(_, Some(contents)) =>
         for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
           val obtMsgs = res.msgs.asScala.toList.dropRight(1) // drop summary ("3 errors"/"3 errors found")
-          expMsgs.zipAll(obtMsgs, noMsg, noMsg).collect { case (exp, obt) if exp != obt =>
-            val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
-            val line2 = s"Obtained: ${showMsg(obt)}"
-            val line3 = s"Expected: ${showMsg(exp)}"
-            s"\n$line1\n$line2\n$line3"
+          expMsgs.zipAll(obtMsgs, null, null).collect {
+            case (exp, null) if exp != null =>
+              val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
+              val line2 = s"Expected: ${showMsg(exp)}"
+              s"\n$line1\n$line2"
+            case (null, obt) if obt != null =>
+              val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
+              val line2 = s"Obtained: ${showMsg(obt)}"
+              s"\n$line1\n$line2"
+            case (exp, obt) if exp != obt =>
+              val line1 = s"Message mismatch for ${file.name} and compiler ${id(file)}"
+              val line2 = s"Obtained: ${showMsg(obt)}"
+              val line3 = s"Expected: ${showMsg(exp)}"
+              s"\n$line1\n$line2\n$line3"
           }.mkString match {
             case ""    =>
             case lines =>

@@ -1,6 +1,6 @@
 // hasErrors: true
--- Error: target/testdata/Call.def/Call.prop_m.scala:3:6 -----------------------
-3 |  prop()
+-- Error: target/testdata/Call.def/Call.prop_m.scala:4:6 -----------------------
+4 |  prop()
   |  ^^^^^^
   |  missing argument for parameter i of method apply: (i: Int): Char
 1 error found

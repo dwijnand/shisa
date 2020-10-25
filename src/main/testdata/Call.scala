@@ -100,14 +100,50 @@ object Call {
 
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
 
-  object hashHash extends MkInMemoryTestFile {
-    val path              = Paths.get("testdata/Call.##.scala")
-    val path2             = s"target/$path"
+  val noMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
 
-    def multi(msg2: Msg, msg3: Msg) = List(
-      List(msg2), List(msg2), List(msg2),
-      List(msg3), List(msg3), List(msg3), List(msg3),
+  def multi(msg2: Msg, msg3: Msg) = List(
+    List(msg2), List(msg2), List(msg2),
+    List(msg3), List(msg3), List(msg3), List(msg3),
+  )
+
+  object def_meth_p extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.def/Call.meth_p.scala")
+    val innerDefns   = List(q"""def meth() = """"")
+    val testStats    = List(List(q"meth"))
+    val expectedMsgs = List(
+      List(warn(4, msg2)), List(warn(4, msg2)), List(warn(4, msg2)),
+      List(warn(4, msg3)), List( err(4, msg3)), List( err(4, msg3)), List(err(4, msg3)),
     )
+
+    def msg2 = """Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
+      |or remove the empty argument list from its definition (Java-defined methods are exempt).
+      |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
+    def msg3 = "method meth must be called with () argument"
+
+    def warn(lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
+    def  err(lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
+
+    def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
+  }
+
+  object def_prop_m extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.def/Call.prop_m.scala")
+    val innerDefns   = List(q"""def prop = """"")
+    val testStats    = List(List(q"prop()"))
+    val expectedMsgs = multi(err(4, msg2), err(4, msg3))
+
+    def msg2 = """not enough arguments for method apply: (i: Int): Char in class StringOps.
+      |Unspecified value parameter i.""".stripMargin
+    def msg3 = "missing argument for parameter i of method apply: (i: Int): Char"
+
+    def err(lineNo: Int, str: String) = new Msg(Severity.Error, s"target/$path", lineNo, str, "")
+
+    def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
+  }
+
+  object hashHash extends MkInMemoryTestFile {
+    val path = Paths.get("testdata/Call.##.scala")
 
     def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo))
     val contentss         = List(
@@ -120,7 +156,7 @@ object Call {
 
     def err2(lineNo: Int)             = err(lineNo, "Int does not take parameters")
     def err3(lineNo: Int)             = err(lineNo, "method ## in class Any does not take parameters")
-    def err(lineNo: Int, str: String) = new Msg(Severity.Error, path2, lineNo, str, "")
+    def err(lineNo: Int, str: String) = new Msg(Severity.Error, s"target/$path", lineNo, str, "")
   }
 
   object pos extends MkInMemoryTestFile {
@@ -145,8 +181,6 @@ object Call {
         List(toStringsAndRun(q"CCR()"))     :::
         List(toStrings(q"""VCCR("")"""))
 
-    val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
-
-    def contents = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+    def contents = TestContents(outerDefns, innerDefns, testStats, noMsgs)
   }
 }

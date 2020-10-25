@@ -1,5 +1,5 @@
 // hasErrors: false
-target/testdata/Call.def/Call.meth_p.scala:3: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
+target/testdata/Call.def/Call.meth_p.scala:4: warning: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method meth,
 or remove the empty argument list from its definition (Java-defined methods are exempt).
 In Scala 3, an unapplied method like this will be eta-expanded into a function.
   meth

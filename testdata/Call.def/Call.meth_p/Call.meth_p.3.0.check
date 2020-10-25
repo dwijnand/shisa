@@ -1,6 +1,6 @@
 // hasErrors: true
--- [E100] Syntax Error: target/testdata/Call.def/Call.meth_p.scala:3:2 ---------
-3 |  meth
+-- [E100] Syntax Error: target/testdata/Call.def/Call.meth_p.scala:4:2 ---------
+4 |  meth
   |  ^^^^
   |  method meth must be called with () argument
 
