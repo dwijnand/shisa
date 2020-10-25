@@ -40,7 +40,7 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryTestFiles    = List(Call.hashHash, Call.pos).map(_.testFile)
+  val inMemoryTestFiles    = List(Call.hashHash, Call.pos).map(mk => TestFile(mk.path, Some(mk.contents)))
   val inMemoryTestFilesMap = inMemoryTestFiles.map(tf => tf.src -> tf).toMap
 
   def main(args: Array[String]): Unit = {
@@ -236,13 +236,7 @@ final case class TestFile(src: Path, contents: Option[TestContents])
 
 trait MkInMemoryTestFile {
   def path: Path
-  def outerDefns: List[List[Defn]]
-  def innerDefns: List[Defn]
-  def testStats: List[List[Stat]]
-  def expectedMsgs: List[List[Msg]]
-
-  def contents = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
-  def testFile = TestFile(path, Some(contents))
+  def contents: TestContents
 }
 
 sealed trait CompileStatus {

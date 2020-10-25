@@ -103,7 +103,6 @@ object Call {
   object hashHash extends MkInMemoryTestFile {
     val path              = Paths.get("testdata/Call.##.scala")
     val path2             = s"target/$path"
-    def expectedMsgs      = Nil
 
     def multi(msg2: Msg, msg3: Msg) = List(
       List(msg2), List(msg2), List(msg2),
@@ -118,15 +117,11 @@ object Call {
       TestContents(Nil, List(str.defn), List(duo(str.name, q"##")), errs(17)),
     )
 
-    def sums              = List(sum2(4), sum2(4), sum2(4), sum3(4), sum3(4), sum3(4), sum3(4))
-    val reduce            = contentss.reduce(_ ++ _)
-    override val contents = reduce.copy(expectedMsgs = reduce.expectedMsgs.zipAll(sums, Nil, Main.noMsg).map {
+    def sums     = List(sum2(4), sum2(4), sum2(4), sum3(4), sum3(4), sum3(4), sum3(4))
+    val reduce   = contentss.reduce(_ ++ _)
+    val contents = reduce.copy(expectedMsgs = reduce.expectedMsgs.zipAll(sums, Nil, Main.noMsg).map {
       case (expMsgs, sum) => expMsgs :+ sum
     })
-
-    val outerDefns        = contents.outerDefns
-    val innerDefns        = contents.innerDefns
-    val testStats         = contents.testStats
 
     def err2(lineNo: Int) = msg(Severity.Error, path2, lineNo, "Int does not take parameters")
     def err3(lineNo: Int) = msg(Severity.Error, path2, lineNo, "method ## in class Any does not take parameters")
@@ -160,5 +155,7 @@ object Call {
         List(toStrings(q"""VCCR("")"""))
 
     val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+
+    def contents = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
   }
 }
