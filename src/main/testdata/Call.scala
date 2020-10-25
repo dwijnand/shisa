@@ -179,7 +179,7 @@ object Call {
 
   sealed class SwitchFile(pathStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, testStat: Stat, expectedMsgs: (Path, String) => List[List[Msg]]) extends MkInMemoryTestFile {
     val path     = Paths.get(s"testdata/$pathStr")
-    val contents = TestContents(List(traitDefn, clsDefn), List(valDefn), List(testStat), expectedMsgs(path, traitDefn.name.value))
+    val contents = TestContents(List(List(traitDefn, clsDefn)), List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
   }
 
   object switch_m2p_m    extends SwitchFile("Call.switch/Call.m2p_m.scala", M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
