@@ -120,6 +120,10 @@ object Main {
     val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
   }
 
+  val noMsg  = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
+  val noRes  = new CompileResult(List(noMsg).asJava)
+  val noFile = CompileFileLine(Paths.get("nopath.scala"), -1)
+
   def doUnit(testFile: TestFile, compilers: Seq[Compiler]) = {
     val src  = testFile.src
     val src2 = targetDir.resolve(src)
@@ -136,9 +140,6 @@ object Main {
     println(f"> ${s"$src ($lines lines)"}%-45s ${results.map(_._1.toStatus.toStatusIcon).mkString}")
     testFile match {
       case TestFile(_, Some(contents)) =>
-        val noMsg  = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
-        val noRes  = new CompileResult(List(noMsg).asJava)
-        val noFile = CompileFileLine(Paths.get("nopath.scala"), -1)
         for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
           val obtMsgs = res.msgs.asScala.toList
           def showSev(sev: Severity) = sev match {
@@ -223,10 +224,10 @@ final case class TestContents(
 ) {
   def ++(that: TestContents) = {
     TestContents(
-      (outerDefns ++ that.outerDefns).distinct,
-      (innerDefns ++ that.innerDefns).distinct,
-      (testStats ++ that.testStats).distinct,
-      (expectedMsgs ++ that.expectedMsgs).distinct,
+      outerDefns ::: that.outerDefns,
+      innerDefns ::: that.innerDefns,
+      testStats ::: that.testStats,
+      expectedMsgs.zipAll(that.expectedMsgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
     )
   }
 }

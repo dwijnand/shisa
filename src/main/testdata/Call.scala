@@ -100,23 +100,41 @@ object Call {
 
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
 
-  // TODO: Abstract over problem/line-number
-
   object hashHash extends MkInMemoryTestFile {
     val path              = Paths.get("testdata/Call.##.scala")
-    //val contentss       = for (v <- vals; stat <- duo(v.name, q"##")) yield TestContents(Nil, List(v.defn), List(List(stat)))
-    val msgs2             = List(msg2(8), msg2(11), msg2(14), msg2(17), sum2)
-    val msgs3             = List(msg3(7), msg3(10), msg3(13), msg3(16), sum3)
-    val expectedMsgs      = List(msgs2, msgs2, msgs2, msgs3, msgs3, msgs3, msgs3)
-    val contentss         = vals.map(v => TestContents(Nil, List(v.defn), List(duo(v.name,  q"##")), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
-    override val contents = contentss.reduce(_ ++ _).copy(expectedMsgs = hashHash.expectedMsgs)
+    val path2             = s"target/$path"
+    def expectedMsgs      = Nil
+
+    def multi(msg2: Msg, msg3: Msg) = List(
+      List(msg2), List(msg2), List(msg2),
+      List(msg3), List(msg3), List(msg3), List(msg3)
+    )
+
+    def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo - 1))
+    val contentss         = List(
+      TestContents(Nil, List(any.defn), List(duo(any.name, q"##")), errs(8)),
+      TestContents(Nil, List(ref.defn), List(duo(ref.name, q"##")), errs(11)),
+      TestContents(Nil, List(obj.defn), List(duo(obj.name, q"##")), errs(14)),
+      TestContents(Nil, List(str.defn), List(duo(str.name, q"##")), errs(17)),
+    )
+
+    def sums              = List(sum2(4), sum2(4), sum2(4), sum3(4), sum3(4), sum3(4), sum3(4))
+    val reduce            = contentss.reduce(_ ++ _)
+    override val contents = reduce.copy(expectedMsgs = reduce.expectedMsgs.zipAll(sums, Nil, Main.noMsg).map {
+      case (expMsgs, sum) => expMsgs :+ sum
+    })
+
     val outerDefns        = contents.outerDefns
     val innerDefns        = contents.innerDefns
     val testStats         = contents.testStats
-    def msg2(lineNo: Int) = new Msg(Severity.Error, "target/testdata/Call.##.scala", lineNo, "Int does not take parameters", "")
-    def msg3(lineNo: Int) = new Msg(Severity.Error, "target/testdata/Call.##.scala", lineNo, "method ## in class Any does not take parameters", "")
-    def sum2              = new Msg(Severity.Info, "<no file>", 0, "4 errors", "")
-    def sum3              = new Msg(Severity.Info, "", -1, "4 errors found", "")
+
+    def err2(lineNo: Int) = msg(Severity.Error, path2, lineNo, "Int does not take parameters")
+    def err3(lineNo: Int) = msg(Severity.Error, path2, lineNo, "method ## in class Any does not take parameters")
+
+    def sum2(count: Int)  = msg(Severity.Info, "<no file>", 0, s"$count errors")
+    def sum3(count: Int)  = msg(Severity.Info, "", -1, s"$count errors found")
+
+    def msg(sev: Severity, path: String, lineNo: Int, str: String) = new Msg(sev, path, lineNo, str, "")
   }
 
   object pos extends MkInMemoryTestFile {
