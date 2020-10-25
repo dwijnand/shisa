@@ -106,7 +106,7 @@ object Call {
 
     def multi(msg2: Msg, msg3: Msg) = List(
       List(msg2), List(msg2), List(msg2),
-      List(msg3), List(msg3), List(msg3), List(msg3)
+      List(msg3), List(msg3), List(msg3), List(msg3),
     )
 
     def errs(lineNo: Int) = multi(err2(lineNo), err3(lineNo - 1))
@@ -116,18 +116,10 @@ object Call {
       TestContents(Nil, List(obj.defn), List(duo(obj.name, q"##")), errs(14)),
       TestContents(Nil, List(str.defn), List(duo(str.name, q"##")), errs(17)),
     )
-
-    def sums     = List(sum2(4), sum2(4), sum2(4), sum3(4), sum3(4), sum3(4), sum3(4))
-    val reduce   = contentss.reduce(_ ++ _)
-    val contents = reduce.copy(expectedMsgs = reduce.expectedMsgs.zipAll(sums, Nil, Main.noMsg).map {
-      case (expMsgs, sum) => expMsgs :+ sum
-    })
+    val contents = contentss.reduce(_ ++ _)
 
     def err2(lineNo: Int) = msg(Severity.Error, path2, lineNo, "Int does not take parameters")
     def err3(lineNo: Int) = msg(Severity.Error, path2, lineNo, "method ## in class Any does not take parameters")
-
-    def sum2(count: Int)  = msg(Severity.Info, "<no file>", 0, s"$count errors")
-    def sum3(count: Int)  = msg(Severity.Info, "", -1, s"$count errors found")
 
     def msg(sev: Severity, path: String, lineNo: Int, str: String) = new Msg(sev, path, lineNo, str, "")
   }

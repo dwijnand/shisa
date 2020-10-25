@@ -141,7 +141,7 @@ object Main {
     testFile match {
       case TestFile(_, Some(contents)) =>
         for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
-          val obtMsgs = res.msgs.asScala.toList
+          val obtMsgs = res.msgs.asScala.toList.dropRight(1) // drop summary ("3 errors"/"3 errors found")
           def showSev(sev: Severity) = sev match {
             case Severity.Error   => "  error"
             case Severity.Warning => "warning"
