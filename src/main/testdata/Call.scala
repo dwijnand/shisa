@@ -107,14 +107,20 @@ object Call {
     List(msg3), List(msg3), List(msg3), List(msg3),
   )
 
-  val M = q"trait M { def d() : String }"
-  val P = q"trait P { def d   : String }"
+  val M  = q"trait M              { def d() : String }"
+  val P  = q"trait P              { def d   : String }"
+  val MU = q"trait MU extends Any { def d() : String }"
+  val PU = q"trait PU extends Any { def d   : String }"
 
-  val M2P = q"""class M2P extends M { def d   = "" }"""
-  val P2M = q"""class P2M extends P { def d() = "" }"""
+  val M2P    = q"""class M2P                   extends             M  { def d   = "" }"""
+  val P2M    = q"""class P2M                   extends             P  { def d() = "" }"""
+  val M2P_VC = q"""class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }"""
+  val P2M_VC = q"""class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }"""
 
-  val m2p = q"val m2p = new M2P"
-  val p2m = q"val p2m = new P2M"
+  val m2p    = q"""val m2p    = new M2P"""
+  val p2m    = q"""val p2m    = new P2M"""
+  val m2p_vc = q"""val m2p_vc = new M2P_VC("")"""
+  val p2m_vc = q"""val p2m_vc = new P2M_VC("")"""
 
   trait MkInMemoryTestFile {
     def path: Path
@@ -133,6 +139,58 @@ object Call {
   def errOverride2                                         = "method without a parameter list overrides a method with a single empty one"
   def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
   def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
+
+  object switch_vc_m2p_m extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch_vc/m2p_m.scala")
+    val outerDefns   = List(List(MU, M2P_VC))
+    val innerDefns   = List(m2p_vc)
+    val testStats    = List(List(q"m2p_vc.d()"))
+    val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
+    def warns2       = List(warn(2, errOverride2))
+    def  errs2       = List( err(2, errOverride2))
+    def warns3       = List(warn(2, errOverride3A("M", "(): String", "=> String")))
+    def  errs3       = List( err(2, errOverride3B("M", "(): String", "=> String")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
+  object switch_vc_m2p_p extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch_vc/m2p_p.scala")
+    val outerDefns   = List(List(MU, M2P_VC))
+    val innerDefns   = List(m2p_vc)
+    val testStats    = List(List(q"m2p_vc.d"))
+    val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
+    def warns2       = List(warn(7, autoApp2("d")), warn(2, errOverride2))
+    def warnErr2     = List( err(2, errOverride2),  warn(7, autoApp2("d")))
+    def warns3       = List(warn(2, errOverride3A("M", "(): String", "=> String")))
+    def  errs3       = List( err(2, errOverride3B("M", "(): String", "=> String")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
+  object switch_vc_p2m_m extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch_vc/p2m_m.scala")
+    val outerDefns   = List(List(PU, P2M_VC))
+    val innerDefns   = List(p2m_vc)
+    val testStats    = List(List(q"p2m_vc.d()"))
+    val expectedMsgs = List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
+    def warns2       = List(warn(2, p2mMsg))
+    def errs2        = List( err(2, p2mErr))
+    def warns3       = List(warn(2, errOverride3A("P", "=> String", "(): String")))
+    def  errs3       = List( err(2, errOverride3B("P", "=> String", "(): String")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
+
+  object switch_vc_p2m_p extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/Call.switch_vc/p2m_p.scala")
+    val outerDefns   = List(List(PU, P2M_VC))
+    val innerDefns   = List(p2m_vc)
+    val testStats    = List(List(q"p2m_vc.d"))
+    val expectedMsgs = List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
+    def warns2       = List(warn(7, autoApp2("d")),    warn(2, p2mMsg))
+    def warnErr2     = List(warn(7, autoApp2("d")),     err(2, p2mErr))
+    def warns3       = List(warn(7, parensCall3("d")), warn(2, errOverride3A("P", "=> String", "(): String")))
+    def  errs3       = List( err(7, parensCall3("d")))
+    def contents     = TestContents(outerDefns, innerDefns, testStats, expectedMsgs)
+  }
 
   object switch_m2p_m extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/Call.switch/Call.m2p_m.scala")
