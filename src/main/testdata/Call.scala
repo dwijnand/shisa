@@ -177,7 +177,10 @@ object Call {
     List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }
 
-  sealed class SwitchFile(pathStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, testStat: Stat, expectedMsgs: (Path, String) => List[List[Msg]]) extends MkInMemoryTestFile {
+  sealed class SwitchFile(
+      pathStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, testStat: Stat,
+      expectedMsgs: (Path, String) => List[List[Msg]]
+  ) extends MkInMemoryTestFile {
     val path     = Paths.get(s"testdata/$pathStr")
     val contents = TestContents(List(List(traitDefn, clsDefn)), List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
   }
