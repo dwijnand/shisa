@@ -53,6 +53,7 @@ object Main {
     Call.switch_vc_m2p_p,
     Call.switch_vc_p2m_m,
     Call.switch_vc_p2m_p,
+    EtaX.boom,
   )
   val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 
@@ -104,7 +105,7 @@ object Main {
   def compile1(testFile: TestFile, mkCompilers: Seq[MkCompiler]) = {
     val compilers = mkCompilers.map(_.mkCompiler())
     testFile match {
-      case TestFile(src, _) if src.toString.endsWith(".lines.scala") => doLines(src, compilers)
+      case TestFile(src, _) if src.toString.endsWith(".lines.scala") => doLines(testFile, compilers)
       case TestFile(src, Some(contents))                             => doUnit(src, contents, compilers)
       case _                                                         => throw new Exception(s"Expected lines or TestContents: $testFile")
     }
@@ -119,10 +120,11 @@ object Main {
     def writeLines(xs: List[String]) = {
       val chk = src.resolveSibling(name).resolve(s"$name2.check")
       Files.createDirectories(chk.getParent)
-      xs match {
-        case init :+ last => Files.writeString(chk, (init :+ last.stripLineEnd :+ "").mkString("\n"))
-        case _            => Files.writeString(chk, "")
+      val text = xs match {
+        case init :+ last => (init :+ last.stripLineEnd :+ "").mkString("\n")
+        case _            => ""
       }
+      Files.writeString(chk, text)
     }
   }
 
@@ -165,17 +167,21 @@ object Main {
     }
   }
 
-  def doLines(srcFile: Path, compilers: Seq[Compiler]) = {
-    val (setup, base, cases) = Files.readString(srcFile) match {
+  def doLines(testFile: TestFile, compilers: Seq[Compiler]) = {
+    val sourceStr = testFile match {
+      case TestFile(src, None)           => Files.readString(src)
+      case TestFile(  _, Some(contents)) => ShisaMeta.testFileSource(contents)
+    }
+    val (setup, base, cases) = sourceStr match {
       case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
     }
 
     cases.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.foreach { case (line, idx) =>
-      val file        = CompileFileLine(srcFile, idx)
+      val file        = CompileFileLine(testFile.src, idx)
       val results     = doCompileLine(file, compilers, setup, base, cases.size, line)
       val lineNo      = setup.linesIterator.size + 2 + idx
       val statusIcons = results.map(_.toStatusIcon).mkString
-      println(f"* ${s"$srcFile:$lineNo"}%-45s $statusIcons$line%-100s")
+      println(f"* ${s"${file.src}:$lineNo"}%-45s $statusIcons$line%-100s")
     }
   }
 
