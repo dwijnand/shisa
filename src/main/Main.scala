@@ -103,15 +103,18 @@ object Main {
 
   def compile1(testFile: TestFile, mkCompilers: Seq[MkCompiler]) = {
     val compilers = mkCompilers.map(_.mkCompiler())
-    if (testFile.src.toString.endsWith(".lines.scala"))
-      doLines(testFile.src, compilers)
-    else
-      doUnit(testFile, compilers)
+    testFile match {
+      case TestFile(src, _) if src.toString.endsWith(".lines.scala") => doLines(src, compilers)
+      case TestFile(src, Some(contents))                             => doUnit(src, contents, compilers)
+      case _                                                         => throw new Exception(s"Expected lines or TestContents: $testFile")
+    }
   }
 
-  sealed abstract class CompileFile(src: Path) {
-    val name = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
-    def name2: String
+  final case class CompileFileLine(src: Path, idxInt: Int) {
+    val name  = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
+    val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
+    val name2 = s"$name.$idx"
+    val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
 
     def writeLines(xs: List[String]) = {
       val chk = src.resolveSibling(name).resolve(s"$name2.check")
@@ -123,64 +126,44 @@ object Main {
     }
   }
 
-  final case class CompileFile1(src: Path, compiler: Compiler) extends CompileFile(src) {
-    val name2 = s"$name.${compiler.id}"
-  }
-
-  final case class CompileFileLine(src: Path, idxInt: Int) extends CompileFile(src) {
-    val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-    val name2 = s"$name.$idx"
-    val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
-  }
-
   val noMsg        = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
   val noRes        = new CompileResult(List(noMsg).asJava)
   val noFile       = CompileFileLine(Paths.get("nopath.scala"), -1)
   val noCompilerId = "<unknown>"
+  val LineStart    = "(?m)^".r
+  val TestRegex    = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
 
-  def doUnit(testFile: TestFile, compilers: Seq[Compiler]) = {
-    val src  = testFile.src
+  def doUnit(src: Path, contents: TestContents, compilers: Seq[Compiler]) = {
     val src2 = targetDir.resolve(src)
     Files.createDirectories(src2.getParent)
-    testFile match {
-      case TestFile(_, Some(contents)) => Files.writeString(src2, ShisaMeta.testFileSource(contents))
-      case _                           => Files.copy(src, src2)
-    }
-    val files   = compilers.map(CompileFile1(src, _))
-    val results = files.map(file => file.compiler.compile1(src2) -> file.compiler.id)
+    Files.writeString(src2, ShisaMeta.testFileSource(contents))
+    val results = compilers.map(compiler => compiler.compile1(src2) -> compiler.id)
     val lines = Files.readString(src2).linesIterator.size
     println(f"* ${s"$src ($lines lines)"}%-45s ${results.map(_._1.toStatus.toStatusIcon).mkString}")
-    testFile match {
-      case TestFile(_, Some(contents)) =>
-        for ((expMsgs, (res, compilerId)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noCompilerId))) {
-          val obtMsgs = res.msgs.asScala.toList.takeWhile { msg =>
-            // drop summary ("3 errors"/"3 errors found")
-            (msg.path, msg.lineNo) match {
-              case ("", 0)          => false // stop
-              case ("<no file>", 0) => false // stop
-              case _                => true  // continue
-            }
-          }
-          def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
-          def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
-          expMsgs.zipAll(obtMsgs, null, null).collect {
-            case ( exp, null) if exp != null => showExp(exp)
-            case (null,  obt) if obt != null => showObt(obt)
-            case ( exp,  obt) if exp != obt  => showExp(exp) + showObt(obt)
-          }.filter(_ != "").mkString match {
-            case ""    =>
-            case lines =>
-              val str = s"$src: message mismatch (compiler $compilerId) (-expected/+obtained):$lines"
-              println(str)
-              throw new Exception(str)
-          }
+    for ((expMsgs, (res, compilerId)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noCompilerId))) {
+      val obtMsgs = res.msgs.asScala.toList.takeWhile { msg =>
+        // drop summary ("3 errors"/"3 errors found")
+        (msg.path, msg.lineNo) match {
+          case ("", 0)          => false // stop
+          case ("<no file>", 0) => false // stop
+          case _                => true  // continue
         }
-      case _                           =>
+      }
+      def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
+      def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
+      expMsgs.zipAll(obtMsgs, null, null).collect {
+        case ( exp, null) if exp != null => showExp(exp)
+        case (null,  obt) if obt != null => showObt(obt)
+        case ( exp,  obt) if exp != obt  => showExp(exp) + showObt(obt)
+      }.filter(_ != "").mkString match {
+        case ""    =>
+        case lines =>
+          val str = s"$src: message mismatch (compiler $compilerId) (-expected/+obtained):$lines"
+          println(str)
+          throw new Exception(str)
+      }
     }
   }
-
-  val LineStart = "(?m)^".r
-  val TestRegex = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
 
   def doLines(srcFile: Path, compilers: Seq[Compiler]) = {
     val (setup, base, cases) = Files.readString(srcFile) match {
