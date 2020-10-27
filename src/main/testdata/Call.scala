@@ -5,6 +5,19 @@ import java.nio.file._
 
 import scala.meta._, contrib._
 
+object MkInMemoryTestFile {
+  def warn(path: Path, lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
+  def  err(path: Path, lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
+}
+
+trait MkInMemoryTestFile {
+  def path: Path
+  def contents: TestContents
+
+  final def warn(lineNo: Int, str: String) = MkInMemoryTestFile.warn(path, lineNo, str)
+  final def  err(lineNo: Int, str: String) = MkInMemoryTestFile.err( path, lineNo, str)
+}
+
 object Call {
   def idF[A]: A => A = x => x
 
@@ -120,17 +133,6 @@ object Call {
   val m2p_vc = q"""val m2p_vc = new M2P_VC("")"""
   val p2m_vc = q"""val p2m_vc = new P2M_VC("")"""
 
-  def warn(path: Path, lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
-  def  err(path: Path, lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
-
-  trait MkInMemoryTestFile {
-    def path: Path
-    def contents: TestContents
-
-    final def warn(lineNo: Int, str: String) = Call.warn(path, lineNo, str)
-    final def  err(lineNo: Int, str: String) = Call.err( path, lineNo, str)
-  }
-
   val str1 = "(): String"
   val str2 = "=> String"
   def autoApp2(meth: String) = s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
@@ -142,6 +144,8 @@ object Call {
   def errOverride2                                         = "method without a parameter list overrides a method with a single empty one"
   def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
   def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
+
+  import MkInMemoryTestFile.{ err, warn }
 
   def m2p_m_msgs(path: Path, traitName: String) = {
     def warns2 = List(warn(path, 2, errOverride2))
