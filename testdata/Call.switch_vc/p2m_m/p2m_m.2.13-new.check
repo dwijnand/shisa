@@ -1,6 +1,0 @@
-// hasErrors: true
-target/testdata/Call.switch_vc/p2m_m.scala:2: error: method with a single empty parameter list overrides method without any parameter list
-def d: String (defined in trait PU)
-class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }
-                                                         ^
-1 error

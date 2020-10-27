@@ -100,12 +100,10 @@ object Call {
 
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
 
-  val noMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
-
-  def multi(msg2: Msg, msg3: Msg) = List(
-    List(msg2), List(msg2), List(msg2),
-    List(msg3), List(msg3), List(msg3), List(msg3),
-  )
+  def multis(msgs2: List[Msg], msgs3: List[Msg]) = List(msgs2, msgs2, msgs2,
+                                                        msgs3, msgs3, msgs3, msgs3)
+  def multi(msg2: Msg, msg3: Msg)                = multis(List(msg2), List(msg3))
+  val noMsgs                                     = multis(Nil, Nil)
 
   val M  = q"trait M              { def d() : String }"
   val P  = q"trait P              { def d   : String }"
@@ -130,7 +128,7 @@ object Call {
     def contents: TestContents
 
     final def warn(lineNo: Int, str: String) = Call.warn(path, lineNo, str)
-    final def  err(lineNo: Int, str: String) =  Call.err(path, lineNo, str)
+    final def  err(lineNo: Int, str: String) = Call.err( path, lineNo, str)
   }
 
   val str1 = "(): String"
@@ -231,8 +229,7 @@ object Call {
   }
 
   object pos extends MkInMemoryTestFile {
-    val path = Paths.get("testdata/Call.pos.scala")
-
+    val path       = Paths.get("testdata/Call.pos.scala")
     val outerDefns = List(CR.defns, CCR.defns, VCR.defns, VCCR.defns)
     val innerDefns = vals.map(_.defn)
 

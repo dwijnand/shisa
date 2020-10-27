@@ -133,9 +133,10 @@ object Main {
     val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
   }
 
-  val noMsg  = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
-  val noRes  = new CompileResult(List(noMsg).asJava)
-  val noFile = CompileFileLine(Paths.get("nopath.scala"), -1)
+  val noMsg        = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
+  val noRes        = new CompileResult(List(noMsg).asJava)
+  val noFile       = CompileFileLine(Paths.get("nopath.scala"), -1)
+  val noCompilerId = "<unknown>"
 
   def doUnit(testFile: TestFile, compilers: Seq[Compiler]) = {
     val src  = testFile.src
@@ -146,14 +147,12 @@ object Main {
       case _                           => Files.copy(src, src2)
     }
     val files   = compilers.map(CompileFile1(src, _))
-    val results = files.map(file => file.compiler.compile1(src2) -> (file: CompileFile))
-    for ((res, file) <- results)
-      file.writeLines((s"// hasErrors: ${res.hasErrors}" :: res.lines))
+    val results = files.map(file => file.compiler.compile1(src2) -> file.compiler.id)
     val lines = Files.readString(src2).linesIterator.size
     println(f"* ${s"$src ($lines lines)"}%-45s ${results.map(_._1.toStatus.toStatusIcon).mkString}")
     testFile match {
       case TestFile(_, Some(contents)) =>
-        for ((expMsgs, (res, file)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noFile))) {
+        for ((expMsgs, (res, compilerId)) <- contents.expectedMsgs.zipAll(results, List(noMsg), (noRes, noCompilerId))) {
           val obtMsgs = res.msgs.asScala.toList.takeWhile { msg =>
             // drop summary ("3 errors"/"3 errors found")
             (msg.path, msg.lineNo) match {
@@ -171,7 +170,7 @@ object Main {
           }.filter(_ != "").mkString match {
             case ""    =>
             case lines =>
-              val str = s"${file.name}: message mismatch (compiler ${id(file)}) (-expected/+obtained):$lines"
+              val str = s"$src: message mismatch (compiler $compilerId) (-expected/+obtained):$lines"
               println(str)
               throw new Exception(str)
           }
@@ -232,10 +231,6 @@ object Main {
   }
   def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text}"
   def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString
-  def id(file: CompileFile) = file match {
-    case CompileFile1(_, compiler) => compiler.id
-    case CompileFileLine(_, _)     => "<unknown>"
-  }
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
 }
