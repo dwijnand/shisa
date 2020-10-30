@@ -11,14 +11,18 @@ import shisa._
 
 object ShisaMeta {
   def testFileSource(contents: TestContents): String = {
-    val TestContents(outerDefns, innerDefns, testStatss, _) = contents
+    val TestContents(outerDefns, baseClass, innerDefns, testStatss, _) = contents
     val statss = if (innerDefns.isEmpty) testStatss else innerDefns :: testStatss
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
-    val cls    = s("class Test {", body, n("}"))
+    val cls    = baseClass match {
+      case Some(base) => s(s"class Test extends ${base.name} {", body, n("}"))
+      case None       => s("class Test {", body, n("}"))
+    }
 
+    val outerDefnss = if (baseClass.isEmpty) outerDefns else outerDefns :+ baseClass.toList
     val outer =
-      if (outerDefns.isEmpty) Show.None
-      else s(r(outerDefns, EOL + EOL)(Show(defns => r(defns, EOL)(syntax[Defn]))), EOL, EOL)
+      if (outerDefnss.isEmpty) Show.None
+      else s(r(outerDefnss, EOL + EOL)(Show(defns => r(defns, EOL)(syntax[Defn]))), EOL, EOL)
 
     s(outer, cls, EOL).toString
   }

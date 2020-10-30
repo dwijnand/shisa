@@ -184,7 +184,7 @@ object Call {
       expectedMsgs: (Path, String) => List[List[Msg]]
   ) extends MkInMemoryTestFile {
     val path     = Paths.get(s"testdata/$pathStr")
-    val contents = TestContents(List(List(traitDefn, clsDefn)), List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
+    val contents = TestContents(List(List(traitDefn, clsDefn)), None, List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
   }
 
   object switch_m2p_m    extends SwitchFile("Call.switch/Call.m2p_m.scala", M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
@@ -204,7 +204,7 @@ object Call {
     def warns2       = List(warn(4, autoApp2("meth")))
     def warns3       = List(warn(4, parensCall3("meth")))
     def  errs3       = List( err(4, parensCall3("meth")))
-    def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
+    def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
   }
 
   object def_prop_m extends MkInMemoryTestFile {
@@ -214,17 +214,17 @@ object Call {
     val expectedMsgs = multi(err2, err3)
     def err2         = err(4, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
     def err3         = err(4, "missing argument for parameter i of method apply: (i: Int): Char")
-    def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
+    def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
   }
 
   object hashHash extends MkInMemoryTestFile {
     val path = Paths.get("testdata/Call.##.scala")
 
     val contentss         = List(
-      TestContents(Nil, List(any.defn), List(duo(any.name, q"##")), multi(err2( 8), err3( 8))),
-      TestContents(Nil, List(ref.defn), List(duo(ref.name, q"##")), multi(err2(11), err3(11))),
-      TestContents(Nil, List(obj.defn), List(duo(obj.name, q"##")), multi(err2(14), err3(14))),
-      TestContents(Nil, List(str.defn), List(duo(str.name, q"##")), multi(err2(17), err3(17))),
+      TestContents(Nil, None, List(any.defn), List(duo(any.name, q"##")), multi(err2( 8), err3( 8))),
+      TestContents(Nil, None, List(ref.defn), List(duo(ref.name, q"##")), multi(err2(11), err3(11))),
+      TestContents(Nil, None, List(obj.defn), List(duo(obj.name, q"##")), multi(err2(14), err3(14))),
+      TestContents(Nil, None, List(str.defn), List(duo(str.name, q"##")), multi(err2(17), err3(17))),
     )
     val contents = contentss.reduce(_ ++ _)
 
@@ -253,6 +253,6 @@ object Call {
         List(toStringsAndRun(q"CCR()"))     :::
         List(toStrings(q"""VCCR("")"""))
 
-    def contents = TestContents(outerDefns, innerDefns, testStats, noMsgs)
+    def contents = TestContents(outerDefns, None, innerDefns, testStats, noMsgs)
   }
 }

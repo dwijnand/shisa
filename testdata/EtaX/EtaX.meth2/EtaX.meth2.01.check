@@ -1,4 +1,4 @@
-// src:   val t4b: () => Any = meth2()   // ditto
+// src:   val t4b: () => Any = meth2()
 // 2.13-base ok
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>

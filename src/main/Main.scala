@@ -54,6 +54,7 @@ object Main {
     Call.switch_vc_p2m_m,
     Call.switch_vc_p2m_p,
     EtaX.boom,
+    EtaX.meth2,
   )
   val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 
@@ -226,6 +227,7 @@ object Main {
 
 final case class TestContents(
     outerDefns: List[List[Defn]],
+     baseClass: Option[Defn.Class],
     innerDefns: List[Defn],
     testStats: List[List[Stat]],
     expectedMsgs: List[List[Msg]],
@@ -233,10 +235,19 @@ final case class TestContents(
   def ++(that: TestContents) = {
     TestContents(
       outerDefns ::: that.outerDefns,
+      mergeBaseClasses(baseClass, that.baseClass),
       innerDefns ::: that.innerDefns,
       testStats ::: that.testStats,
       expectedMsgs.zipAll(that.expectedMsgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
     )
+  }
+
+  private def mergeBaseClasses[A](x: Option[A], y: Option[A]) = (x, y) match {
+    case (x @ Some(_), None)          => x
+    case (None, y @ Some(_))          => y
+    case (None, None)                 => None
+    case (Some(x), Some(y)) if x == y => None
+    case (Some(x), Some(y))           => throw new Exception(s"Can't mergeBaseClasses $x ++ $y")
   }
 }
 
