@@ -29,9 +29,7 @@ object EtaX {
 
   object meth2 extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.meth2.lines.scala")
-    val baseClass    = q"""class TestBase {
-                             def meth2()() = ""
-                           }"""
+    val baseClass    = q"""class TestBase { def meth2()() = "" }"""
     val testStats    = List(
       q"val t4a: () => Any = meth2     // eta-expansion, but lint warning",
       q"val t4b: () => Any = meth2()   // ditto",

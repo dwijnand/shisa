@@ -145,7 +145,7 @@ object Main {
     Files.writeString(src2, ShisaMeta.testFileSource(contents))
     val msgssAndId = compilers.map(compiler => compiler.compile1(src2) -> compiler.id)
     val lines = Files.readString(src2).linesIterator.size
-    println(f"* ${s"$src ($lines lines)"}%-45s ${msgssAndId.map(_._1.toResult.toStatusIcon).mkString}")
+    println(f"* ${s"$src ($lines lines)"}%-50s ${msgssAndId.map(_._1.toResult.toStatusIcon).mkString}")
     compareMsgs(contents.expectedMsgs, msgssAndId, src)
   }
 
@@ -192,7 +192,7 @@ object Main {
       val msgssAndId  = doCompileLine(file, compilers, setup, base, cases.size, line)
       val lineNo      = setup.linesIterator.size + 2 + idx
       val statusIcons = msgssAndId.map(_._1.toResult.toStatusIcon).mkString
-      println(f"* ${s"${file.src}:$lineNo"}%-45s $statusIcons$line%-100s")
+      println(f"* ${s"${file.src}:$lineNo"}%-50s $statusIcons$line%-100s")
       msgssAndId
     }
 
