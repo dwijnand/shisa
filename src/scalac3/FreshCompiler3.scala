@@ -32,7 +32,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     def compile1(src: Path) = {
       ctx.setReporter(new StoreReporter(outer = null) with UniqueMessagePositions with HideNonSensicalMessages)
       FreshCompiler3.Driver.doCompile(compiler, List(src.toString))
-      new CompileResult(ctx.reporter.removeBufferedMessages.map(diaToMsg(_)).asJava)
+      new Msgs(ctx.reporter.removeBufferedMessages.map(diaToMsg(_)).asJava)
     }
   }
 }

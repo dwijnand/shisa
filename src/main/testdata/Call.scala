@@ -13,7 +13,9 @@ object MkInMemoryTestFile {
 trait MkInMemoryTestFile {
   def path: Path
   def contents: TestContents
+}
 
+trait MkInMemoryTestUnitFile extends MkInMemoryTestFile {
   final def warn(lineNo: Int, str: String) = MkInMemoryTestFile.warn(path, lineNo, str)
   final def  err(lineNo: Int, str: String) = MkInMemoryTestFile.err( path, lineNo, str)
 }
@@ -133,18 +135,7 @@ object Call {
   val m2p_vc = q"""val m2p_vc = new M2P_VC("")"""
   val p2m_vc = q"""val p2m_vc = new P2M_VC("")"""
 
-  val str1 = "(): String"
-  val str2 = "=> String"
-  def autoApp2(meth: String) = s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
-    |or remove the empty argument list from its definition (Java-defined methods are exempt).
-    |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
-  def parensCall3(meth: String) = s"method $meth must be called with () argument"
-  def p2mMsg = "method with a single empty parameter list overrides method without any parameter list"
-  def p2mErr(nme: String) = s"$p2mMsg\ndef d: String (defined in trait $nme)"
-  def errOverride2                                         = "method without a parameter list overrides a method with a single empty one"
-  def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
-  def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
-
+  import ErrorMsgs._
   import MkInMemoryTestFile.{ err, warn }
 
   def m2p_m_msgs(path: Path, traitName: String) = {
@@ -182,7 +173,7 @@ object Call {
   sealed class SwitchFile(
       pathStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, testStat: Stat,
       expectedMsgs: (Path, String) => List[List[Msg]]
-  ) extends MkInMemoryTestFile {
+  ) extends MkInMemoryTestUnitFile {
     val path     = Paths.get(s"testdata/$pathStr")
     val contents = TestContents(List(List(traitDefn, clsDefn)), None, List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
   }
@@ -196,7 +187,7 @@ object Call {
   object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m.scala",   PU, P2M_VC, p2m_vc, q"p2m_vc.d()", p2m_m_msgs)
   object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p.scala",   PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
 
-  object def_meth_p extends MkInMemoryTestFile {
+  object def_meth_p extends MkInMemoryTestUnitFile {
     val path         = Paths.get("testdata/Call.def/Call.meth_p.scala")
     val innerDefns   = List(q"""def meth() = """"")
     val testStats    = List(List(q"meth"))
@@ -207,7 +198,7 @@ object Call {
     def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
   }
 
-  object def_prop_m extends MkInMemoryTestFile {
+  object def_prop_m extends MkInMemoryTestUnitFile {
     val path         = Paths.get("testdata/Call.def/Call.prop_m.scala")
     val innerDefns   = List(q"""def prop = """"")
     val testStats    = List(List(q"prop()"))
@@ -217,7 +208,7 @@ object Call {
     def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
   }
 
-  object hashHash extends MkInMemoryTestFile {
+  object hashHash extends MkInMemoryTestUnitFile {
     val path = Paths.get("testdata/Call.##.scala")
 
     val contentss         = List(
@@ -232,7 +223,7 @@ object Call {
     def err3(lineNo: Int) = err(lineNo, "method ## in class Any does not take parameters")
   }
 
-  object pos extends MkInMemoryTestFile {
+  object pos extends MkInMemoryTestUnitFile {
     val path       = Paths.get("testdata/Call.pos.scala")
     val outerDefns = List(CR.defns, CCR.defns, VCR.defns, VCCR.defns)
     val innerDefns = vals.map(_.defn)

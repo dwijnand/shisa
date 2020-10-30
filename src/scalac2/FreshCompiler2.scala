@@ -26,7 +26,7 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
       new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
       FreshCompiler2.finish(reporter)
       val msgs = reporter.infos.toList.map(FreshCompiler2.infoToMsg(_))
-      new CompileResult(msgs.asJava)
+      new Msgs(msgs.asJava)
     } finally reporter.reset()
   }
 }
