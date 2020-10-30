@@ -55,6 +55,7 @@ object Main {
     Call.switch_vc_p2m_p,
     EtaX.boom,
     EtaX.meth2,
+    EtaX.cloneEta,
   )
   val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 

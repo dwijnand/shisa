@@ -1,4 +1,4 @@
-// src:   val ys = { val t = scala.collection.mutable.Map(1 -> "foo"); t.clone } // ?/?/ok
+// src:   val ys = t.clone
 // 2.13-base ok
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>

@@ -27,6 +27,14 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile._
 
+  object cloneEta extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/EtaX/EtaX.clone.lines.scala")
+    def baseClass    = q"""class TestBase { val t  = scala.collection.mutable.Map(1 -> "foo") }"""
+    def testStat     = q"""val ys = t.clone"""
+    val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+    val contents     = TestContents(Nil, Some(baseClass), Nil, List(List(testStat)), expectedMsgs)
+  }
+
   object meth2 extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.meth2.lines.scala")
     val baseClass    = q"""class TestBase { def meth2()() = "" }"""
