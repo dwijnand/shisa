@@ -32,6 +32,12 @@ object ErrorMsgs {
   def mustFollow(tpe: String)  = s"_ must follow method; cannot follow $tpe"
   def mustParens(meth: String) = s"method $meth must be called with () argument"
   def onlyFuncs(tpe: String)   = s"Only function types can be followed by _ but the current expression has type $tpe"
+  def notEnoughArgs(methsig: String, className: String, param: String) =
+    s"""not enough arguments for method $methsig in class $className.
+       |Unspecified value parameter $param.""".stripMargin
+  def methodsWithoutParams    = "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
+  def methodsWithoutParamsNew = "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
+  def missingArgForParam = "missing argument for parameter i of method apply: (i: Int): Char"
 }
 
 object EtaX {
@@ -132,11 +138,60 @@ object EtaX {
       q"val t2f: Any       = prop _   // ok",
       q"val t2g: Any       = prop() _ // error: not enough arguments for method apply",
     )
-    val path0        = Paths.get("testdata/EtaX/EtaX.prop.00.scala")
-    val errs2        = List(err(path0, 7, typeMismatch2("String", "() => Any")))
-    val errs3        = List(err(path0, 7, typeMismatch3("String", "() => Any")))
-    val expectedMsgs = List(errs2, errs2, errs2, errs3, errs3, errs3, errs3)
-    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+    def pathN(n: Int) = Paths.get(s"testdata/EtaX/EtaX.prop.0$n.scala")
+    val msgs2         = List(
+       err(pathN(0),  7, typeMismatch2("String", "() => Any")),
+       err(pathN(2),  9, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      warn(pathN(3), 10, methodsWithoutParams),
+      warn(pathN(4), 11, methodsWithoutParams),
+      warn(pathN(5), 12, methodsWithoutParams),
+       err(pathN(6), 13, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+    )
+    val msgs2New      = List(
+      err(pathN(0),  7, typeMismatch2("String", "() => Any")),
+      err(pathN(2),  9, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      err(pathN(3), 10, methodsWithoutParamsNew),
+      err(pathN(4), 11, methodsWithoutParamsNew),
+      err(pathN(5), 12, methodsWithoutParamsNew),
+      err(pathN(6), 13, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+    )
+    val msgs3Old      = List(
+       err(pathN(0),  7, typeMismatch3("String", "() => Any")),
+       err(pathN(2),  9, missingArgForParam),
+      warn(pathN(3), 10, onlyFuncs("String")),
+      warn(pathN(4), 11, onlyFuncs("String")),
+      warn(pathN(5), 12, onlyFuncs("String")),
+      warn(pathN(6), 13, onlyFuncs("<error unspecified error>")),
+       err(pathN(6), 13, missingArgForParam),
+    )
+    val msgs3         = List(
+      err(pathN(0),  7, typeMismatch3("String", "() => Any")),
+      err(pathN(2),  9, missingArgForParam),
+      err(pathN(3), 10, onlyFuncs("String")),
+      err(pathN(4), 11, onlyFuncs("String")),
+      err(pathN(5), 12, onlyFuncs("String")),
+      err(pathN(6), 13, onlyFuncs("<error unspecified error>")),
+    )
+    val msgs31Migr    = List(
+       err(pathN(0),  7, typeMismatch3("String", "() => Any")),
+       err(pathN(2),  9, missingArgForParam),
+      warn(pathN(3), 10, onlyFuncs("String")),
+       err(pathN(3), 10, typeMismatch3("String", "() => Any")),
+      warn(pathN(4), 11, onlyFuncs("String")),
+      warn(pathN(5), 12, onlyFuncs("String")),
+      warn(pathN(6), 13, onlyFuncs("<error unspecified error>")),
+       err(pathN(6), 13, missingArgForParam),
+    )
+    val msgs31        = List(
+      err(pathN(0),  7, typeMismatch3("String", "() => Any")),
+      err(pathN(2),  9, missingArgForParam),
+      err(pathN(3), 10, onlyFuncs("String")),
+      err(pathN(4), 11, onlyFuncs("String")),
+      err(pathN(5), 12, onlyFuncs("String")),
+      err(pathN(6), 13, onlyFuncs("<error unspecified error>")),
+    )
+    val expectedMsgs  = List(msgs2, msgs2, msgs2New, msgs3Old, msgs3, msgs31Migr, msgs31)
+    val contents      = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
   }
 
   object methF0 extends MkInMemoryTestFile {
