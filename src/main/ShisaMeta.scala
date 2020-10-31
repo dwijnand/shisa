@@ -10,7 +10,7 @@ import scala.meta.prettyprinters.Show.{ newline => n, repeat => r, sequence => s
 import shisa._
 
 object ShisaMeta {
-  def testFileSource(contents: TestContents): String = {
+  def testFileSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
     val TestContents(outerDefns, baseClass, innerDefns, testStatss, _) = contents
     val statss = if (innerDefns.isEmpty) testStatss else innerDefns :: testStatss
     val body   = r(statss, EOL)(Show(stats => r(stats.map(i(_)))))
@@ -24,7 +24,10 @@ object ShisaMeta {
       if (outerDefnss.isEmpty) Show.None
       else s(r(outerDefnss, EOL + EOL)(Show(defns => r(defns, EOL)(syntax[Defn]))), EOL, EOL)
 
-    s(outer, cls, EOL).toString
+    pkgName match {
+      case Some(name) => s("package", " ", name.syntax, EOL, EOL, outer, cls, EOL).toString
+      case None       => s(                                       outer, cls, EOL).toString
+    }
   }
 
   def i[A: Syntax](x: A)                          = Show.indent(x)

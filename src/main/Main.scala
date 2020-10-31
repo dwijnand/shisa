@@ -101,14 +101,10 @@ object Main {
   }
 
   val noMsg        = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
-  val noRes        = new Msgs(List(noMsg).asJava)
-  val noFile       = CompileFileLine(Paths.get("nopath.scala"), -1)
+  val noMsgs       = new Msgs(List(noMsg).asJava)
   val noCompilerId = "<unknown>"
-  val noMsgss      = List[List[Msg]](Nil, Nil, Nil, Nil, Nil, Nil, Nil)
-  val noMsgss2     = new Msgs(List(noMsg).asJava)
-  val noMsgssAndId = (new Msgs(List(noMsg).asJava), noCompilerId)
+  val noMsgssAndId = (noMsgs, noCompilerId)
   val LineStart    = "(?m)^".r
-  val TestRegex    = """(?s)(.*)class Test ([^{]*)\{\n(.*)\n}\n""".r
 
   def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
     val src2 = targetDir.resolve(src)
@@ -121,7 +117,7 @@ object Main {
   }
 
   def compareMsgs(expMsgs: List[List[Msg]], msgssAndId: List[(Msgs, String)], src: Path) = {
-    for ((expMsgs, (obtMsgs, compilerId)) <- expMsgs.zipAll(msgssAndId, List(noMsg), (noRes, noCompilerId))) {
+    for ((expMsgs, (obtMsgs, compilerId)) <- expMsgs.zipAll(msgssAndId, List(noMsg), (noMsgs, noCompilerId))) {
       def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
       def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
       expMsgs.zipAll(msgsDropSummary(obtMsgs), null, null).collect {
@@ -150,15 +146,11 @@ object Main {
   }
 
   def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val sourceStr = ShisaMeta.testFileSource(contents)
-    val (setup, base, cases) = sourceStr match {
-      case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
-    }
-
-    val msgssAndIds = cases.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.map { case (line, idx) =>
+    val msgssAndIds = contents.testStats.flatten.zipWithIndex.map { case (stat, idx) =>
       val file        = CompileFileLine(src, idx)
-      val msgssAndId  = doCompileLine(file, compilers, setup, base, cases.size, line)
-      val lineNo      = setup.linesIterator.size + 2 + idx
+      val msgssAndId  = doCompileLine(file, compilers, contents, stat)
+      val line        = stat.toString()
+      val lineNo      = -1 // setup.linesIterator.size + 2 + idx
       val statusIcons = msgssAndId.map(_._1.toResult.toStatusIcon).mkString
       println(f"* ${s"${file.src}:$lineNo"}%-50s $statusIcons$line%-100s")
       msgssAndId
@@ -177,20 +169,13 @@ object Main {
     compareMsgs(contents.expectedMsgs, msgssAndId, src)
   }
 
-  def doCompileLine(file: CompileFileLine, compilers: List[Compiler],
-      setup: String, base: String, count: Int, line: String) = {
-    val body = List.fill(file.idxInt)("") ::: line :: List.fill(count - file.idxInt - 1)("")
+  def doCompileLine(file: CompileFileLine, compilers: List[Compiler], contents: TestContents, stat: Stat) = {
+    val count = contents.testStats.flatten.size
+    val testStats = List.fill(file.idxInt)(Nil) ::: List(stat) :: List.fill(count - file.idxInt - 1)(Nil)
+    val contents1 = contents.copy(testStats = testStats)
+    val sourceStr = ShisaMeta.testFileSource(contents1, Some(Term.Name(s"p${file.idx}")))
     Files.createDirectories(file.src2.getParent)
-    Files.writeString(file.src2,
-      s"""package p${file.idx}
-         |
-         |$setup
-         |class Test $base{
-         |${body.mkString("\n")}
-         |}
-         |""".stripMargin
-    )
-
+    Files.writeString(file.src2, sourceStr)
     compilers.map(compiler => (compiler.compile1(file.src2), compiler.id))
   }
 
