@@ -18,9 +18,8 @@ object ErrorMsgs {
   def errOverride2                                         = "method without a parameter list overrides a method with a single empty one"
   def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
   def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
-  def etaFunction                                          =
-    """The syntax `<function> _` is no longer supported;
-      |you can use `(() => <function>())` instead""".stripMargin
+  def etaFunction                                          = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
+  def etaFunction2                                         = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
   def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
   def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
   def missingArgs(meth: String, cls: String) =
@@ -118,12 +117,19 @@ object EtaX {
       q"val t5d             = meth1   // error in 2.13, eta-expansion in 3.0",
       q"val t5e             = meth1 _ // ok",
     )
-    val path1        = Paths.get("testdata/EtaX/EtaX.meth1.01.scala")
-    val path3        = Paths.get("testdata/EtaX/EtaX.meth1.03.scala")
-    val  errs2       = List( err(path3, 13, missingArgs("meth1", "TestBase")))
-    val warns3       = List(warn(path1, 11, stillEta("meth1", "p01.Sam1S")))
-    val expectedMsgs = List(errs2, errs2, Nil, warns3, warns3, warns3, warns3)
-    val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
+    def pathN(n: Int) = Paths.get(s"testdata/EtaX/EtaX.meth1.0$n.scala")
+    val  errs2        = List( err(pathN(3), 13, missingArgs("meth1", "TestBase")))
+    val warns3        = List(warn(pathN(1), 11, stillEta("meth1", "p01.Sam1S")))
+    val msgs31Migr    = List(
+      warn(pathN(1), 11, stillEta("meth1", "p01.Sam1S")),
+      warn(pathN(4), 14, etaFunction2),
+    )
+    val msgs31        = List(
+      warn(pathN(1), 11, stillEta("meth1", "p01.Sam1S")),
+       err(pathN(4), 14, etaFunction2),
+    )
+    val expectedMsgs  = List(errs2, errs2, Nil, warns3, warns3, msgs31Migr, msgs31)
+    val contents      = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
   }
 
   object prop extends MkInMemoryTestFile {
