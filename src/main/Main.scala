@@ -40,28 +40,7 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryMkTest = List(
-    Call.hashHash,
-    Call.pos,
-    Call.def_meth_p,
-    Call.def_prop_m,
-    Call.switch_m2p_m,
-    Call.switch_m2p_p,
-    Call.switch_p2m_m,
-    Call.switch_p2m_p,
-    Call.switch_vc_m2p_m,
-    Call.switch_vc_m2p_p,
-    Call.switch_vc_p2m_m,
-    Call.switch_vc_p2m_p,
-    EtaX.boom,
-    EtaX.meth2,
-    EtaX.cloneEta,
-    EtaX.methF0,
-    EtaX.prop,
-    EtaX.meth1,
-    EtaX.meth,
-  )
-  val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
+  val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => TestFile(mk.path, Some(mk.contents)))
 
   def main(args: Array[String]): Unit = {
     val testFiles = args.toList match {

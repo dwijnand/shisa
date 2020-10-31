@@ -35,6 +35,8 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile._
 
+  def tests = List(boom, meth2, cloneEta, methF0, prop, meth1, meth)
+
   object meth extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.meth.lines.scala")
     def Sam0S        = q"                     trait Sam0S { def apply(): Any }"

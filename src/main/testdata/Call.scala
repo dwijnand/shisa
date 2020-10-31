@@ -23,6 +23,10 @@ trait MkInMemoryTestUnitFile extends MkInMemoryTestFile {
 object Call {
   def idF[A]: A => A = x => x
 
+  def tests         = List(hashHash, pos, def_meth_p, def_prop_m) ::: switchTests ::: switchVcTests
+  def switchTests   = List(switch_m2p_m, switch_m2p_p, switch_p2m_m, switch_p2m_p)
+  def switchVcTests = List(switch_vc_m2p_m, switch_vc_m2p_p, switch_vc_p2m_m, switch_vc_p2m_p)
+
   implicit class ListOps[A](private val xs: List[A]) extends AnyVal {
     def onNil[B](z: => B, f: List[A] => B): B = if (xs.isEmpty) z else f(xs)
   }
