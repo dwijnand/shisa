@@ -27,6 +27,24 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile._
 
+  object methF0 extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/EtaX/EtaX.methF0.lines.scala")
+    def baseClass    = q"""class TestBase { def methF0() = () => "" }"""
+    def testStats    = List(
+      q"val t1a: () => Any = methF0     // ok, eta-expansion",
+      q"val t1b            = methF0     // `()`-insert b/c no expected type",
+      q"val t1c: () => Any = methF0 _   // ok, explicit eta-expansion requested",
+      q"val t1d: Any       = methF0 _   // ok, explicit eta-expansion requested",
+      q"val t1e: Any       = methF0() _ // error: _ must follow method",
+    )
+    val expectedMsgs = List(warns2, warns2, warns2, warns3, errs3, errs3, errs3)
+    def path1        = Paths.get("testdata/EtaX/EtaX.methF0.01.scala")
+    def warns2       = List(warn(path1, 8, autoApp2("methF0")))
+    def warns3       = List(warn(path1, 8, parensCall3("methF0")))
+    def  errs3       = List( err(path1, 8, parensCall3("methF0")))
+    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+  }
+
   object cloneEta extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.clone.lines.scala")
     def baseClass    = q"""class TestBase { val t  = scala.collection.mutable.Map(1 -> "foo") }"""
