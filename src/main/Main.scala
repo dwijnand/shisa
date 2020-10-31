@@ -38,23 +38,25 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => TestFile(mk.path, Some(mk.contents)))
+  val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => TestFile(mk.path, mk.contents))
 
   def main(args: Array[String]): Unit = {
-    val testFiles = args.toList match {
+    val testFilePaths = args.toList match {
       case Nil => inMemoryTests
-        .sortBy(_.src)
-        .tap(fs => println(s"Files: ${fs.map(_.src).mkString("[", ", ", "]")}"))
+        .map(_.src)
+        .sorted
+        .tap(fs => println(s"Files: ${fs.mkString("[", ", ", "]")}"))
       case xs  => xs
         .map(Paths.get(_))
         .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
-        .map(p => inMemoryTests.find(_.src == p).getOrElse(TestFile(p, None)))
     }
 
-    testFiles.collect { case TestFile(p, None) if !Files.exists(p) => p } match {
+    testFilePaths.collect { case p if inMemoryTests.forall(_.src != p) => p } match {
       case Nil     =>
       case missing => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
     }
+
+    val testFiles = testFilePaths.map(p => inMemoryTests.find(_.src == p).get)
 
     if (Files.exists(Paths.get("target/testdata")))
       IOUtil.deleteRecursive(Paths.get("target/testdata"))
@@ -85,9 +87,9 @@ object Main {
   def compile1(testFile: TestFile, mkCompilers: List[MkCompiler]) = {
     val compilers = mkCompilers.map(_.mkCompiler())
     testFile match {
-      case TestFile(src, _) if src.toString.endsWith(".lines.scala") => doLines(testFile, compilers)
-      case TestFile(src, Some(contents))                             => doUnit(src, contents, compilers)
-      case _                                                         => throw new Exception(s"Expected lines or TestContents: $testFile")
+      case TestFile(src, contents) if src.toString.endsWith(".lines.scala") => doLines(src, contents, compilers)
+      case TestFile(src, contents)                                          => doUnit(src, contents, compilers)
+      case _                                                                => throw new Exception(s"Expected lines or TestContents: $testFile")
     }
   }
 
@@ -147,23 +149,18 @@ object Main {
     }
   }
 
-  def doLines(testFile: TestFile, compilers: List[Compiler]) = {
-    val sourceStr = testFile match {
-      case TestFile(src, None)           => Files.readString(src)
-      case TestFile(  _, Some(contents)) => ShisaMeta.testFileSource(contents)
-    }
+  def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
+    val sourceStr = ShisaMeta.testFileSource(contents)
     val (setup, base, cases) = sourceStr match {
       case TestRegex(setup, base, cases) => (setup, base, cases.linesIterator.toList)
     }
 
     val msgssAndIds = cases.iterator.filter(!_.trim.pipe(isEmptyOrComment)).zipWithIndex.map { case (line, idx) =>
-      val file        = CompileFileLine(testFile.src, idx)
+      val file        = CompileFileLine(src, idx)
       val msgssAndId  = doCompileLine(file, compilers, setup, base, cases.size, line)
       val lineNo      = setup.linesIterator.size + 2 + idx
       val statusIcons = msgssAndId.map(_._1.toResult.toStatusIcon).mkString
-      //println()
       println(f"* ${s"${file.src}:$lineNo"}%-50s $statusIcons$line%-100s")
-      //printMsgssAndId(msgssAndId)
       msgssAndId
     }
 
@@ -174,28 +171,10 @@ object Main {
         assert(id == idB, s"$id != $idB")
         (new Msgs((msgs.asList ::: msgsDropSummary(newMsgs)).asJava), id)
       }
-      //println(s"acc is now:")
-      //printMsgssAndId(acc2)
       acc2
     }
 
-    //println()
-    //println(s"${msgssAndId.size} msgssAndId's!")
-
-    testFile.contents.foreach { contents =>
-      compareMsgs(contents.expectedMsgs, msgssAndId, testFile.src)
-    }
-  }
-
-  def printMsgssAndId(msgssAndId: List[(Msgs, String)]) = {
-    msgssAndId.foreach { case (msgs0, id) =>
-      msgsDropSummary(msgs0) match {
-        case List(msg) => println(f"$id%-9s: 1 msg : ${showMsg(msg)}")
-        case msgs      =>
-          println(f"$id%-9s: ${msgs.size} msgs:")
-          msgs.foreach(msg => println("  " + showMsg(msg)))
-      }
-    }
+    compareMsgs(contents.expectedMsgs, msgssAndId, src)
   }
 
   def doCompileLine(file: CompileFileLine, compilers: List[Compiler],
@@ -252,7 +231,7 @@ final case class TestContents(
   }
 }
 
-final case class TestFile(src: Path, contents: Option[TestContents])
+final case class TestFile(src: Path, contents: TestContents)
 
 sealed trait CompileResult {
   def lines: List[String] = this match {
