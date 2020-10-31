@@ -1,16 +1,16 @@
-// src:   val t3f: Any       = meth() _               // error: _ must follow method
+// src:   val t3f: Any = meth() _
 // 2.13-base error
-target/testdata/EtaX/EtaX.meth.07.scala:19: error: _ must follow method; cannot follow String
-  val t3f: Any       = meth() _               // error: _ must follow method
-                           ^
+target/testdata/EtaX/EtaX.meth.07.scala:17: error: _ must follow method; cannot follow String
+  val t3f: Any = meth() _
+                     ^
 1 error
 
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   warn
--- [E099] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.07.scala:19:30 
-19 |  val t3f: Any       = meth() _               // error: _ must follow method
-   |                       ^^^^^^^^
+-- [E099] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.07.scala:17:24 
+17 |  val t3f: Any = meth() _
+   |                 ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type String
 
 Explanation
@@ -21,9 +21,9 @@ To convert to a function value, you need to explicitly write () => x
 1 warning found
 
 // 3.0       error
--- [E099] Syntax Error: target/testdata/EtaX/EtaX.meth.07.scala:19:30 ----------
-19 |  val t3f: Any       = meth() _               // error: _ must follow method
-   |                       ^^^^^^^^
+-- [E099] Syntax Error: target/testdata/EtaX/EtaX.meth.07.scala:17:24 ----------
+17 |  val t3f: Any = meth() _
+   |                 ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type String
 
 Explanation
@@ -34,9 +34,9 @@ To convert to a function value, you need to explicitly write () => x
 1 error found
 
 // 3.1-migr  warn
--- [E099] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.07.scala:19:30 
-19 |  val t3f: Any       = meth() _               // error: _ must follow method
-   |                       ^^^^^^^^
+-- [E099] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.07.scala:17:24 
+17 |  val t3f: Any = meth() _
+   |                 ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type String
 
 Explanation
@@ -47,9 +47,9 @@ To convert to a function value, you need to explicitly write () => x
 1 warning found
 
 // 3.1       error
--- [E099] Syntax Error: target/testdata/EtaX/EtaX.meth.07.scala:19:30 ----------
-19 |  val t3f: Any       = meth() _               // error: _ must follow method
-   |                       ^^^^^^^^
+-- [E099] Syntax Error: target/testdata/EtaX/EtaX.meth.07.scala:17:24 ----------
+17 |  val t3f: Any = meth() _
+   |                 ^^^^^^^^
    |Only function types can be followed by _ but the current expression has type String
 
 Explanation

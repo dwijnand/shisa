@@ -1,17 +1,17 @@
-// src:   val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
+// src:   val t3Sam0S: Sam0S = meth
 // 2.13-base error
-target/testdata/EtaX/EtaX.meth.01.scala:13: error: type mismatch;
+target/testdata/EtaX/EtaX.meth.01.scala:11: error: type mismatch;
  found   : String
  required: p01.Sam0S
-  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
+  val t3Sam0S: Sam0S = meth
                        ^
 1 error
 
 // 2.13-head error <no change>
 // 2.13-new  error <no change>
 // 3.0-old   error
--- [E100] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.01.scala:13:23 
-13 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
+-- [E100] Syntax Migration Warning: target/testdata/EtaX/EtaX.meth.01.scala:11:23 
+11 |  val t3Sam0S: Sam0S = meth
    |                       ^^^^
    |                       method meth must be called with () argument
 
@@ -25,8 +25,8 @@ def next(): T = ...
 In Dotty, this idiom is an error. The application syntax has to follow exactly the parameter syntax.
 Excluded from this rule are methods that are defined in Java or that override methods defined in Java.
 
--- [E007] Type Mismatch Error: target/testdata/EtaX/EtaX.meth.01.scala:13:23 ---
-13 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
+-- [E007] Type Mismatch Error: target/testdata/EtaX/EtaX.meth.01.scala:11:23 ---
+11 |  val t3Sam0S: Sam0S = meth
    |                       ^^^^
    |                       Found:    String
    |                       Required: p01.Sam0S
@@ -34,8 +34,8 @@ Excluded from this rule are methods that are defined in Java or that override me
 1 error found
 
 // 3.0       error
--- [E100] Syntax Error: target/testdata/EtaX/EtaX.meth.01.scala:13:23 ----------
-13 |  val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam
+-- [E100] Syntax Error: target/testdata/EtaX/EtaX.meth.01.scala:11:23 ----------
+11 |  val t3Sam0S: Sam0S = meth
    |                       ^^^^
    |                       method meth must be called with () argument
 

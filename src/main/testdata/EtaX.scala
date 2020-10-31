@@ -35,6 +35,33 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile._
 
+  object meth extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/EtaX/EtaX.meth.lines.scala")
+    def Sam0S        = q"                     trait Sam0S { def apply(): Any }"
+    def Sam0J        = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
+    def outerDefns   = List(Sam0S, Sam0J)
+    def baseClass    = q"""class TestBase { def meth() = "" }"""
+    def testStats    = List(
+      q"val t3a: () => Any = meth     // eta-expansion, but lint warning",
+      q"val t3Sam0S: Sam0S = meth     // -Xlint:eta-zero + -Xlint:eta-sam",
+      q"val t3Sam0J: Sam0J = meth     // -Xlint:eta-zero",
+      q"val t3b            = meth     // apply, ()-insertion",
+      q"val t3c: () => Any = meth _   // ok",
+      q"val t3d: () => Any = meth _   // ok",
+      q"val t3e: Any       = meth _   // ok",
+      q"val t3f: Any       = meth() _ // error: _ must follow method",
+    )
+    val path1        = Paths.get("testdata/EtaX/EtaX.meth.01.scala")
+    val path3        = Paths.get("testdata/EtaX/EtaX.meth.03.scala")
+    val err2         = err(path1, 11, typeMismatch2("String", "p01.Sam0S"))
+    val err3         = err(path1, 11, typeMismatch3("String", "p01.Sam0S"))
+    val errs2        = List(err2)
+    val msgs3Old     = List(warn(path1, 11, parensCall3("meth")), err3)
+    val msgs3        = List( err(path1, 11, parensCall3("meth")))
+    val expectedMsgs = List(errs2, errs2, errs2, msgs3Old, msgs3, msgs3, msgs3)
+    val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
+  }
+
   object meth1 extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.meth1.lines.scala")
     def Sam1S        = q"                     trait Sam1S { def apply(x: Any): Any }"
@@ -50,7 +77,7 @@ object EtaX {
     )
     val path1        = Paths.get("testdata/EtaX/EtaX.meth1.01.scala")
     val path3        = Paths.get("testdata/EtaX/EtaX.meth1.03.scala")
-    val  errs2       = List(err(path3, 13, missingArgs("meth1", "TestBase")))
+    val  errs2       = List( err(path3, 13, missingArgs("meth1", "TestBase")))
     val warns3       = List(warn(path1, 11, stillEta("meth1", "p01.Sam1S")))
     val expectedMsgs = List(errs2, errs2, Nil, warns3, warns3, warns3, warns3)
     val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
