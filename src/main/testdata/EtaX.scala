@@ -23,11 +23,38 @@ object ErrorMsgs {
       |you can use `(() => <function>())` instead""".stripMargin
   def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
   def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
+  def missingArgs(meth: String, cls: String) =
+    s"""missing argument list for method $meth in class $cls
+       |Unapplied methods are only converted to functions when a function type is expected.
+       |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
+  def stillEta(meth: String, traitName: String) =
+    s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
 }
 
 object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile._
+
+  object meth1 extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/EtaX/EtaX.meth1.lines.scala")
+    def Sam1S        = q"                     trait Sam1S { def apply(x: Any): Any }"
+    def Sam1J        = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
+    def outerDefns   = List(Sam1S, Sam1J)
+    def baseClass    = q"""class TestBase { def meth1(x: Any) = "" }"""
+    def testStats    = List(
+      q"val t5a: Any => Any = meth1   // ok",
+      q"val t5b: Sam1S      = meth1   // ok, but warning",
+      q"val t5c: Sam1J      = meth1   // ok",
+      q"val t5d             = meth1   // error in 2.13, eta-expansion in 3.0",
+      q"val t5e             = meth1 _ // ok",
+    )
+    val path1        = Paths.get("testdata/EtaX/EtaX.meth1.01.scala")
+    val path3        = Paths.get("testdata/EtaX/EtaX.meth1.03.scala")
+    val  errs2       = List(err(path3, 13, missingArgs("meth1", "TestBase")))
+    val warns3       = List(warn(path1, 11, stillEta("meth1", "p01.Sam1S")))
+    val expectedMsgs = List(errs2, errs2, Nil, warns3, warns3, warns3, warns3)
+    val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
+  }
 
   object prop extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.prop.lines.scala")

@@ -1,10 +1,10 @@
-// src:   val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0
+// src:   val t5d = meth1
 // 2.13-base error
-target/testdata/EtaX/EtaX.meth1.03.scala:15: error: missing argument list for method meth1 in class TestBase
+target/testdata/EtaX/EtaX.meth1.03.scala:13: error: missing argument list for method meth1 in class TestBase
 Unapplied methods are only converted to functions when a function type is expected.
 You can make this conversion explicit by writing `meth1 _` or `meth1(_)` instead of `meth1`.
-  val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0
-                                  ^
+  val t5d = meth1
+            ^
 1 error
 
 // 2.13-head error <no change>

@@ -1,4 +1,4 @@
-// src:   val t5a: Any => Any = meth1                   // ok
+// src:   val t5a: Any => Any = meth1
 // 2.13-base ok
 // 2.13-head ok    <no change>
 // 2.13-new  ok    <no change>
