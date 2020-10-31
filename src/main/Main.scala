@@ -57,6 +57,7 @@ object Main {
     EtaX.meth2,
     EtaX.cloneEta,
     EtaX.methF0,
+    EtaX.prop,
   )
   val inMemoryTests  = inMemoryMkTest.map(mk => TestFile(mk.path, Some(mk.contents)))
 

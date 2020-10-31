@@ -21,11 +21,32 @@ object ErrorMsgs {
   def etaFunction                                          =
     """The syntax `<function> _` is no longer supported;
       |you can use `(() => <function>())` instead""".stripMargin
+  def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
+  def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
 }
 
 object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile._
+
+  object prop extends MkInMemoryTestFile {
+    val path         = Paths.get("testdata/EtaX/EtaX.prop.lines.scala")
+    def baseClass    = q"""class TestBase { def prop = "" }"""
+    def testStats    = List(
+      q"val t2a: () => Any = prop     // error: no eta-expansion of nullary methods",
+      q"val t2b            = prop     // ok: apply",
+      q"val t2c: () => Any = prop()   // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument",
+      q"val t2d: () => Any = prop _   // ok",
+      q"val t2e            = prop _   // ?/ok",
+      q"val t2f: Any       = prop _   // ok",
+      q"val t2g: Any       = prop() _ // error: not enough arguments for method apply",
+    )
+    val path0        = Paths.get("testdata/EtaX/EtaX.prop.00.scala")
+    val errs2        = List(err(path0, 7, typeMismatch2("String", "() => Any")))
+    val errs3        = List(err(path0, 7, typeMismatch3("String", "() => Any")))
+    val expectedMsgs = List(errs2, errs2, errs2, errs3, errs3, errs3, errs3)
+    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+  }
 
   object methF0 extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.methF0.lines.scala")
