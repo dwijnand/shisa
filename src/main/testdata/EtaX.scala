@@ -149,12 +149,33 @@ object EtaX {
       q"val t1d: Any       = methF0 _   // ok, explicit eta-expansion requested",
       q"val t1e: Any       = methF0() _ // error: _ must follow method",
     )
-    val expectedMsgs = List(warns2, warns2, warns2, warns3, errs3, errs3, errs3)
-    def path1        = Paths.get("testdata/EtaX/EtaX.methF0.01.scala")
-    def warns2       = List(warn(path1, 8, autoApp2("methF0")))
-    def warns3       = List(warn(path1, 8, parensCall3("methF0")))
-    def  errs3       = List( err(path1, 8, parensCall3("methF0")))
-    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+    def pathN(n: Int) = Paths.get(s"testdata/EtaX/EtaX.methF0.0$n.scala")
+    def warns2        = List(
+      warn(pathN(1),  8, autoApp2("methF0")),
+       err(pathN(4), 11, mustFollow("() => String")),
+    )
+    def warns3        = List(
+      warn(pathN(1),  8, parensCall3("methF0")),
+      warn(pathN(4), 11, onlyFuncs("() => String")),
+    )
+    def  errs3        = List(
+      err(pathN(1),  8, parensCall3("methF0")),
+      err(pathN(4), 11, onlyFuncs("() => String")),
+    )
+    def  msgs31Migr   = List(
+       err(pathN(1),  8, parensCall3("methF0")),
+      warn(pathN(2),  9, etaFunction),
+      warn(pathN(3), 10, etaFunction),
+      warn(pathN(4), 11, onlyFuncs("() => String")),
+    )
+    def  msgs31       = List(
+      err(pathN(1),  8, parensCall3("methF0")),
+      err(pathN(2),  9, etaFunction),
+      err(pathN(3), 10, etaFunction),
+      err(pathN(4), 11, onlyFuncs("() => String")),
+    )
+    val expectedMsgs  = List(warns2, warns2, warns2, warns3, errs3, msgs31Migr, msgs31)
+    val contents      = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
   }
 
   object cloneEta extends MkInMemoryTestFile {
@@ -174,11 +195,19 @@ object EtaX {
       q"val t4c: () => Any = meth2 _   // ok",
       q"val t4d: () => Any = meth2() _ // ok",
     )
-    val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, errs31Migr, errs31)
-    def path0        = Paths.get("testdata/EtaX/EtaX.meth2.00.scala")
-    def  errs31Migr  = List(warn(path0, 7, etaFunction))
-    def  errs31      = List( err(path0, 7, etaFunction))
-    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+    def pathN(n: Int) = Paths.get(s"testdata/EtaX/EtaX.meth2.0$n.scala")
+    val errs31Migr    = List(
+      warn(pathN(0),  7, etaFunction),
+      warn(pathN(2),  9, etaFunction),
+      warn(pathN(3), 10, etaFunction),
+    )
+    val errs31        = List(
+      err(pathN(0),  7, etaFunction),
+      err(pathN(2),  9, etaFunction),
+      err(pathN(3), 10, etaFunction),
+    )
+    val expectedMsgs  = List(Nil, Nil, Nil, Nil, Nil, errs31Migr, errs31)
+    val contents      = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
   }
 
   object boom extends MkInMemoryTestFile {
