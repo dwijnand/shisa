@@ -12,9 +12,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 import scala.util.chaining._
 
-import cats.data.Chain
-
-import scala.meta._, contrib._
+import scala.meta._
 
 import shisa.testdata._
 
@@ -44,12 +42,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val testFiles = args.toList match {
-      case Nil =>
-        val realTestFiles = Files.find(Paths.get("testdata"), 10, (p, _) => s"$p".endsWith(".scala")).toScala(List)
-          .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
-          .map(TestFile(_, None))
-        (realTestFiles ::: inMemoryTests).sortBy(_.src)
-          .tap(fs => println(s"Files: ${fs.map(_.src).mkString("[", ", ", "]")}"))
+      case Nil => inMemoryTests
+        .sortBy(_.src)
+        .tap(fs => println(s"Files: ${fs.map(_.src).mkString("[", ", ", "]")}"))
       case xs  => xs
         .map(Paths.get(_))
         .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
@@ -101,16 +96,6 @@ object Main {
     val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
     val name2 = s"$name.$idx"
     val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
-
-    def writeLines(xs: List[String]) = {
-      val chk = src.resolveSibling(name).resolve(s"$name2.check")
-      Files.createDirectories(chk.getParent)
-      val text = xs match {
-        case init :+ last => (init :+ last.stripLineEnd :+ "").mkString("\n")
-        case _            => ""
-      }
-      Files.writeString(chk, text)
-    }
   }
 
   val noMsg        = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
@@ -227,18 +212,7 @@ object Main {
          |""".stripMargin
     )
 
-    val msgssAndId = compilers.map(compiler => (compiler.compile1(file.src2), compiler.id))
-    val msgs0      = (noMsgss2, Chain.empty[String])
-    val (_, lines) = msgssAndId.foldLeft(msgs0) { case ((prevMsgs, lines), (msgs, id)) =>
-      val idStatus = s"// ${id.padTo(9, ' ')} ${msgs.toResult.toStatusPadded}"
-      val resLines = if (msgs.lines.isEmpty) Chain.empty else Chain.fromSeq(msgs.lines) :+ ""
-      val newLines = if (msgs == prevMsgs) Chain.one(s"$idStatus <no change>") else idStatus.trim +: resLines
-      (msgs, lines ++ newLines)
-    }
-
-    val statusSummary = msgssAndId.map(_._1.toResult.toStatusPadded).mkString(" ").trim
-    file.writeLines((s"// src: $line" +: lines :+ "" :+ statusSummary).toList)
-    msgssAndId
+    compilers.map(compiler => (compiler.compile1(file.src2), compiler.id))
   }
 
   def showSev(sev: Severity) = sev match {

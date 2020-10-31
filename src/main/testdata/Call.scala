@@ -3,7 +3,7 @@ package testdata
 
 import java.nio.file._
 
-import scala.meta._, contrib._
+import scala.meta._
 
 object MkInMemoryTestFile {
   def warn(path: Path, lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")

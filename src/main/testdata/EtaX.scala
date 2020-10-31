@@ -3,7 +3,7 @@ package testdata
 
 import java.nio.file._
 
-import scala.meta._, contrib._
+import scala.meta._
 
 object ErrorMsgs {
   val str1 = "(): String"
@@ -15,28 +15,26 @@ object ErrorMsgs {
   def parensCall3(meth: String) = s"method $meth must be called with () argument"
   def p2mMsg = "method with a single empty parameter list overrides method without any parameter list"
   def p2mErr(nme: String) = s"$p2mMsg\ndef d: String (defined in trait $nme)"
-  def errOverride2                                         = "method without a parameter list overrides a method with a single empty one"
-  def errOverride3A(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
-  def errOverride3B(nme: String, tp1: String, tp2: String) = s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
-  def etaFunction                                          = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
-  def etaFunction2                                         = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
+  def errOverride2 = "method without a parameter list overrides a method with a single empty one"
+  def errOverride31(nme: String, tp1: String) = s"error overriding method d in trait $nme of type $tp1"
+  def errOverride3A(nme: String, tp1: String, tp2: String) = errOverride31(nme, tp1) + s";\n  method d of type $tp2 no longer has compatible type"
+  def errOverride3B(nme: String, tp1: String, tp2: String) = errOverride31(nme, tp1) + s";\n  method d of type $tp2 has incompatible type"
+  def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
+  def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
   def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
   def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
   def missingArgs(meth: String, cls: String) =
     s"""missing argument list for method $meth in class $cls
        |Unapplied methods are only converted to functions when a function type is expected.
        |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
-  def stillEta(meth: String, traitName: String) =
-    s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
+  def stillEta(meth: String, traitName: String) = s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
   def mustFollow(tpe: String)  = s"_ must follow method; cannot follow $tpe"
   def mustParens(meth: String) = s"method $meth must be called with () argument"
   def onlyFuncs(tpe: String)   = s"Only function types can be followed by _ but the current expression has type $tpe"
-  def notEnoughArgs(methsig: String, className: String, param: String) =
-    s"""not enough arguments for method $methsig in class $className.
-       |Unspecified value parameter $param.""".stripMargin
   def methodsWithoutParams    = "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
   def methodsWithoutParamsNew = "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
-  def missingArgForParam = "missing argument for parameter i of method apply: (i: Int): Char"
+  def notEnoughArgs(methsig: String, className: String, param: String) = s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
+  def missingArgForParam(methsig: String, param: String)               = s"missing argument for parameter $param of method $methsig"
 }
 
 object EtaX {
@@ -46,12 +44,12 @@ object EtaX {
   def tests = List(boom, meth2, cloneEta, methF0, prop, meth1, meth)
 
   object meth extends MkInMemoryTestFile {
-    val path         = Paths.get("testdata/EtaX/EtaX.meth.lines.scala")
-    def Sam0S        = q"                     trait Sam0S { def apply(): Any }"
-    def Sam0J        = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
-    def outerDefns   = List(Sam0S, Sam0J)
-    def baseClass    = q"""class TestBase { def meth() = "" }"""
-    def testStats    = List(
+    val path          = Paths.get("testdata/EtaX/EtaX.meth.lines.scala")
+    def Sam0S         = q"                     trait Sam0S { def apply(): Any }"
+    def Sam0J         = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
+    def outerDefns    = List(Sam0S, Sam0J)
+    def baseClass     = q"""class TestBase { def meth() = "" }"""
+    def testStats     = List(
       q"val t3a: () => Any = meth     // eta-expansion, but lint warning",
       q"val t3Sam0S: Sam0S = meth     // -Xlint:eta-zero + -Xlint:eta-sam",
       q"val t3Sam0J: Sam0J = meth     // -Xlint:eta-zero",
@@ -62,7 +60,7 @@ object EtaX {
       q"val t3f: Any       = meth() _ // error: _ must follow method",
     )
     def pathN(n: Int) = Paths.get(s"testdata/EtaX/EtaX.meth.0$n.scala")
-    val errs2         = List(
+    val msgs2         = List(
        err(pathN(1), 11, typeMismatch2("String", "p01.Sam0S")),
        err(pathN(2), 12, typeMismatch2("String", "p02.Sam0J")),
       warn(pathN(3), 13, autoApp2("meth")),
@@ -100,7 +98,7 @@ object EtaX {
       err(pathN(6), 16, etaFunction),
       err(pathN(7), 17, onlyFuncs("String")),
     )
-    val expectedMsgs  = List(errs2, errs2, errs2, msgs3Old, msgs3, msgs31Migr, msgs31)
+    val expectedMsgs  = List(msgs2, msgs2, msgs2, msgs3Old, msgs3, msgs31Migr, msgs31)
     val contents      = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
   }
 
@@ -163,16 +161,16 @@ object EtaX {
     )
     val msgs3Old      = List(
        err(pathN(0),  7, typeMismatch3("String", "() => Any")),
-       err(pathN(2),  9, missingArgForParam),
+       err(pathN(2),  9, missingArgForParam("apply: (i: Int): Char", "i")),
       warn(pathN(3), 10, onlyFuncs("String")),
       warn(pathN(4), 11, onlyFuncs("String")),
       warn(pathN(5), 12, onlyFuncs("String")),
       warn(pathN(6), 13, onlyFuncs("<error unspecified error>")),
-       err(pathN(6), 13, missingArgForParam),
+       err(pathN(6), 13, missingArgForParam("apply: (i: Int): Char", "i")),
     )
     val msgs3         = List(
       err(pathN(0),  7, typeMismatch3("String", "() => Any")),
-      err(pathN(2),  9, missingArgForParam),
+      err(pathN(2),  9, missingArgForParam("apply: (i: Int): Char", "i")),
       err(pathN(3), 10, onlyFuncs("String")),
       err(pathN(4), 11, onlyFuncs("String")),
       err(pathN(5), 12, onlyFuncs("String")),
@@ -180,17 +178,17 @@ object EtaX {
     )
     val msgs31Migr    = List(
        err(pathN(0),  7, typeMismatch3("String", "() => Any")),
-       err(pathN(2),  9, missingArgForParam),
+       err(pathN(2),  9, missingArgForParam("apply: (i: Int): Char", "i")),
       warn(pathN(3), 10, onlyFuncs("String")),
        err(pathN(3), 10, typeMismatch3("String", "() => Any")),
       warn(pathN(4), 11, onlyFuncs("String")),
       warn(pathN(5), 12, onlyFuncs("String")),
       warn(pathN(6), 13, onlyFuncs("<error unspecified error>")),
-       err(pathN(6), 13, missingArgForParam),
+       err(pathN(6), 13, missingArgForParam("apply: (i: Int): Char", "i")),
     )
     val msgs31        = List(
       err(pathN(0),  7, typeMismatch3("String", "() => Any")),
-      err(pathN(2),  9, missingArgForParam),
+      err(pathN(2),  9, missingArgForParam("apply: (i: Int): Char", "i")),
       err(pathN(3), 10, onlyFuncs("String")),
       err(pathN(4), 11, onlyFuncs("String")),
       err(pathN(5), 12, onlyFuncs("String")),
