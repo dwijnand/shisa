@@ -29,6 +29,9 @@ object ErrorMsgs {
        |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
   def stillEta(meth: String, traitName: String) =
     s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
+  def mustFollow(tpe: String)  = s"_ must follow method; cannot follow $tpe"
+  def mustParens(meth: String) = s"method $meth must be called with () argument"
+  def onlyFuncs(tpe: String)   = s"Only function types can be followed by _ but the current expression has type $tpe"
 }
 
 object EtaX {
@@ -53,15 +56,47 @@ object EtaX {
       q"val t3e: Any       = meth _   // ok",
       q"val t3f: Any       = meth() _ // error: _ must follow method",
     )
-    val path1        = Paths.get("testdata/EtaX/EtaX.meth.01.scala")
-    val path3        = Paths.get("testdata/EtaX/EtaX.meth.03.scala")
-    val err2         = err(path1, 11, typeMismatch2("String", "p01.Sam0S"))
-    val err3         = err(path1, 11, typeMismatch3("String", "p01.Sam0S"))
-    val errs2        = List(err2)
-    val msgs3Old     = List(warn(path1, 11, parensCall3("meth")), err3)
-    val msgs3        = List( err(path1, 11, parensCall3("meth")))
-    val expectedMsgs = List(errs2, errs2, errs2, msgs3Old, msgs3, msgs3, msgs3)
-    val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
+    def pathN(n: Int) = Paths.get(s"testdata/EtaX/EtaX.meth.0$n.scala")
+    val errs2         = List(
+       err(pathN(1), 11, typeMismatch2("String", "p01.Sam0S")),
+       err(pathN(2), 12, typeMismatch2("String", "p02.Sam0J")),
+      warn(pathN(3), 13, autoApp2("meth")),
+       err(pathN(7), 17, mustFollow("String")),
+    )
+    val msgs3Old      = List(
+      warn(pathN(1), 11, parensCall3("meth")),
+       err(pathN(1), 11, typeMismatch3("String", "p01.Sam0S")),
+      warn(pathN(2), 12, mustParens("meth")),
+       err(pathN(2), 12, typeMismatch3("String", "p02.Sam0J")),
+      warn(pathN(3), 13, mustParens("meth")),
+      warn(pathN(7), 17, onlyFuncs("String")),
+    )
+    val msgs3         = List(
+      err(pathN(1), 11, parensCall3("meth")),
+      err(pathN(2), 12, parensCall3("meth")),
+      err(pathN(3), 13, parensCall3("meth")),
+      err(pathN(7), 17, onlyFuncs("String")),
+    )
+    val msgs31Migr    = List(
+      err(pathN(1), 11, parensCall3("meth")),
+      err(pathN(2), 12, parensCall3("meth")),
+      err(pathN(3), 13, parensCall3("meth")),
+      warn(pathN(4), 14, etaFunction),
+      warn(pathN(5), 15, etaFunction),
+      warn(pathN(6), 16, etaFunction),
+      warn(pathN(7), 17, onlyFuncs("String")),
+    )
+    val msgs31        = List(
+      err(pathN(1), 11, parensCall3("meth")),
+      err(pathN(2), 12, parensCall3("meth")),
+      err(pathN(3), 13, parensCall3("meth")),
+      err(pathN(4), 14, etaFunction),
+      err(pathN(5), 15, etaFunction),
+      err(pathN(6), 16, etaFunction),
+      err(pathN(7), 17, onlyFuncs("String")),
+    )
+    val expectedMsgs  = List(errs2, errs2, errs2, msgs3Old, msgs3, msgs31Migr, msgs31)
+    val contents      = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
   }
 
   object meth1 extends MkInMemoryTestFile {

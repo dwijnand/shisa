@@ -176,21 +176,40 @@ object Main {
       val msgssAndId  = doCompileLine(file, compilers, setup, base, cases.size, line)
       val lineNo      = setup.linesIterator.size + 2 + idx
       val statusIcons = msgssAndId.map(_._1.toResult.toStatusIcon).mkString
+      //println()
       println(f"* ${s"${file.src}:$lineNo"}%-50s $statusIcons$line%-100s")
+      //printMsgssAndId(msgssAndId)
       msgssAndId
     }
 
-    val zeroElem   = (new Msgs(Nil.asJava), noCompilerId)
-    val zero       = List(zeroElem, zeroElem, zeroElem, zeroElem, zeroElem, zeroElem, zeroElem)
-    val msgssAndId = msgssAndIds.foldLeft(zero) { (acc, msgssAndId) =>
-      acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgsA, idA0), (msgsB, idB)) =>
-        val idA = if (idA0 == noCompilerId) idB else idA0
-        assert(idA == idB, s"$idA != $idB")
-        (new Msgs((msgsA.asList ::: msgsB.asList).asJava), idA)
+    def z(id: String) = (new Msgs(Nil.asJava), id)
+    val zero          = List(z("2.13-base"), z("2.13-head"), z("2.13-new"), z("3.0-old"), z("3.0"), z("3.1-migr"), z("3.1"))
+    val msgssAndId    = msgssAndIds.foldLeft(zero) { (acc, msgssAndId) =>
+      val acc2 = acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgs, id), (newMsgs, idB)) =>
+        assert(id == idB, s"$id != $idB")
+        (new Msgs((msgs.asList ::: msgsDropSummary(newMsgs)).asJava), id)
       }
+      //println(s"acc is now:")
+      //printMsgssAndId(acc2)
+      acc2
     }
+
+    //println()
+    //println(s"${msgssAndId.size} msgssAndId's!")
+
     testFile.contents.foreach { contents =>
       compareMsgs(contents.expectedMsgs, msgssAndId, testFile.src)
+    }
+  }
+
+  def printMsgssAndId(msgssAndId: List[(Msgs, String)]) = {
+    msgssAndId.foreach { case (msgs0, id) =>
+      msgsDropSummary(msgs0) match {
+        case List(msg) => println(f"$id%-9s: 1 msg : ${showMsg(msg)}")
+        case msgs      =>
+          println(f"$id%-9s: ${msgs.size} msgs:")
+          msgs.foreach(msg => println("  " + showMsg(msg)))
+      }
     }
   }
 
@@ -227,7 +246,7 @@ object Main {
     case Severity.Warning => "warning"
     case Severity.Info    => "   info"
   }
-  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text}"
+  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString
 
   def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
