@@ -91,8 +91,8 @@ object Main {
       val name      = src.getFileName.toString.stripSuffix(".lines.scala")
       val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
       val src2      = testdataDir.resolve(src).resolveSibling(s"$name.$idx.scala")
-      val testStats = List.fill(idxInt)(Nil) ::: List(stat) :: List.fill(contents.testStats.flatten.size - idxInt - 1)(Nil)
-      val sourceStr = ShisaMeta.testFileSource(contents.copy(testStats = testStats), Some(Term.Name(s"p$idx")))
+      val contents2 = contents.copy(testStats = List(List(stat)))
+      val sourceStr = ShisaMeta.testFileSource(contents2, Some(Term.Name(s"p$idx")))
       writeAndCompile(compilers, src2, sourceStr)
     }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
       acc.zip(msgss).map { case (a, b) => a ::: b }

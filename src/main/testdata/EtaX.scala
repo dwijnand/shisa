@@ -63,10 +63,10 @@ object EtaX {
     )
 
     val msgs2         = List(
-       err(Paths.get("EtaX/EtaX.meth.01.scala"), 10, typeMismatch2("String", "p01.Sam0S")),
-       err(Paths.get("EtaX/EtaX.meth.02.scala"), 11, typeMismatch2("String", "p02.Sam0J")),
-      warn(Paths.get("EtaX/EtaX.meth.03.scala"), 12, autoApp2("meth")),
-       err(Paths.get("EtaX/EtaX.meth.07.scala"), 16, mustFollow("String")),
+       err(Paths.get("EtaX/EtaX.meth.01.scala"), 9, typeMismatch2("String", "p01.Sam0S")),
+       err(Paths.get("EtaX/EtaX.meth.02.scala"), 9, typeMismatch2("String", "p02.Sam0J")),
+      warn(Paths.get("EtaX/EtaX.meth.03.scala"), 9, autoApp2("meth")),
+       err(Paths.get("EtaX/EtaX.meth.07.scala"), 9, mustFollow("String")),
     )
     def msgs3Pair(sev: Severity, path: Path, lineNo: Int, exp: String) = List(
       msg(sev, path, lineNo, parensCall3("meth")),
@@ -74,19 +74,19 @@ object EtaX {
       err(     path, lineNo, typeMismatch3("String", exp)),
     ))
     def msgs3I(sev: Severity) =
-      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.01.scala"), 10, "p01.Sam0S") :::
-      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.02.scala"), 11, "p02.Sam0J") ::: List(
-      msg(      sev, Paths.get("EtaX/EtaX.meth.03.scala"), 12, mustParens("meth")),
-      msg(      sev, Paths.get("EtaX/EtaX.meth.07.scala"), 16, onlyFuncs("String")),
+      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.01.scala"), 9, "p01.Sam0S") :::
+      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.02.scala"), 9, "p02.Sam0J") ::: List(
+      msg(      sev, Paths.get("EtaX/EtaX.meth.03.scala"), 9, mustParens("meth")),
+      msg(      sev, Paths.get("EtaX/EtaX.meth.07.scala"), 9, onlyFuncs("String")),
     )
     def msgs31I(sev: Severity) = List(
-      err(     Paths.get("EtaX/EtaX.meth.01.scala"), 10, parensCall3("meth")),
-      err(     Paths.get("EtaX/EtaX.meth.02.scala"), 11, parensCall3("meth")),
-      err(     Paths.get("EtaX/EtaX.meth.03.scala"), 12, parensCall3("meth")),
-      msg(sev, Paths.get("EtaX/EtaX.meth.04.scala"), 13, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.meth.05.scala"), 14, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.meth.06.scala"), 15, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.meth.07.scala"), 16, onlyFuncs("String")),
+      err(     Paths.get("EtaX/EtaX.meth.01.scala"), 9, parensCall3("meth")),
+      err(     Paths.get("EtaX/EtaX.meth.02.scala"), 9, parensCall3("meth")),
+      err(     Paths.get("EtaX/EtaX.meth.03.scala"), 9, parensCall3("meth")),
+      msg(sev, Paths.get("EtaX/EtaX.meth.04.scala"), 9, etaFunction),
+      msg(sev, Paths.get("EtaX/EtaX.meth.05.scala"), 9, etaFunction),
+      msg(sev, Paths.get("EtaX/EtaX.meth.06.scala"), 9, etaFunction),
+      msg(sev, Paths.get("EtaX/EtaX.meth.07.scala"), 9, onlyFuncs("String")),
     )
 
     val expectedMsgs  = List(msgs2, msgs2, msgs2, msgs3I(Warn), msgs3I(Error), msgs31I(Warn), msgs31I(Error))
@@ -107,9 +107,9 @@ object EtaX {
       q"val t5e             = meth1 _ // ok",
     )
 
-    val msgs2                  = List( err(Paths.get("EtaX/EtaX.meth1.03.scala"), 12, missingArgs("meth1", "TestBase")))
-    val msgs3                  = List(warn(Paths.get("EtaX/EtaX.meth1.01.scala"), 10, stillEta("meth1", "p01.Sam1S")))
-    def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, Paths.get("EtaX/EtaX.meth1.04.scala"), 13, etaFunction2))
+    val msgs2                  = List( err(Paths.get("EtaX/EtaX.meth1.03.scala"), 9, missingArgs("meth1", "TestBase")))
+    val msgs3                  = List(warn(Paths.get("EtaX/EtaX.meth1.01.scala"), 9, stillEta("meth1", "p01.Sam1S")))
+    def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, Paths.get("EtaX/EtaX.meth1.04.scala"), 9, etaFunction2))
 
     val expectedMsgs = List(msgs2, msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
     val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
@@ -129,35 +129,35 @@ object EtaX {
     )
 
     def msgs2(sev: Severity)  = List(
-      err(     Paths.get("EtaX/EtaX.prop.00.scala"),  6, typeMismatch2("String", "() => Any")),
-      err(     Paths.get("EtaX/EtaX.prop.02.scala"),  8, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.03.scala"),  9, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      msg(sev, Paths.get("EtaX/EtaX.prop.04.scala"), 10, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      msg(sev, Paths.get("EtaX/EtaX.prop.05.scala"), 11, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      err(     Paths.get("EtaX/EtaX.prop.06.scala"), 12, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      err(     Paths.get("EtaX/EtaX.prop.00.scala"), 6, typeMismatch2("String", "() => Any")),
+      err(     Paths.get("EtaX/EtaX.prop.02.scala"), 6, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.03.scala"), 6, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
+      msg(sev, Paths.get("EtaX/EtaX.prop.04.scala"), 6, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
+      msg(sev, Paths.get("EtaX/EtaX.prop.05.scala"), 6, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
+      err(     Paths.get("EtaX/EtaX.prop.06.scala"), 6, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
     )
     def msgs3(sev: Severity)  = List(
-      err(     Paths.get("EtaX/EtaX.prop.00.scala"),  6, typeMismatch3("String", "() => Any")),
-      err(     Paths.get("EtaX/EtaX.prop.02.scala"),  8, missingArgForParam("apply: (i: Int): Char", "i")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.03.scala"),  9, onlyFuncs("String")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.04.scala"), 10, onlyFuncs("String")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.05.scala"), 11, onlyFuncs("String")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.06.scala"), 12, onlyFuncs("<error unspecified error>")),
+      err(     Paths.get("EtaX/EtaX.prop.00.scala"), 6, typeMismatch3("String", "() => Any")),
+      err(     Paths.get("EtaX/EtaX.prop.02.scala"), 6, missingArgForParam("apply: (i: Int): Char", "i")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.03.scala"), 6, onlyFuncs("String")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.04.scala"), 6, onlyFuncs("String")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.05.scala"), 6, onlyFuncs("String")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.06.scala"), 6, onlyFuncs("<error unspecified error>")),
     ) ::: (if (sev == Error) Nil else List(
-      err(     Paths.get("EtaX/EtaX.prop.06.scala"), 12, missingArgForParam("apply: (i: Int): Char", "i"))
+      err(     Paths.get("EtaX/EtaX.prop.06.scala"), 6, missingArgForParam("apply: (i: Int): Char", "i"))
     ))
     def msgs31(sev: Severity) = List(
-      err(     Paths.get("EtaX/EtaX.prop.00.scala"),  6, typeMismatch3("String", "() => Any")),
-      err(     Paths.get("EtaX/EtaX.prop.02.scala"),  8, missingArgForParam("apply: (i: Int): Char", "i")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.03.scala"),  9, onlyFuncs("String")),
+      err(     Paths.get("EtaX/EtaX.prop.00.scala"), 6, typeMismatch3("String", "() => Any")),
+      err(     Paths.get("EtaX/EtaX.prop.02.scala"), 6, missingArgForParam("apply: (i: Int): Char", "i")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.03.scala"), 6, onlyFuncs("String")),
     ) ::: (if (sev == Error) Nil else List(
-      err(     Paths.get("EtaX/EtaX.prop.03.scala"),  9, typeMismatch3("String", "() => Any")),
+      err(     Paths.get("EtaX/EtaX.prop.03.scala"), 6, typeMismatch3("String", "() => Any")),
     )) ::: List(
-      msg(sev, Paths.get("EtaX/EtaX.prop.04.scala"), 10, onlyFuncs("String")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.05.scala"), 11, onlyFuncs("String")),
-      msg(sev, Paths.get("EtaX/EtaX.prop.06.scala"), 12, onlyFuncs("<error unspecified error>")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.04.scala"), 6, onlyFuncs("String")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.05.scala"), 6, onlyFuncs("String")),
+      msg(sev, Paths.get("EtaX/EtaX.prop.06.scala"), 6, onlyFuncs("<error unspecified error>")),
     ) ::: (if (sev == Error) Nil else List(
-      err(Paths.get("EtaX/EtaX.prop.06.scala"), 12, missingArgForParam("apply: (i: Int): Char", "i")),
+      err(Paths.get("EtaX/EtaX.prop.06.scala"), 6, missingArgForParam("apply: (i: Int): Char", "i")),
     ))
 
     val expectedMsgs = List(msgs2(Warn), msgs2(Warn), msgs2(Error), msgs3(Warn), msgs3(Error), msgs31(Warn), msgs31(Error))
@@ -175,18 +175,18 @@ object EtaX {
       q"val t1e: Any       = methF0() _ // error: _ must follow method",
     )
     def msgs2         = List(
-      warn(Paths.get("EtaX/EtaX.methF0.01.scala"),  7, autoApp2("methF0")),
-       err(Paths.get("EtaX/EtaX.methF0.04.scala"), 10, mustFollow("() => String")),
+      warn(Paths.get("EtaX/EtaX.methF0.01.scala"), 6, autoApp2("methF0")),
+       err(Paths.get("EtaX/EtaX.methF0.04.scala"), 6, mustFollow("() => String")),
     )
     def msgs30(sev: Severity) = List(
-      msg(sev, Paths.get("EtaX/EtaX.methF0.01.scala"),  7, parensCall3("methF0")),
-      msg(sev, Paths.get("EtaX/EtaX.methF0.04.scala"), 10, onlyFuncs("() => String")),
+      msg(sev, Paths.get("EtaX/EtaX.methF0.01.scala"), 6, parensCall3("methF0")),
+      msg(sev, Paths.get("EtaX/EtaX.methF0.04.scala"), 6, onlyFuncs("() => String")),
     )
     def msgs31(sev: Severity) = List(
-      err(     Paths.get("EtaX/EtaX.methF0.01.scala"),  7, parensCall3("methF0")),
-      msg(sev, Paths.get("EtaX/EtaX.methF0.02.scala"),  8, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.methF0.03.scala"),  9, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.methF0.04.scala"), 10, onlyFuncs("() => String")),
+      err(     Paths.get("EtaX/EtaX.methF0.01.scala"), 6, parensCall3("methF0")),
+      msg(sev, Paths.get("EtaX/EtaX.methF0.02.scala"), 6, etaFunction),
+      msg(sev, Paths.get("EtaX/EtaX.methF0.03.scala"), 6, etaFunction),
+      msg(sev, Paths.get("EtaX/EtaX.methF0.04.scala"), 6, onlyFuncs("() => String")),
     )
     val expectedMsgs  = List(msgs2, msgs2, msgs2, msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
     val contents      = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
@@ -212,8 +212,8 @@ object EtaX {
     val contents = List(
       testCase(q"val t4a: () => Any = meth2",     sev => List(msg(sev, Paths.get("EtaX/EtaX.meth2.00.scala"), 6, etaFunction))), // eta-expansion, but lint warning
       testCase(q"val t4b: () => Any = meth2()",   sev => Nil),                                                                            // ditto
-      testCase(q"val t4c: () => Any = meth2 _",   sev => List(msg(sev, Paths.get("EtaX/EtaX.meth2.02.scala"), 8, etaFunction))), // ok
-      testCase(q"val t4d: () => Any = meth2() _", sev => List(msg(sev, Paths.get("EtaX/EtaX.meth2.03.scala"), 9, etaFunction))), // ok
+      testCase(q"val t4c: () => Any = meth2 _",   sev => List(msg(sev, Paths.get("EtaX/EtaX.meth2.02.scala"), 6, etaFunction))), // ok
+      testCase(q"val t4d: () => Any = meth2() _", sev => List(msg(sev, Paths.get("EtaX/EtaX.meth2.03.scala"), 6, etaFunction))), // ok
     ).reduce(_ ++ _)
   }
 
