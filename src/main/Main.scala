@@ -17,8 +17,8 @@ import scala.meta._
 import shisa.testdata._
 
 object Main {
-  val cwdAbs    = Paths.get("").toAbsolutePath
-  val targetDir = Paths.get("target")
+  val cwdAbs      = Paths.get("").toAbsolutePath
+  val testdataDir = Paths.get("target/testdata")
 
   val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00_base
   val dotcCl = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
@@ -57,8 +57,8 @@ object Main {
       case missing => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
     }
 
-    if (Files.exists(Paths.get("target/testdata")))
-      IOUtil.deleteRecursive(Paths.get("target/testdata"))
+    if (Files.exists(testdataDir))
+      IOUtil.deleteRecursive(testdataDir)
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map { case (src, contents) =>
@@ -80,9 +80,9 @@ object Main {
   }
 
   def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val src2      = targetDir.resolve(src)
+    val src2      = testdataDir.resolve(src)
     val sourceStr = ShisaMeta.testFileSource(contents)
-    val msgss     = writeAndCompile(src, compilers, src2, sourceStr)
+    val msgss     = writeAndCompile(compilers, src2, sourceStr)
     compareMsgs(contents.expectedMsgs, msgss, src)
   }
 
@@ -90,18 +90,18 @@ object Main {
     val msgss = contents.testStats.flatten.zipWithIndex.map { case (stat, idxInt) =>
       val name      = src.getFileName.toString.stripSuffix(".lines.scala")
       val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-      val src2      = targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
+      val src2      = testdataDir.resolve(src).resolveSibling(s"$name.$idx.scala")
       val testStats = List.fill(idxInt)(Nil) ::: List(stat) :: List.fill(contents.testStats.flatten.size - idxInt - 1)(Nil)
       val sourceStr = ShisaMeta.testFileSource(contents.copy(testStats = testStats), Some(Term.Name(s"p$idx")))
-      writeAndCompile(src, compilers, src2, sourceStr)
+      writeAndCompile(compilers, src2, sourceStr)
     }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
       acc.zip(msgss).map { case (a, b) => a ::: b }
     }
     compareMsgs(contents.expectedMsgs, msgss, src)
   }
 
-  def writeAndCompile(src: Path, compilers: List[Compiler], src2: Path, sourceStr: String) = {
-    println(s"* $src")
+  def writeAndCompile(compilers: List[Compiler], src2: Path, sourceStr: String) = {
+    println(s"* $src2")
     Files.createDirectories(src2.getParent)
     Files.writeString(src2, sourceStr)
     compilers.map(compiler => msgsDropSummary(compiler.compile1(src2)))

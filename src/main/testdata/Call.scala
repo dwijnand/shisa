@@ -8,7 +8,7 @@ import scala.meta._
 import Severity.{ Warn, Error }
 
 object MkInMemoryTestFile {
-  def  msg(sev: Severity, path: Path, lineNo: Int, str: String) = new Msg(sev,  s"target/$path", lineNo, str, "")
+  def  msg(sev: Severity, path: Path, lineNo: Int, str: String) = new Msg(sev,  s"target/testdata/$path", lineNo, str, "")
   def warn(path: Path, lineNo: Int, str: String)                = msg(Severity.Warn,  path, lineNo, str)
   def  err(path: Path, lineNo: Int, str: String)                = msg(Severity.Error, path, lineNo, str)
 }
@@ -181,7 +181,7 @@ object Call {
       pathStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, testStat: Stat,
       expectedMsgs: (Path, String) => List[List[Msg]]
   ) extends MkInMemoryTestUnitFile {
-    val path     = Paths.get(s"testdata/$pathStr")
+    val path     = Paths.get(pathStr)
     val contents = TestContents(List(List(traitDefn, clsDefn)), None, List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
   }
 
@@ -195,7 +195,7 @@ object Call {
   object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p.scala",   PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
 
   object def_meth_p extends MkInMemoryTestUnitFile {
-    val path         = Paths.get("testdata/Call.def/Call.meth_p.scala")
+    val path         = Paths.get("Call.def/Call.meth_p.scala")
     val innerDefns   = List(q"""def meth() = """"")
     val testStats    = List(List(q"meth"))
     val expectedMsgs = List(warns2, warns2, warns2, warns3, errs3, errs3, errs3)
@@ -206,7 +206,7 @@ object Call {
   }
 
   object def_prop_m extends MkInMemoryTestUnitFile {
-    val path         = Paths.get("testdata/Call.def/Call.prop_m.scala")
+    val path         = Paths.get("Call.def/Call.prop_m.scala")
     val innerDefns   = List(q"""def prop = """"")
     val testStats    = List(List(q"prop()"))
     val expectedMsgs = multi(err2, err3)
@@ -216,7 +216,7 @@ object Call {
   }
 
   object hashHash extends MkInMemoryTestUnitFile {
-    val path = Paths.get("testdata/Call.##.scala")
+    val path = Paths.get("Call.##.scala")
 
     val contentss         = List(
       TestContents(Nil, None, List(any.defn), List(duo(any.name, q"##")), multi(err2( 8), err3( 8))),
@@ -231,7 +231,7 @@ object Call {
   }
 
   object pos extends MkInMemoryTestUnitFile {
-    val path       = Paths.get("testdata/Call.pos.scala")
+    val path       = Paths.get("Call.pos.scala")
     val outerDefns = List(CR.defns, CCR.defns, VCR.defns, VCCR.defns)
     val innerDefns = vals.map(_.defn)
 
