@@ -38,31 +38,30 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
-  val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => TestFile(mk.path, mk.contents))
+  val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
+
+  def makeRelative(p: Path) = if (p.isAbsolute) cwdAbs.relativize(p) else p
 
   def main(args: Array[String]): Unit = {
     val testFilePaths = args.toList match {
-      case Nil => inMemoryTests
-        .map(_.src)
-        .sorted
-        .tap(fs => println(s"Files: ${fs.mkString("[", ", ", "]")}"))
-      case xs  => xs
-        .map(Paths.get(_))
-        .map(p => if (p.isAbsolute) cwdAbs.relativize(p) else p)
+      case Nil => inMemoryTests.map(_._1).sorted.tap(fs => println(s"Files: ${fs.mkString("[", ", ", "]")}"))
+      case xs  => xs.map(Paths.get(_)).map(makeRelative(_))
     }
 
-    testFilePaths.collect { case p if inMemoryTests.forall(_.src != p) => p } match {
+    testFilePaths.collect { case p if inMemoryTests.forall(_._1 != p) => p } match {
       case Nil     =>
       case missing => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
     }
 
-    val testFiles = testFilePaths.map(p => inMemoryTests.find(_.src == p).get)
+    val testFiles = testFilePaths.map(p => inMemoryTests.find(_._1 == p).get)
 
     if (Files.exists(Paths.get("target/testdata")))
       IOUtil.deleteRecursive(Paths.get("target/testdata"))
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = testFiles.map(f => pool.submit[Unit](() => compile1(f, mkCompilers)))
+    val futures = testFiles.map { case (src, contents) =>
+      pool.submit[Unit](() => compile1(src, contents, mkCompilers))
+    }
 
     pool.shutdown()
 
@@ -84,20 +83,10 @@ object Main {
     }
   }
 
-  def compile1(testFile: TestFile, mkCompilers: List[MkCompiler]) = {
+  def compile1(src: Path, contents: TestContents, mkCompilers: List[MkCompiler]) = {
     val compilers = mkCompilers.map(_.mkCompiler())
-    testFile match {
-      case TestFile(src, contents) if src.toString.endsWith(".lines.scala") => doLines(src, contents, compilers)
-      case TestFile(src, contents)                                          => doUnit(src, contents, compilers)
-      case _                                                                => throw new Exception(s"Expected lines or TestContents: $testFile")
-    }
-  }
-
-  final case class CompileFileLine(src: Path, idxInt: Int) {
-    val name  = src.getFileName.toString.stripSuffix(".scala").stripSuffix(".lines")
-    val idx   = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-    val name2 = s"$name.$idx"
-    val src2  = Main.targetDir.resolve(src).resolveSibling(s"$name2.scala")
+    if (src.toString.endsWith(".lines.scala")) doLines(src, contents, compilers)
+    else                                        doUnit(src, contents, compilers)
   }
 
   val noMsg        = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
@@ -105,6 +94,11 @@ object Main {
   val noCompilerId = "<unknown>"
   val noMsgssAndId = (noMsgs, noCompilerId)
   val LineStart    = "(?m)^".r
+
+  val zeroMsgs      = {
+    def z(id: String) = (new Msgs(Nil.asJava), id)
+    List(z("2.13-base"), z("2.13-head"), z("2.13-new"), z("3.0-old"), z("3.0"), z("3.1-migr"), z("3.1"))
+  }
 
   def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
     val src2 = targetDir.resolve(src)
@@ -146,37 +140,28 @@ object Main {
   }
 
   def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgssAndIds = contents.testStats.flatten.zipWithIndex.map { case (stat, idx) =>
-      val file        = CompileFileLine(src, idx)
-      val msgssAndId  = doCompileLine(file, compilers, contents, stat)
-      val line        = stat.toString()
-      val lineNo      = -1 // setup.linesIterator.size + 2 + idx
+    val msgssAndId = contents.testStats.flatten.zipWithIndex.map { case (stat, idx) =>
+      val msgssAndId  = doCompileLine(src, idx, compilers, contents, stat)
       val statusIcons = msgssAndId.map(_._1.toResult.toStatusIcon).mkString
-      println(f"* ${s"${file.src}:$lineNo"}%-50s $statusIcons$line%-100s")
+      println(f"* $src%-50s $statusIcons $stat%-100s")
       msgssAndId
-    }
-
-    def z(id: String) = (new Msgs(Nil.asJava), id)
-    val zero          = List(z("2.13-base"), z("2.13-head"), z("2.13-new"), z("3.0-old"), z("3.0"), z("3.1-migr"), z("3.1"))
-    val msgssAndId    = msgssAndIds.foldLeft(zero) { (acc, msgssAndId) =>
-      val acc2 = acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgs, id), (newMsgs, idB)) =>
-        assert(id == idB, s"$id != $idB")
+    }.foldLeft(zeroMsgs) { (acc, msgssAndId) =>
+      acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgs, id), (newMsgs, _)) =>
         (new Msgs((msgs.asList ::: msgsDropSummary(newMsgs)).asJava), id)
       }
-      acc2
     }
-
     compareMsgs(contents.expectedMsgs, msgssAndId, src)
   }
 
-  def doCompileLine(file: CompileFileLine, compilers: List[Compiler], contents: TestContents, stat: Stat) = {
-    val count = contents.testStats.flatten.size
-    val testStats = List.fill(file.idxInt)(Nil) ::: List(stat) :: List.fill(count - file.idxInt - 1)(Nil)
-    val contents1 = contents.copy(testStats = testStats)
-    val sourceStr = ShisaMeta.testFileSource(contents1, Some(Term.Name(s"p${file.idx}")))
-    Files.createDirectories(file.src2.getParent)
-    Files.writeString(file.src2, sourceStr)
-    compilers.map(compiler => (compiler.compile1(file.src2), compiler.id))
+  def doCompileLine(src: Path, idxInt: Int, compilers: List[Compiler], contents: TestContents, stat: Stat) = {
+    val name      = src.getFileName.toString.stripSuffix(".lines.scala")
+    val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
+    val src2      = Main.targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
+    val testStats = List.fill(idxInt)(Nil) ::: List(stat) :: List.fill(contents.testStats.flatten.size - idxInt - 1)(Nil)
+    val sourceStr = ShisaMeta.testFileSource(contents.copy(testStats = testStats), Some(Term.Name(s"p$idx")))
+    Files.createDirectories(src2.getParent)
+    Files.writeString(src2, sourceStr)
+    compilers.map(compiler => (compiler.compile1(src2), compiler.id))
   }
 
   def showSev(sev: Severity) = sev match {
@@ -184,10 +169,8 @@ object Main {
     case Severity.Warn  => "warning"
     case Severity.Info  => "   info"
   }
-  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
-  def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString
 
-  def isEmptyOrComment(s: String) = s.isEmpty || s.startsWith("//")
+  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
 }
 
 final case class TestContents(
