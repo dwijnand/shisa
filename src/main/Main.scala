@@ -38,7 +38,9 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
+  val compilerIds   = mkCompilers.map(_.id)
   val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
+  val NoContents    = TestContents(Nil, None, Nil, Nil, Nil)
 
   def makeRelative(p: Path) = if (p.isAbsolute) cwdAbs.relativize(p) else p
 
@@ -48,12 +50,12 @@ object Main {
       case xs  => xs.map(Paths.get(_)).map(makeRelative(_))
     }
 
-    testFilePaths.collect { case p if inMemoryTests.forall(_._1 != p) => p } match {
+    val testFiles = testFilePaths.map(p => inMemoryTests.find(_._1 == p).getOrElse((p, NoContents)))
+
+    testFiles.collect { case (p, NoContents) => p } match {
       case Nil     =>
       case missing => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
     }
-
-    val testFiles = testFilePaths.map(p => inMemoryTests.find(_._1 == p).get)
 
     if (Files.exists(Paths.get("target/testdata")))
       IOUtil.deleteRecursive(Paths.get("target/testdata"))
@@ -71,72 +73,50 @@ object Main {
     futures.foreach(_.get(0, NANOSECONDS))
   }
 
-  implicit class MsgsOps(private val _msgs: Msgs) extends AnyVal {
-    def asList: List[Msg]   = _msgs.msgs.asScala.toList
-    def hasErrors: Boolean  = asList.exists(_.severity == Severity.Error)
-    def lines: List[String] = asList.map(_.output)
-
-    def toResult: CompileResult = (hasErrors, lines) match {
-      case (false, Nil)   => CompileOk
-      case (false, lines) => CompileWarn(lines)
-      case (true,  lines) => CompileErr(lines)
-    }
-  }
-
   def compile1(src: Path, contents: TestContents, mkCompilers: List[MkCompiler]) = {
     val compilers = mkCompilers.map(_.mkCompiler())
     if (src.toString.endsWith(".lines.scala")) doLines(src, contents, compilers)
     else                                        doUnit(src, contents, compilers)
   }
 
-  val noMsg        = new Msg(Severity.Error, "nopath.scala", 1, "Mismatch zipAll", "Mismatch zipAll")
-  val noMsgs       = new Msgs(List(noMsg).asJava)
-  val noCompilerId = "<unknown>"
-  val noMsgssAndId = (noMsgs, noCompilerId)
-  val LineStart    = "(?m)^".r
-  val zeroMsgs     = mkCompilers.map(mkCompiler => (new Msgs(Nil.asJava), mkCompiler.id))
-
   def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val src2       = targetDir.resolve(src)
-    val sourceStr  = ShisaMeta.testFileSource(contents)
-    val msgssAndId = writeAndCompile(src, compilers, src2, sourceStr)
-    compareMsgs(contents.expectedMsgs, msgssAndId, src)
+    val src2      = targetDir.resolve(src)
+    val sourceStr = ShisaMeta.testFileSource(contents)
+    val msgss     = writeAndCompile(src, compilers, src2, sourceStr)
+    compareMsgs(contents.expectedMsgs, msgss, src)
   }
 
   def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgssAndId = contents.testStats.flatten.zipWithIndex.map { case (stat, idxInt) => {
+    val msgss = contents.testStats.flatten.zipWithIndex.map { case (stat, idxInt) =>
       val name      = src.getFileName.toString.stripSuffix(".lines.scala")
       val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
       val src2      = targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
       val testStats = List.fill(idxInt)(Nil) ::: List(stat) :: List.fill(contents.testStats.flatten.size - idxInt - 1)(Nil)
       val sourceStr = ShisaMeta.testFileSource(contents.copy(testStats = testStats), Some(Term.Name(s"p$idx")))
       writeAndCompile(src, compilers, src2, sourceStr)
+    }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
+      acc.zip(msgss).map { case (a, b) => a ::: b }
     }
-    }.foldLeft(zeroMsgs) { (acc, msgssAndId) =>
-      acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgs, id), (newMsgs, _)) =>
-        (new Msgs((msgs.asList ::: msgsDropSummary(newMsgs)).asJava), id)
-      }
-    }
-    compareMsgs(contents.expectedMsgs, msgssAndId, src)
+    compareMsgs(contents.expectedMsgs, msgss, src)
   }
 
   def writeAndCompile(src: Path, compilers: List[Compiler], src2: Path, sourceStr: String) = {
+    println(s"* $src")
     Files.createDirectories(src2.getParent)
     Files.writeString(src2, sourceStr)
-    val msgssAndId = compilers.map(compiler => compiler.compile1(src2) -> compiler.id)
-    println(f"* $src%-50s ${msgssAndId.map(_._1.toResult.toStatusIcon).mkString}")
-    msgssAndId
+    compilers.map(compiler => msgsDropSummary(compiler.compile1(src2)))
   }
 
-  def compareMsgs(expMsgs: List[List[Msg]], msgssAndId: List[(Msgs, String)], src: Path) = {
-    for ((expMsgs, (obtMsgs, compilerId)) <- expMsgs.zipAll(msgssAndId, List(noMsg), (noMsgs, noCompilerId))) {
-      def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
-      def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
-      expMsgs.zipAll(msgsDropSummary(obtMsgs), null, null).collect {
-        case ( exp, null) if exp != null => showExp(exp)
-        case (null,  obt) if obt != null => showObt(obt)
-        case ( exp,  obt) if exp != obt  => showExp(exp) + showObt(obt)
-      }.filter(_ != "").mkString match {
+  val MissingExp = new Msg(Severity.Error, "exp.scala", 0, "missing exp msg", "")
+  val MissingObt = new Msg(Severity.Error, "obt.scala", 0, "missing obt msg", "")
+
+  def compareMsgs(expMsgss: List[List[Msg]], obtMsgss: List[List[Msg]], src: Path) = {
+    for (((expMsgs, obtMsgs), compilerId) <- expMsgss.zip(obtMsgss).zip(compilerIds)) {
+      expMsgs.zipAll(obtMsgs, MissingExp, MissingObt).collect {
+        case (exp, MissingObt)        => showExp(exp)
+        case (MissingExp, obt)        => showObt(obt)
+        case (exp, obt) if exp != obt => showExp(exp) + showObt(obt)
+      }.mkString match {
         case ""    =>
         case lines =>
           val str = s"$src: message mismatch (compiler $compilerId) (${Console.RED}-expected${Console.RESET}/${Console.GREEN}+obtained${Console.RESET}):$lines"
@@ -157,13 +137,16 @@ object Main {
     }
   }
 
+  val LineStart         = "(?m)^".r
+  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
+  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
+  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
+
   def showSev(sev: Severity) = sev match {
     case Severity.Error => "  error"
     case Severity.Warn  => "warning"
     case Severity.Info  => "   info"
   }
-
-  def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
 }
 
 final case class TestContents(
@@ -191,14 +174,3 @@ final case class TestContents(
     case (Some(x), Some(y))           => throw new Exception(s"Can't mergeBaseClasses $x ++ $y")
   }
 }
-
-sealed trait CompileResult {
-  def toStatusIcon = this match {
-    case CompileOk      => s"${Console.GREEN}\u2713${Console.RESET}"  // check mark     (green)
-    case CompileWarn(_) => s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
-    case CompileErr(_)  => s"${Console.RED}\u2717${Console.RESET}"    // cross mark     (red)
-  }
-}
-      case object CompileOk                                     extends CompileResult
-final case class  CompileWarn(override val lines: List[String]) extends CompileResult
-final case class  CompileErr (override val lines: List[String]) extends CompileResult
