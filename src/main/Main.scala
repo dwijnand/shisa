@@ -180,9 +180,9 @@ object Main {
   }
 
   def showSev(sev: Severity) = sev match {
-    case Severity.Error   => "  error"
-    case Severity.Warning => "warning"
-    case Severity.Info    => "   info"
+    case Severity.Error => "  error"
+    case Severity.Warn  => "warning"
+    case Severity.Info  => "   info"
   }
   def showMsg(msg: Msg) = s"${msg.path}:${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showMsgs(msgs: List[Msg]) = msgs.iterator.map(msg => "\n  " + showMsg(msg)).mkString

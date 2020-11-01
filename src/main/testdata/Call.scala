@@ -5,9 +5,12 @@ import java.nio.file._
 
 import scala.meta._
 
+import Severity.{ Warn, Error }
+
 object MkInMemoryTestFile {
-  def warn(path: Path, lineNo: Int, str: String) = new Msg(Severity.Warning, s"target/$path", lineNo, str, "")
-  def  err(path: Path, lineNo: Int, str: String) = new Msg(Severity.Error,   s"target/$path", lineNo, str, "")
+  def  msg(sev: Severity, path: Path, lineNo: Int, str: String) = new Msg(sev,  s"target/$path", lineNo, str, "")
+  def warn(path: Path, lineNo: Int, str: String)                = msg(Severity.Warn,  path, lineNo, str)
+  def  err(path: Path, lineNo: Int, str: String)                = msg(Severity.Error, path, lineNo, str)
 }
 
 trait MkInMemoryTestFile {

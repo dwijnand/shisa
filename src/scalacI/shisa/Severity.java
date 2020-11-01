@@ -1,5 +1,5 @@
 package shisa;
 
 public enum Severity {
-    Error, Warning, Info
+    Error, Warn, Info
 }

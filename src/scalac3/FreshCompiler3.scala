@@ -45,11 +45,11 @@ object FreshCompiler3 {
 
   def diaSeverity(dia: Diagnostic) = dia match {
     case _: Diagnostic.Error              => Severity.Error
-    case _: Diagnostic.FeatureWarning     => Severity.Warning
-    case _: Diagnostic.DeprecationWarning => Severity.Warning
-    case _: Diagnostic.UncheckedWarning   => Severity.Warning
-    case _: Diagnostic.MigrationWarning   => Severity.Warning
-    case _: Diagnostic.Warning            => Severity.Warning
+    case _: Diagnostic.FeatureWarning     => Severity.Warn
+    case _: Diagnostic.DeprecationWarning => Severity.Warn
+    case _: Diagnostic.UncheckedWarning   => Severity.Warn
+    case _: Diagnostic.MigrationWarning   => Severity.Warn
+    case _: Diagnostic.Warning            => Severity.Warn
     case _: Diagnostic.Info               => Severity.Info
   }
 

@@ -38,7 +38,7 @@ object FreshCompiler2 {
 
   def infoSeverity(info: StoreReporter.Info): Severity = info.severity match {
     case IReporter.ERROR   => Severity.Error
-    case IReporter.WARNING => Severity.Warning
+    case IReporter.WARNING => Severity.Warn
     case IReporter.INFO    => Severity.Info
   }
 
