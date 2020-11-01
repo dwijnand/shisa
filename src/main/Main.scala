@@ -211,7 +211,7 @@ final case class TestContents(
     case (x @ Some(_), None)          => x
     case (None, y @ Some(_))          => y
     case (None, None)                 => None
-    case (Some(x), Some(y)) if x == y => None
+    case (Some(x), Some(y)) if x == y => Some(x)
     case (Some(x), Some(y))           => throw new Exception(s"Can't mergeBaseClasses $x ++ $y")
   }
 }

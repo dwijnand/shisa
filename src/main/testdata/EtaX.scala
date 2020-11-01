@@ -203,30 +203,30 @@ object EtaX {
   object meth2 extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.meth2.lines.scala")
     val baseClass    = q"""class TestBase { def meth2()() = "" }"""
-    val testStats    = List(
-      q"val t4a: () => Any = meth2     // eta-expansion, but lint warning",
-      q"val t4b: () => Any = meth2()   // ditto",
-      q"val t4c: () => Any = meth2 _   // ok",
-      q"val t4d: () => Any = meth2() _ // ok",
-    )
-    def msgs(sev: Severity) = List(
-      msg(sev, Paths.get("testdata/EtaX/EtaX.meth2.00.scala"), 6, etaFunction),
-      msg(sev, Paths.get("testdata/EtaX/EtaX.meth2.02.scala"), 8, etaFunction),
-      msg(sev, Paths.get("testdata/EtaX/EtaX.meth2.03.scala"), 9, etaFunction),
-    )
-    val expectedMsgs  = List(Nil, Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
-    val contents      = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+
+    def testCase(stat: Stat, msgs: Severity => List[Msg]) = {
+      val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
+      TestContents(Nil, Some(baseClass), Nil, List(List(stat)), expectedMsgs)
+    }
+
+    val contents = List(
+      testCase(q"val t4a: () => Any = meth2",     sev => List(msg(sev, Paths.get("testdata/EtaX/EtaX.meth2.00.scala"), 6, etaFunction))), // eta-expansion, but lint warning
+      testCase(q"val t4b: () => Any = meth2()",   sev => Nil),                                                                            // ditto
+      testCase(q"val t4c: () => Any = meth2 _",   sev => List(msg(sev, Paths.get("testdata/EtaX/EtaX.meth2.02.scala"), 8, etaFunction))), // ok
+      testCase(q"val t4d: () => Any = meth2() _", sev => List(msg(sev, Paths.get("testdata/EtaX/EtaX.meth2.03.scala"), 9, etaFunction))), // ok
+    ).reduce(_ ++ _)
   }
 
   object boom extends MkInMemoryTestFile {
     val path         = Paths.get("testdata/EtaX/EtaX.boom.lines.scala")
     val outerDefn    = q"class A { def boom(): Unit = () }"
-    val testStat     = q"new A().boom" // ?/?/err: apply, ()-insertion
+    val testStat     = q"new A().boom // ?/?/err: apply, ()-insertion"
     val path0        = Paths.get("testdata/EtaX/EtaX.boom.00.scala")
-    val msgs2        = List(warn(path0, 6, autoApp2("boom")))
-    val msgs3Old     = List(warn(path0, 6, parensCall3("boom")))
-    val msgs3        = List( err(path0, 6, parensCall3("boom")))
-    val expectedMsgs = List(msgs2, msgs2, msgs2, msgs3Old, msgs3, msgs3, msgs3)
+
+    val msgs2                = List(warn(     path0, 6, autoApp2("boom")))
+    def msgs3(sev: Severity) = List( msg(sev, path0, 6, parensCall3("boom")))
+
+    val expectedMsgs = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
     val contents     = TestContents(List(List(outerDefn)), None, Nil, List(List(testStat)), expectedMsgs)
   }
 }
