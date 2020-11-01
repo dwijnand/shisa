@@ -94,20 +94,38 @@ object Main {
   val noCompilerId = "<unknown>"
   val noMsgssAndId = (noMsgs, noCompilerId)
   val LineStart    = "(?m)^".r
-
-  val zeroMsgs      = {
-    def z(id: String) = (new Msgs(Nil.asJava), id)
-    List(z("2.13-base"), z("2.13-head"), z("2.13-new"), z("3.0-old"), z("3.0"), z("3.1-migr"), z("3.1"))
-  }
+  val zeroMsgs     = mkCompilers.map(mkCompiler => (new Msgs(Nil.asJava), mkCompiler.id))
 
   def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val src2 = targetDir.resolve(src)
-    Files.createDirectories(src2.getParent)
-    Files.writeString(src2, ShisaMeta.testFileSource(contents))
-    val msgssAndId = compilers.map(compiler => compiler.compile1(src2) -> compiler.id)
-    val lines = Files.readString(src2).linesIterator.size
-    println(f"* ${s"$src ($lines lines)"}%-50s ${msgssAndId.map(_._1.toResult.toStatusIcon).mkString}")
+    val src2       = targetDir.resolve(src)
+    val sourceStr  = ShisaMeta.testFileSource(contents)
+    val msgssAndId = writeAndCompile(src, compilers, src2, sourceStr)
     compareMsgs(contents.expectedMsgs, msgssAndId, src)
+  }
+
+  def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
+    val msgssAndId = contents.testStats.flatten.zipWithIndex.map { case (stat, idxInt) => {
+      val name      = src.getFileName.toString.stripSuffix(".lines.scala")
+      val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
+      val src2      = targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
+      val testStats = List.fill(idxInt)(Nil) ::: List(stat) :: List.fill(contents.testStats.flatten.size - idxInt - 1)(Nil)
+      val sourceStr = ShisaMeta.testFileSource(contents.copy(testStats = testStats), Some(Term.Name(s"p$idx")))
+      writeAndCompile(src, compilers, src2, sourceStr)
+    }
+    }.foldLeft(zeroMsgs) { (acc, msgssAndId) =>
+      acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgs, id), (newMsgs, _)) =>
+        (new Msgs((msgs.asList ::: msgsDropSummary(newMsgs)).asJava), id)
+      }
+    }
+    compareMsgs(contents.expectedMsgs, msgssAndId, src)
+  }
+
+  def writeAndCompile(src: Path, compilers: List[Compiler], src2: Path, sourceStr: String) = {
+    Files.createDirectories(src2.getParent)
+    Files.writeString(src2, sourceStr)
+    val msgssAndId = compilers.map(compiler => compiler.compile1(src2) -> compiler.id)
+    println(f"* $src%-50s ${msgssAndId.map(_._1.toResult.toStatusIcon).mkString}")
+    msgssAndId
   }
 
   def compareMsgs(expMsgs: List[List[Msg]], msgssAndId: List[(Msgs, String)], src: Path) = {
@@ -137,31 +155,6 @@ object Main {
         case _                => true  // continue
       }
     }
-  }
-
-  def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgssAndId = contents.testStats.flatten.zipWithIndex.map { case (stat, idx) =>
-      val msgssAndId  = doCompileLine(src, idx, compilers, contents, stat)
-      val statusIcons = msgssAndId.map(_._1.toResult.toStatusIcon).mkString
-      println(f"* $src%-50s $statusIcons $stat%-100s")
-      msgssAndId
-    }.foldLeft(zeroMsgs) { (acc, msgssAndId) =>
-      acc.zipAll(msgssAndId, noMsgssAndId, noMsgssAndId).map { case ((msgs, id), (newMsgs, _)) =>
-        (new Msgs((msgs.asList ::: msgsDropSummary(newMsgs)).asJava), id)
-      }
-    }
-    compareMsgs(contents.expectedMsgs, msgssAndId, src)
-  }
-
-  def doCompileLine(src: Path, idxInt: Int, compilers: List[Compiler], contents: TestContents, stat: Stat) = {
-    val name      = src.getFileName.toString.stripSuffix(".lines.scala")
-    val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-    val src2      = Main.targetDir.resolve(src).resolveSibling(s"$name.$idx.scala")
-    val testStats = List.fill(idxInt)(Nil) ::: List(stat) :: List.fill(contents.testStats.flatten.size - idxInt - 1)(Nil)
-    val sourceStr = ShisaMeta.testFileSource(contents.copy(testStats = testStats), Some(Term.Name(s"p$idx")))
-    Files.createDirectories(src2.getParent)
-    Files.writeString(src2, sourceStr)
-    compilers.map(compiler => (compiler.compile1(src2), compiler.id))
   }
 
   def showSev(sev: Severity) = sev match {
@@ -199,25 +192,11 @@ final case class TestContents(
   }
 }
 
-final case class TestFile(src: Path, contents: TestContents)
-
 sealed trait CompileResult {
-  def lines: List[String] = this match {
-    case CompileOk          => Nil
-    case CompileWarn(lines) => lines
-    case CompileErr(lines)  => lines
-  }
-
   def toStatusIcon = this match {
     case CompileOk      => s"${Console.GREEN}\u2713${Console.RESET}"  // check mark     (green)
     case CompileWarn(_) => s"${Console.YELLOW}\u2623${Console.RESET}" // biohazard sign (yellow)
     case CompileErr(_)  => s"${Console.RED}\u2717${Console.RESET}"    // cross mark     (red)
-  }
-
-  def toStatusPadded = this match {
-    case CompileOk      => "ok   "
-    case CompileWarn(_) => "warn "
-    case CompileErr(_)  => "error"
   }
 }
       case object CompileOk                                     extends CompileResult
