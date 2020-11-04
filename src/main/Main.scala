@@ -81,7 +81,7 @@ object Main {
 
   def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
     val src2      = testdataDir.resolve(src)
-    val sourceStr = ShisaMeta.testFileSource(contents)
+    val sourceStr = toSource(contents)
     val msgss     = writeAndCompile(compilers, src2, sourceStr)
     compareMsgs(contents.expectedMsgs, msgss, src)
   }
@@ -92,12 +92,29 @@ object Main {
       val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
       val src2      = testdataDir.resolve(src).resolveSibling(s"$name.$idx.scala")
       val contents2 = contents.copy(testStats = List(List(stat)))
-      val sourceStr = ShisaMeta.testFileSource(contents2, Some(Term.Name(s"p$idx")))
+      val sourceStr = toSource(contents2, Some(Term.Name(s"p$idx")))
       writeAndCompile(compilers, src2, sourceStr)
     }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
       acc.zip(msgss).map { case (a, b) => a ::: b }
     }
     compareMsgs(contents.expectedMsgs, msgss, src)
+  }
+
+  def toSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
+    val TestContents(outerDefnss, baseClass, innerDefns, testStatss, _) = contents
+
+    val classStats  = innerDefns ::: testStatss.flatten
+    val classDefn   = baseClass match {
+      case Some(base) => Defn.Class(Nil, t"Test", Nil, Ctor.Primary(Nil, Name(""), Nil), Template(Nil, List(Init(base.name, Name(""), Nil)), Self(Name(""), None), classStats))
+      case None       => q"class Test { ..$classStats }"
+    }
+    val sourceDefns = outerDefnss.flatten ++ baseClass :+ classDefn
+    val source      = pkgName match {
+      case Some(name) => source"package $name; ..$sourceDefns"
+      case None       => source"..$sourceDefns"
+    }
+
+    source.syntax + "\n"
   }
 
   def writeAndCompile(compilers: List[Compiler], src2: Path, sourceStr: String) = {

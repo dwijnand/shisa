@@ -154,8 +154,8 @@ object Call {
   }
 
   def m2p_p_msgs(path: Path, traitName: String) = {
-    def warns2   = List(warn(path, 7, autoApp2("d")), warn(path, 2, errOverride2))
-    def warnErr2 = List( err(path, 2, errOverride2),  warn(path, 7, autoApp2("d")))
+    def warns2   = List(warn(path, 5, autoApp2("d")), warn(path, 2, errOverride2))
+    def warnErr2 = List( err(path, 2, errOverride2),  warn(path, 5, autoApp2("d")))
     def warns3   = List(warn(path, 2, errOverride3A(traitName, str1, str2)))
     def  errs3   = List( err(path, 2, errOverride3B(traitName, str1, str2)))
     List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
@@ -170,10 +170,10 @@ object Call {
   }
 
   def p2m_p_msgs(path: Path, traitName: String) = {
-    def warns2   = List(warn(path, 7, autoApp2("d")),    warn(path, 2, p2mMsg))
-    def warnErr2 = List(warn(path, 7, autoApp2("d")),     err(path, 2, p2mErr(traitName)))
-    def warns3   = List(warn(path, 7, parensCall3("d")), warn(path, 2, errOverride3A(traitName, str2, str1)))
-    def  errs3   = List( err(path, 7, parensCall3("d")))
+    def warns2   = List(warn(path, 5, autoApp2("d")),    warn(path, 2, p2mMsg))
+    def warnErr2 = List(warn(path, 5, autoApp2("d")),     err(path, 2, p2mErr(traitName)))
+    def warns3   = List(warn(path, 5, parensCall3("d")), warn(path, 2, errOverride3A(traitName, str2, str1)))
+    def  errs3   = List( err(path, 5, parensCall3("d")))
     List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }
 
@@ -199,9 +199,9 @@ object Call {
     val innerDefns   = List(q"""def meth() = """"")
     val testStats    = List(List(q"meth"))
     val expectedMsgs = List(warns2, warns2, warns2, warns3, errs3, errs3, errs3)
-    def warns2       = List(warn(4, autoApp2("meth")))
-    def warns3       = List(warn(4, parensCall3("meth")))
-    def  errs3       = List( err(4, parensCall3("meth")))
+    def warns2       = List(warn(3, autoApp2("meth")))
+    def warns3       = List(warn(3, parensCall3("meth")))
+    def  errs3       = List( err(3, parensCall3("meth")))
     def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
   }
 
@@ -210,21 +210,20 @@ object Call {
     val innerDefns   = List(q"""def prop = """"")
     val testStats    = List(List(q"prop()"))
     val expectedMsgs = multi(err2, err3)
-    def err2         = err(4, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
-    def err3         = err(4, "missing argument for parameter i of method apply: (i: Int): Char")
+    def err2         = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
+    def err3         = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
     def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
   }
 
   object hashHash extends MkInMemoryTestUnitFile {
     val path = Paths.get("Call.##.scala")
 
-    val contentss         = List(
-      TestContents(Nil, None, List(any.defn), List(duo(any.name, q"##")), multi(err2( 8), err3( 8))),
-      TestContents(Nil, None, List(ref.defn), List(duo(ref.name, q"##")), multi(err2(11), err3(11))),
-      TestContents(Nil, None, List(obj.defn), List(duo(obj.name, q"##")), multi(err2(14), err3(14))),
-      TestContents(Nil, None, List(str.defn), List(duo(str.name, q"##")), multi(err2(17), err3(17))),
-    )
-    val contents = contentss.reduce(_ ++ _)
+    val contents = List(
+      TestContents(Nil, None, List(any.defn), List(duo(any.name, q"##")), multi(err2( 7), err3( 7))),
+      TestContents(Nil, None, List(ref.defn), List(duo(ref.name, q"##")), multi(err2( 9), err3( 9))),
+      TestContents(Nil, None, List(obj.defn), List(duo(obj.name, q"##")), multi(err2(11), err3(11))),
+      TestContents(Nil, None, List(str.defn), List(duo(str.name, q"##")), multi(err2(13), err3(13))),
+    ).reduce(_ ++ _)
 
     def err2(lineNo: Int) = err(lineNo, "Int does not take parameters")
     def err3(lineNo: Int) = err(lineNo, "method ## in class Any does not take parameters")

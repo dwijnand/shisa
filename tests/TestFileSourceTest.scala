@@ -15,16 +15,12 @@ class TestFileSourceTest extends FunSuite {
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
       |  val str: String = ""
-      |
       |  any.##
       |  any.##()
-      |
       |  ref.##
       |  ref.##()
-      |
       |  obj.##
       |  obj.##()
-      |
       |  str.##
       |  str.##()
       |}
@@ -40,7 +36,6 @@ class TestFileSourceTest extends FunSuite {
       |  def run() = ()
       |  override def toString() = ""
       |}
-      |
       |case class CCR() extends Runnable { def run() = () }
       |case class CCS() extends Runnable {
       |  def run() = ()
@@ -50,49 +45,41 @@ class TestFileSourceTest extends FunSuite {
       |  def run() = ()
       |  override def toString() = ""
       |}
-      |
       |class VCR(val x: String) extends AnyVal
       |class VCS(val x: String) extends AnyVal { override def toString = "" }
       |class VCJ(val x: String) extends AnyVal { override def toString() = "" }
-      |
       |case class VCCR(x: String) extends AnyVal
       |case class VCCS(x: String) extends AnyVal { override def toString = "" }
       |case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
-      |
       |class Test {
       |  val any: Any = ""
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
       |  val str: String = ""
-      |
       |  any.getClass
       |  any.getClass()
       |  any.hashCode
       |  any.hashCode()
       |  any.toString
       |  any.toString()
-      |
       |  ref.getClass
       |  ref.getClass()
       |  ref.hashCode
       |  ref.hashCode()
       |  ref.toString
       |  ref.toString()
-      |
       |  obj.getClass
       |  obj.getClass()
       |  obj.hashCode
       |  obj.hashCode()
       |  obj.toString
       |  obj.toString()
-      |
       |  str.getClass
       |  str.getClass()
       |  str.hashCode
       |  str.hashCode()
       |  str.toString
       |  str.toString()
-      |
       |  new CR().run
       |  new CR().run()
       |  new CR().toString
@@ -101,14 +88,12 @@ class TestFileSourceTest extends FunSuite {
       |  new CS().toString()
       |  new CJ().toString
       |  new CJ().toString()
-      |
       |  new VCR("").toString
       |  new VCR("").toString()
       |  new VCS("").toString
       |  new VCS("").toString()
       |  new VCJ("").toString
       |  new VCJ("").toString()
-      |
       |  CCR().run
       |  CCR().run()
       |  CCR().toString
@@ -117,7 +102,6 @@ class TestFileSourceTest extends FunSuite {
       |  CCS().toString()
       |  CCJ().toString
       |  CCJ().toString()
-      |
       |  VCCR("").toString
       |  VCCR("").toString()
       |  VCCS("").toString
@@ -128,7 +112,7 @@ class TestFileSourceTest extends FunSuite {
       |""".stripMargin
 
   def compareToSource(mk: MkInMemoryTestFile, expected: String) = {
-    val obtained = scala.meta.ShisaMeta.testFileSource(mk.contents)
+    val obtained = Main.toSource(mk.contents)
     assertEquals(obtained, expected)
   }
 }
