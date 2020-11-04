@@ -9,7 +9,6 @@ import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import scala.jdk.StreamConverters._
 import scala.util.chaining._
 
 import scala.meta._
@@ -40,7 +39,7 @@ object Main {
 
   val compilerIds   = mkCompilers.map(_.id)
   val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
-  val NoContents    = TestContents(Nil, Nil, Nil, Nil)
+  val NoContents    = TestContents(Nil, Nil, Nil)
 
   def makeRelative(p: Path) = if (p.isAbsolute) cwdAbs.relativize(p) else p
 
@@ -84,28 +83,27 @@ object Main {
     val src2      = testdataDir.resolve(src)
     val sourceStr = toSource(contents)
     val msgss     = writeAndCompile(compilers, src2, sourceStr)
-    compareMsgs(contents.expectedMsgs, msgss, src)
+    compareMsgs(contents.msgs, msgss, src)
   }
 
   def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgss = contents.testStats.zipWithIndex.map { case (stat, idxInt) =>
+    val msgss = contents.stats.zipWithIndex.map { case (stat, idxInt) =>
       val name      = src.getFileName.toString.stripSuffix(".lines.scala")
       val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
       val src2      = testdataDir.resolve(src).resolveSibling(s"$name.$idx.scala")
-      val contents2 = contents.copy(testStats = List(stat))
+      val contents2 = contents.copy(stats = List(stat))
       val sourceStr = toSource(contents2, Some(Term.Name(s"p$idx")))
       writeAndCompile(compilers, src2, sourceStr)
     }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
       acc.zip(msgss).map { case (a, b) => a ::: b }
     }
-    compareMsgs(contents.expectedMsgs, msgss, src)
+    compareMsgs(contents.msgs, msgss, src)
   }
 
   def toSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
-    val TestContents(outerDefns, innerDefns, testStatss, _) = contents
+    val TestContents(defns, stats, _) = contents
 
-    val classStats = outerDefns ::: innerDefns ::: testStatss
-    val sourceDefn = q"object Test { ..$classStats }"
+    val sourceDefn = q"object Test { ..${defns ::: stats} }"
     val source     = pkgName match {
       case Some(name) => source"package $name; $sourceDefn"
       case None       => source"$sourceDefn"
@@ -162,16 +160,10 @@ object Main {
   }
 }
 
-final case class TestContents(
-    outerDefns: List[Defn],
-    innerDefns: List[Defn],
-    testStats: List[Stat],
-    expectedMsgs: List[List[Msg]],
-) {
+final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: List[List[Msg]]) {
   def ++(that: TestContents) = TestContents(
-    (outerDefns ::: that.outerDefns).distinct,
-    (innerDefns ::: that.innerDefns).distinct,
-    testStats ::: that.testStats,
-    expectedMsgs.zipAll(that.expectedMsgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
+    (defns ::: that.defns).distinct,
+    stats ::: that.stats,
+    msgs.zipAll(that.msgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
   )
 }
