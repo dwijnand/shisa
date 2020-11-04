@@ -146,33 +146,33 @@ object Call {
   import MkInMemoryTestFile.{ err, warn }
 
   def m2p_m_msgs(path: Path, traitName: String) = {
-    def warns2 = List(warn(path, 2, errOverride2))
-    def  errs2 = List( err(path, 2, errOverride2))
-    def warns3 = List(warn(path, 2, errOverride3A(traitName, str1, str2)))
-    def  errs3 = List( err(path, 2, errOverride3B(traitName, str1, str2)))
+    def warns2 = List(warn(path, 3, errOverride2))
+    def  errs2 = List( err(path, 3, errOverride2))
+    def warns3 = List(warn(path, 3, errOverride3A(traitName, str1, str2)))
+    def  errs3 = List( err(path, 3, errOverride3B(traitName, str1, str2)))
     List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
   }
 
   def m2p_p_msgs(path: Path, traitName: String) = {
-    def warns2   = List(warn(path, 5, autoApp2("d")), warn(path, 2, errOverride2))
-    def warnErr2 = List( err(path, 2, errOverride2),  warn(path, 5, autoApp2("d")))
-    def warns3   = List(warn(path, 2, errOverride3A(traitName, str1, str2)))
-    def  errs3   = List( err(path, 2, errOverride3B(traitName, str1, str2)))
+    def warns2   = List(warn(path, 5, autoApp2("d")), warn(path, 3, errOverride2))
+    def warnErr2 = List( err(path, 3, errOverride2),  warn(path, 5, autoApp2("d")))
+    def warns3   = List(warn(path, 3, errOverride3A(traitName, str1, str2)))
+    def  errs3   = List( err(path, 3, errOverride3B(traitName, str1, str2)))
     List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }
 
   def p2m_m_msgs(path: Path, traitName: String) = {
-    def warns2 = List(warn(path, 2, p2mMsg))
-    def errs2  = List( err(path, 2, p2mErr(traitName)))
-    def warns3 = List(warn(path, 2, errOverride3A(traitName, str2, str1)))
-    def  errs3 = List( err(path, 2, errOverride3B(traitName, str2, str1)))
+    def warns2 = List(warn(path, 3, p2mMsg))
+    def errs2  = List( err(path, 3, p2mErr(traitName)))
+    def warns3 = List(warn(path, 3, errOverride3A(traitName, str2, str1)))
+    def  errs3 = List( err(path, 3, errOverride3B(traitName, str2, str1)))
     List(warns2, warns2, errs2, warns3, errs3, errs3, errs3)
   }
 
   def p2m_p_msgs(path: Path, traitName: String) = {
-    def warns2   = List(warn(path, 5, autoApp2("d")),    warn(path, 2, p2mMsg))
-    def warnErr2 = List(warn(path, 5, autoApp2("d")),     err(path, 2, p2mErr(traitName)))
-    def warns3   = List(warn(path, 5, parensCall3("d")), warn(path, 2, errOverride3A(traitName, str2, str1)))
+    def warns2   = List(warn(path, 5, autoApp2("d")),    warn(path, 3, p2mMsg))
+    def warnErr2 = List(warn(path, 5, autoApp2("d")),     err(path, 3, p2mErr(traitName)))
+    def warns3   = List(warn(path, 5, parensCall3("d")), warn(path, 3, errOverride3A(traitName, str2, str1)))
     def  errs3   = List( err(path, 5, parensCall3("d")))
     List(warns2, warns2, warnErr2, warns3, errs3, errs3, errs3)
   }

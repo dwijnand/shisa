@@ -74,6 +74,7 @@ object Main {
   }
 
   def compile1(src: Path, contents: TestContents, mkCompilers: List[MkCompiler]) = {
+    println(s"* $src")
     val compilers = mkCompilers.map(_.mkCompiler())
     if (src.toString.endsWith(".lines.scala")) doLines(src, contents, compilers)
     else                                        doUnit(src, contents, compilers)
@@ -101,20 +102,19 @@ object Main {
   }
 
   def toSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
-    val TestContents(outerDefnss, innerDefns, testStatss, _) = contents
+    val TestContents(outerDefns, innerDefns, testStatss, _) = contents
 
-    val classStats  = innerDefns ::: testStatss
-    val sourceDefns = outerDefnss :+ q"class Test { ..$classStats }"
-    val source      = pkgName match {
-      case Some(name) => source"package $name; ..$sourceDefns"
-      case None       => source"..$sourceDefns"
+    val classStats = outerDefns ::: innerDefns ::: testStatss
+    val sourceDefn = q"object Test { ..$classStats }"
+    val source     = pkgName match {
+      case Some(name) => source"package $name; $sourceDefn"
+      case None       => source"$sourceDefn"
     }
 
     source.syntax + "\n"
   }
 
   def writeAndCompile(compilers: List[Compiler], src2: Path, sourceStr: String) = {
-    println(s"* $src2")
     Files.createDirectories(src2.getParent)
     Files.writeString(src2, sourceStr)
     compilers.map(compiler => msgsDropSummary(compiler.compile1(src2)))

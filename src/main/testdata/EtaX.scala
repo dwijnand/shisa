@@ -36,7 +36,7 @@ object ErrorMsgs {
   def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
   def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
   def missingArgs(meth: String, cls: String) =
-    s"""missing argument list for method $meth in class $cls
+    s"""missing argument list for method $meth in object $cls
        |Unapplied methods are only converted to functions when a function type is expected.
        |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
   def stillEta(meth: String, traitName: String) = s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
@@ -73,8 +73,8 @@ object EtaX {
     )
 
     val msgs2         = List(
-       err(Paths.get("EtaX/EtaX.meth.01.scala"), 6, typeMismatch2("String", "p01.Sam0S")),
-       err(Paths.get("EtaX/EtaX.meth.02.scala"), 6, typeMismatch2("String", "p02.Sam0J")),
+       err(Paths.get("EtaX/EtaX.meth.01.scala"), 6, typeMismatch2("String", "p01.Test.Sam0S")),
+       err(Paths.get("EtaX/EtaX.meth.02.scala"), 6, typeMismatch2("String", "p02.Test.Sam0J")),
       warn(Paths.get("EtaX/EtaX.meth.03.scala"), 7, autoApp2("meth")),
        err(Paths.get("EtaX/EtaX.meth.07.scala"), 6, mustFollow("String")),
     )
@@ -84,8 +84,8 @@ object EtaX {
       err(     path, lineNo, typeMismatch3("String", exp)),
     ))
     def msgs30I(sev: Severity) =
-      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.01.scala"), 6, "p01.Sam0S") :::
-      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.02.scala"), 6, "p02.Sam0J") ::: List(
+      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.01.scala"), 6, "p01.Test.Sam0S") :::
+      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.02.scala"), 6, "p02.Test.Sam0J") ::: List(
       msg(      sev, Paths.get("EtaX/EtaX.meth.03.scala"), 7, mustParens("meth")),
       msg(      sev, Paths.get("EtaX/EtaX.meth.07.scala"), 6, onlyFuncs("String")),
     )
@@ -118,7 +118,7 @@ object EtaX {
     )
 
     val msgs2                  = List( err(Paths.get("EtaX/EtaX.meth1.03.scala"), 7, missingArgs("meth1", "Test")))
-    val msgs3                  = List(warn(Paths.get("EtaX/EtaX.meth1.01.scala"), 6, stillEta("meth1", "p01.Sam1S")))
+    val msgs3                  = List(warn(Paths.get("EtaX/EtaX.meth1.01.scala"), 6, stillEta("meth1", "p01.Test.Sam1S")))
     def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, Paths.get("EtaX/EtaX.meth1.04.scala"), 7, etaFunction2))
 
     val expectedMsgs = List(msgs2, msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
@@ -236,8 +236,8 @@ object EtaX {
     val path         = Paths.get("EtaX/EtaX.boom.scala")
     val outerDefn    = q"class A { def boom(): Unit = () }"
     val testStat     = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgs2        = List(warn(         2, autoApp2("boom")))
-    val msgs3        = msgs( msg(_, path, 2, parensCall3("boom")))
+    val msgs2        = List(warn(         3, autoApp2("boom")))
+    val msgs3        = msgs( msg(_, path, 3, parensCall3("boom")))
     val expectedMsgs = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
     val contents     = TestContents(List(outerDefn), Nil, List(testStat), expectedMsgs)
   }
