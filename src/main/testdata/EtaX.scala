@@ -201,12 +201,12 @@ object EtaX {
     }
   }
 
-  object cloneEta extends MkInMemoryTestLinesFile {
-    val path         = Paths.get("EtaX/EtaX.clone.lines.scala")
-    def baseClass    = q"""class TestBase { val t  = scala.collection.mutable.Map(1 -> "foo") }"""
-    def testStat     = q"""val ys = t.clone"""
+  object cloneEta extends MkInMemoryTestUnitFile {
+    val path         = Paths.get("EtaX/EtaX.clone.scala")
+    def innerDefn    = q"val t  = scala.collection.mutable.Map(1 -> 'a')"
+    def testStat     = q"val ys = t.clone"
     val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
-    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStat), expectedMsgs)
+    val contents     = TestContents(Nil, None, List(innerDefn), List(testStat), expectedMsgs)
   }
 
   object meth2 extends MkInMemoryTestLinesFile {
@@ -224,12 +224,12 @@ object EtaX {
     }
   }
 
-  object boom extends MkInMemoryTestLinesFile {
-    val path         = Paths.get("EtaX/EtaX.boom.lines.scala")
+  object boom extends MkInMemoryTestUnitFile {
+    val path         = Paths.get("EtaX/EtaX.boom.scala")
     val outerDefn    = q"class A { def boom(): Unit = () }"
     val testStat     = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgs2        = List(warn(   pathN(0), 3, autoApp2("boom")))
-    val msgs3        = msgs( msg(_, pathN(0), 3, parensCall3("boom")))
+    val msgs2        = List(warn(         2, autoApp2("boom")))
+    val msgs3        = msgs( msg(_, path, 2, parensCall3("boom")))
     val expectedMsgs = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
     val contents     = TestContents(List(outerDefn), None, Nil, List(testStat), expectedMsgs)
   }
