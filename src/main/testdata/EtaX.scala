@@ -10,11 +10,7 @@ import scala.meta._
 import Severity.{ Warn, Error }
 
 trait MkInMemoryTestLinesFile extends MkInMemoryTestFile {
-  def pathN(n: Int): Path = {
-    val name = path.getFileName.toString.stripSuffix(".lines.scala")
-    val idx  = if (n < 10) s"0$n" else s"$n"
-    path.resolveSibling(s"$name.$idx.scala")
-  }
+  def pathN(n: Int): Path = Main.pathN(path, n)
 }
 
 object ErrorMsgs {
@@ -51,7 +47,7 @@ object ErrorMsgs {
 
 object EtaX {
   import ErrorMsgs._
-  import MkInMemoryTestFile._
+  import MkInMemoryTestFile.{ err, msg, warn }
 
   def tests = List(boom, meth2, cloneEta, methF0, prop, meth1, meth)
 
@@ -230,7 +226,7 @@ object EtaX {
     val path     = Paths.get("EtaX/EtaX.boom.scala")
     val defns    = List(q"class A { def boom(): Unit = () }")
     val stat     = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgs2    = List(warn(         3, autoApp2("boom")))
+    val msgs2    = List(warn(   path, 3, autoApp2("boom")))
     val msgs3    = msgs( msg(_, path, 3, parensCall3("boom")))
     val msgss    = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
     val contents = TestContents(defns, List(stat), msgss)

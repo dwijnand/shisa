@@ -18,10 +18,7 @@ trait MkInMemoryTestFile {
   def contents: TestContents
 }
 
-trait MkInMemoryTestUnitFile extends MkInMemoryTestFile {
-  final def warn(lineNo: Int, str: String) = MkInMemoryTestFile.warn(path, lineNo, str)
-  final def  err(lineNo: Int, str: String) = MkInMemoryTestFile.err( path, lineNo, str)
-}
+trait MkInMemoryTestUnitFile extends MkInMemoryTestFile
 
 object Call {
   def idF[A]: A => A = x => x
@@ -196,17 +193,17 @@ object Call {
 
   object def_meth_p extends MkInMemoryTestUnitFile {
     val path     = Paths.get("Call.def/Call.meth_p.scala")
-    val warns2   = List(warn(3, autoApp2("meth")))
-    val msgs3Old = List(warn(3, parensCall3("meth")))
-    val msgs3    = List( err(3, parensCall3("meth")))
+    val warns2   = List(warn(path, 3, autoApp2("meth")))
+    val msgs3Old = List(warn(path, 3, parensCall3("meth")))
+    val msgs3    = List( err(path, 3, parensCall3("meth")))
     val msgs     = List(warns2, warns2, warns2, msgs3Old, msgs3, msgs3, msgs3)
     val contents = TestContents(List(q"""def meth() = """""), List(q"meth"), msgs)
   }
 
   object def_prop_m extends MkInMemoryTestUnitFile {
     val path     = Paths.get("Call.def/Call.prop_m.scala")
-    val err2     = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
-    val err3     = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
+    val err2     = err(path, 3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
+    val err3     = err(path, 3, "missing argument for parameter i of method apply: (i: Int): Char")
     val contents = TestContents(List(q"""def prop = """""), List(q"prop()"), multi(err2, err3))
   }
 
@@ -218,8 +215,8 @@ object Call {
       TestContents(List(obj.defn), duo(obj.name, q"##"), multi(err2(11), err3(11))),
       TestContents(List(str.defn), duo(str.name, q"##"), multi(err2(13), err3(13))),
     ).reduce(_ ++ _)
-    def err2(lineNo: Int) = err(lineNo, "Int does not take parameters")
-    def err3(lineNo: Int) = err(lineNo, "method ## in class Any does not take parameters")
+    def err2(lineNo: Int) = err(path, lineNo, "Int does not take parameters")
+    def err3(lineNo: Int) = err(path, lineNo, "method ## in class Any does not take parameters")
   }
 
   object pos extends MkInMemoryTestUnitFile {

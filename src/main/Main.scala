@@ -16,9 +16,6 @@ import scala.meta._
 import shisa.testdata._
 
 object Main {
-  val cwdAbs      = Paths.get("").toAbsolutePath
-  val testdataDir = Paths.get("target/testdata")
-
   val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00_base
   val dotcCl = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
   val freshCompiler3Cls  = dotcCl.loadClass("shisa.FreshCompiler3")
@@ -37,31 +34,37 @@ object Main {
     FreshCompiler3("3.1",                              "-source 3.1"),
   )
 
+  val cwdAbs        = Paths.get("").toAbsolutePath
+  val testdataDir   = Paths.get("target/testdata")
   val compilerIds   = mkCompilers.map(_.id)
-  val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
-  val NoContents    = TestContents(Nil, Nil, Nil)
+  val tests         = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
+  val testsMap      = tests.toMap
+  val MissingExp    = new Msg(Severity.Error, "exp.scala", 0, "missing exp msg", "")
+  val MissingObt    = new Msg(Severity.Error, "obt.scala", 0, "missing obt msg", "")
 
-  def makeRelative(p: Path) = if (p.isAbsolute) cwdAbs.relativize(p) else p
+  def makeRelative(p: Path)     = if (p.isAbsolute) cwdAbs.relativize(p) else p
+  def idxStr(idx: Int)          = if (idx < 10) s"0$idx" else s"$idx"
+  def pathN(path: Path, n: Int) = {
+    val name = path.getFileName.toString.stripSuffix(".lines.scala")
+    path.resolveSibling(s"$name.${idxStr(n)}.scala")
+  }
 
   def main(args: Array[String]): Unit = {
-    val testFilePaths = args.toList match {
-      case Nil => inMemoryTests.map(_._1).sorted.tap(fs => println(s"Files: ${fs.mkString("[", ", ", "]")}"))
-      case xs  => xs.map(Paths.get(_)).map(makeRelative(_))
+    val testFiles = args.toList match {
+      case Nil  => tests.sortBy(_._1).tap(tests => println(s"Files: ${tests.map(_._1).mkString("[", ", ", "]")}"))
+      case args =>
+        val (missing, tests) = args.map(arg => makeRelative(Paths.get(arg))).partitionMap { path =>
+          testsMap.get(path).map(path -> _).toRight(Left(path))
+        }
+        if (missing.isEmpty) tests
+        else sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
     }
 
-    val testFiles = testFilePaths.map(p => inMemoryTests.find(_._1 == p).getOrElse((p, NoContents)))
-
-    testFiles.collect { case (p, NoContents) => p } match {
-      case Nil     =>
-      case missing => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
-    }
-
-    if (Files.exists(testdataDir))
-      IOUtil.deleteRecursive(testdataDir)
+    if (Files.exists(testdataDir)) IOUtil.deleteRecursive(testdataDir)
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map { case (src, contents) =>
-      pool.submit[Unit](() => compile1(src, contents, mkCompilers))
+      pool.submit[TestResult](() => compile1(src, contents, mkCompilers))
     }
 
     pool.shutdown()
@@ -69,71 +72,67 @@ object Main {
     if (!pool.awaitTermination(10, MINUTES))
       throw new Exception("Thread pool timeout elapsed before all tests were complete!")
 
-    futures.foreach(_.get(0, NANOSECONDS))
+    val testResults  = futures.map(_.get(0, NANOSECONDS))
+    val testFailures = testResults.collect {
+      case TestFailure(src, msg)       => s"$src: $msg"
+      case TestFailures(src, failures) => s"$src:\n${failures.map(tf => s"  ${tf.msg}").mkString("\n")}"
+    }
+
+    if (testFailures.nonEmpty) {
+      throw new Exception(s"Test failures:\n${testFailures.mkString("\n")}", null, false, false) {}
+    }
   }
 
-  def compile1(src: Path, contents: TestContents, mkCompilers: List[MkCompiler]) = {
+  def compile1(src: Path, contents: TestContents, mkCompilers: List[MkCompiler]): TestResult = {
     println(s"* $src")
     val compilers = mkCompilers.map(_.mkCompiler())
     if (src.toString.endsWith(".lines.scala")) doLines(src, contents, compilers)
     else                                        doUnit(src, contents, compilers)
   }
 
-  def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val src2      = testdataDir.resolve(src)
-    val sourceStr = toSource(contents)
-    val msgss     = writeAndCompile(compilers, src2, sourceStr)
-    compareMsgs(contents.msgs, msgss, src)
+  def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]): TestResult = {
+    compareMsgs(contents.msgs, writeAndCompile(compilers, src, toSource(contents)), src)
   }
 
   def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgss = contents.stats.zipWithIndex.map { case (stat, idxInt) =>
-      val name      = src.getFileName.toString.stripSuffix(".lines.scala")
-      val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
-      val src2      = testdataDir.resolve(src).resolveSibling(s"$name.$idx.scala")
-      val contents2 = contents.copy(stats = List(stat))
-      val sourceStr = toSource(contents2, Some(Term.Name(s"p$idx")))
-      writeAndCompile(compilers, src2, sourceStr)
-    }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
-      acc.zip(msgss).map { case (a, b) => a ::: b }
-    }
+    val msgss = contents.stats
+      .map(stat => contents.copy(stats = List(stat)))
+      .zipWithIndex.map { case (contents, idx) =>
+        writeAndCompile(compilers, pathN(src, idx), toSource(contents, Some(idx)))
+      }.reduce(_.zip(_).map { case (a, b) => a ::: b })
     compareMsgs(contents.msgs, msgss, src)
   }
 
-  def toSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
-    val TestContents(defns, stats, _) = contents
-
-    val sourceDefn = q"object Test { ..${defns ::: stats} }"
-    val source     = pkgName match {
-      case Some(name) => source"package $name; $sourceDefn"
-      case None       => source"$sourceDefn"
+  def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
+    val sourceDefn = q"object Test { ..${contents.defns ::: contents.stats} }"
+    val source     = pkgIdx.map(idx => Term.Name(s"p${idxStr(idx)}")) match {
+      case None          => source"$sourceDefn"
+      case Some(pkgName) => source"package $pkgName; $sourceDefn"
     }
-
     source.syntax + "\n"
   }
 
-  def writeAndCompile(compilers: List[Compiler], src2: Path, sourceStr: String) = {
+  def writeAndCompile(compilers: List[Compiler], src: Path, sourceStr: String) = {
+    val src2 = testdataDir.resolve(src)
     Files.createDirectories(src2.getParent)
     Files.writeString(src2, sourceStr)
-    compilers.map(compiler => msgsDropSummary(compiler.compile1(src2)))
+    compilers.map(_.compile1(src2)).map(msgsDropSummary)
   }
 
-  val MissingExp = new Msg(Severity.Error, "exp.scala", 0, "missing exp msg", "")
-  val MissingObt = new Msg(Severity.Error, "obt.scala", 0, "missing obt msg", "")
-
-  def compareMsgs(expMsgss: List[List[Msg]], obtMsgss: List[List[Msg]], src: Path) = {
-    for (((expMsgs, obtMsgs), compilerId) <- expMsgss.zip(obtMsgss).zip(compilerIds)) {
+  def compareMsgs(expMsgss: List[List[Msg]], obtMsgss: List[List[Msg]], src: Path): TestResult = {
+    val msgss2 = expMsgss.zipAll(obtMsgss, Nil, Nil)
+    val msgss3 = msgss2.zipAll(compilerIds, (Nil, Nil), "<unknown-compiler-id>")
+    val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgss3) yield {
       expMsgs.zipAll(obtMsgs, MissingExp, MissingObt).collect {
-        case (exp, MissingObt)        => showExp(exp)
-        case (MissingExp, obt)        => showObt(obt)
         case (exp, obt) if exp != obt => showExp(exp) + showObt(obt)
       }.mkString match {
-        case ""    =>
-        case lines =>
-          val str = s"$src: message mismatch (compiler $compilerId) (${Console.RED}-expected${Console.RESET}/${Console.GREEN}+obtained${Console.RESET}):$lines"
-          println(str)
-          throw new Exception(str)
+        case ""    => TestSuccess(src)
+        case lines => TestFailure(src, s"$src: message mismatch (compiler $compilerId) (${Console.RED}-expected${Console.RESET}/${Console.GREEN}+obtained${Console.RESET}):$lines")
       }
+    }
+    testResults.collect { case tf: TestFailure => tf } match {
+      case Nil          => TestSuccess(src)
+      case testFailures => TestFailures(src, testFailures)
     }
   }
 
@@ -167,3 +166,8 @@ final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: List[L
     msgs.zipAll(that.msgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
   )
 }
+
+sealed trait TestResult { def src: Path }
+final case class TestSuccess(src: Path)                               extends TestResult
+final case class TestFailure(src: Path, msg: String)                  extends TestResult
+final case class TestFailures(src: Path, failures: List[TestFailure]) extends TestResult
