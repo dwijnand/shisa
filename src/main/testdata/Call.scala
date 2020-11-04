@@ -117,7 +117,7 @@ object Call {
   }
 
   final case class Val(name: Term.Name, tpe: Type.Name) {
-    val defn = q"""val ${Pat.Var(name)}: $tpe = """""
+    val defn = Defn.Val(Nil, List(Pat.Var(name)), Option(tpe), Lit.String(""))
   }
 
   def duo(qual: Term, name: Term.Name) = List(q"$qual.$name", q"$qual.$name()")
@@ -182,7 +182,7 @@ object Call {
       expectedMsgs: (Path, String) => List[List[Msg]]
   ) extends MkInMemoryTestUnitFile {
     val path     = Paths.get(pathStr)
-    val contents = TestContents(List(List(traitDefn, clsDefn)), None, List(valDefn), List(List(testStat)), expectedMsgs(path, traitDefn.name.value))
+    val contents = TestContents(List(traitDefn, clsDefn), None, List(valDefn), List(testStat), expectedMsgs(path, traitDefn.name.value))
   }
 
   object switch_m2p_m    extends SwitchFile("Call.switch/Call.m2p_m.scala", M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
@@ -197,7 +197,7 @@ object Call {
   object def_meth_p extends MkInMemoryTestUnitFile {
     val path         = Paths.get("Call.def/Call.meth_p.scala")
     val innerDefns   = List(q"""def meth() = """"")
-    val testStats    = List(List(q"meth"))
+    val testStats    = List(q"meth")
     val expectedMsgs = List(warns2, warns2, warns2, warns3, errs3, errs3, errs3)
     def warns2       = List(warn(3, autoApp2("meth")))
     def warns3       = List(warn(3, parensCall3("meth")))
@@ -208,7 +208,7 @@ object Call {
   object def_prop_m extends MkInMemoryTestUnitFile {
     val path         = Paths.get("Call.def/Call.prop_m.scala")
     val innerDefns   = List(q"""def prop = """"")
-    val testStats    = List(List(q"prop()"))
+    val testStats    = List(q"prop()")
     val expectedMsgs = multi(err2, err3)
     def err2         = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
     def err3         = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
@@ -219,10 +219,10 @@ object Call {
     val path = Paths.get("Call.##.scala")
 
     val contents = List(
-      TestContents(Nil, None, List(any.defn), List(duo(any.name, q"##")), multi(err2( 7), err3( 7))),
-      TestContents(Nil, None, List(ref.defn), List(duo(ref.name, q"##")), multi(err2( 9), err3( 9))),
-      TestContents(Nil, None, List(obj.defn), List(duo(obj.name, q"##")), multi(err2(11), err3(11))),
-      TestContents(Nil, None, List(str.defn), List(duo(str.name, q"##")), multi(err2(13), err3(13))),
+      TestContents(Nil, None, List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
+      TestContents(Nil, None, List(ref.defn), duo(ref.name, q"##"), multi(err2( 9), err3( 9))),
+      TestContents(Nil, None, List(obj.defn), duo(obj.name, q"##"), multi(err2(11), err3(11))),
+      TestContents(Nil, None, List(str.defn), duo(str.name, q"##"), multi(err2(13), err3(13))),
     ).reduce(_ ++ _)
 
     def err2(lineNo: Int) = err(lineNo, "Int does not take parameters")
@@ -231,7 +231,7 @@ object Call {
 
   object pos extends MkInMemoryTestUnitFile {
     val path       = Paths.get("Call.pos.scala")
-    val outerDefns = List(CR.defns, CCR.defns, VCR.defns, VCCR.defns)
+    val outerDefns = CR.defns ::: CCR.defns ::: VCR.defns ::: VCCR.defns
     val innerDefns = vals.map(_.defn)
 
     def alt(t: Term, suff: Char) = t match {
@@ -242,13 +242,13 @@ object Call {
     def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
     def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
 
-    val testStats = vals.map(_.name).map { nme =>
+    val testStats = vals.map(_.name).flatMap { nme =>
         duo(nme, q"getClass") ::: duo(nme, q"hashCode") ::: duo(nme, q"toString")
       } :::
-        List(toStringsAndRun(q"new CR()"))  :::
-        List(toStrings(q"""new VCR("")""")) :::
-        List(toStringsAndRun(q"CCR()"))     :::
-        List(toStrings(q"""VCCR("")"""))
+        toStringsAndRun(q"new CR()")  :::
+        toStrings(q"""new VCR("")""") :::
+        toStringsAndRun(q"CCR()")     :::
+        toStrings(q"""VCCR("")""")
 
     def contents = TestContents(outerDefns, None, innerDefns, testStats, noMsgs)
   }

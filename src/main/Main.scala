@@ -87,11 +87,11 @@ object Main {
   }
 
   def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgss = contents.testStats.flatten.zipWithIndex.map { case (stat, idxInt) =>
+    val msgss = contents.testStats.zipWithIndex.map { case (stat, idxInt) =>
       val name      = src.getFileName.toString.stripSuffix(".lines.scala")
       val idx       = if (idxInt < 10) s"0$idxInt" else s"$idxInt"
       val src2      = testdataDir.resolve(src).resolveSibling(s"$name.$idx.scala")
-      val contents2 = contents.copy(testStats = List(List(stat)))
+      val contents2 = contents.copy(testStats = List(stat))
       val sourceStr = toSource(contents2, Some(Term.Name(s"p$idx")))
       writeAndCompile(compilers, src2, sourceStr)
     }.foldLeft(compilerIds.map(_ => List.empty[Msg])) { (acc, msgss) =>
@@ -103,12 +103,12 @@ object Main {
   def toSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
     val TestContents(outerDefnss, baseClass, innerDefns, testStatss, _) = contents
 
-    val classStats  = innerDefns ::: testStatss.flatten
+    val classStats  = innerDefns ::: testStatss
     val classDefn   = baseClass match {
       case Some(base) => Defn.Class(Nil, t"Test", Nil, Ctor.Primary(Nil, Name(""), Nil), Template(Nil, List(Init(base.name, Name(""), Nil)), Self(Name(""), None), classStats))
       case None       => q"class Test { ..$classStats }"
     }
-    val sourceDefns = outerDefnss.flatten ++ baseClass :+ classDefn
+    val sourceDefns = outerDefnss ++ baseClass :+ classDefn
     val source      = pkgName match {
       case Some(name) => source"package $name; ..$sourceDefns"
       case None       => source"..$sourceDefns"
@@ -167,10 +167,10 @@ object Main {
 }
 
 final case class TestContents(
-    outerDefns: List[List[Defn]],
+    outerDefns: List[Defn],
      baseClass: Option[Defn.Class],
     innerDefns: List[Defn],
-    testStats: List[List[Stat]],
+    testStats: List[Stat],
     expectedMsgs: List[List[Msg]],
 ) {
   def ++(that: TestContents) = TestContents(

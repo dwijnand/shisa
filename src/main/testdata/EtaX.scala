@@ -100,7 +100,7 @@ object EtaX {
     )
 
     val expectedMsgs  = List(msgs2, msgs2, msgs2, msgs3I(Warn), msgs3I(Error), msgs31I(Warn), msgs31I(Error))
-    val contents      = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
+    val contents      = TestContents(outerDefns, Some(baseClass), Nil, testStats, expectedMsgs)
   }
 
   object meth1 extends MkInMemoryTestLinesFile {
@@ -122,7 +122,7 @@ object EtaX {
     def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, Paths.get("EtaX/EtaX.meth1.04.scala"), 5, etaFunction2))
 
     val expectedMsgs = List(msgs2, msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
-    val contents     = TestContents(List(outerDefns), Some(baseClass), Nil, List(testStats), expectedMsgs)
+    val contents     = TestContents(outerDefns, Some(baseClass), Nil, testStats, expectedMsgs)
   }
 
   object prop extends MkInMemoryTestLinesFile {
@@ -172,7 +172,7 @@ object EtaX {
     ))
 
     val expectedMsgs = List(msgs2(Warn), msgs2(Warn), msgs2(Error), msgs3(Warn), msgs3(Error), msgs31(Warn), msgs31(Error))
-    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStats), expectedMsgs)
+    val contents     = TestContents(Nil, Some(baseClass), Nil, testStats, expectedMsgs)
   }
 
   object methF0 extends MkInMemoryTestLinesFile {
@@ -197,7 +197,7 @@ object EtaX {
 
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Severity => List[Msg], msgs31: Severity => List[Msg]) = {
       val expectedMsgs = List(msgs2, msgs2, msgs2, msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
-      TestContents(Nil, Some(baseClass), Nil, List(List(stat)), expectedMsgs)
+      TestContents(Nil, Some(baseClass), Nil, List(stat), expectedMsgs)
     }
   }
 
@@ -206,7 +206,7 @@ object EtaX {
     def baseClass    = q"""class TestBase { val t  = scala.collection.mutable.Map(1 -> "foo") }"""
     def testStat     = q"""val ys = t.clone"""
     val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
-    val contents     = TestContents(Nil, Some(baseClass), Nil, List(List(testStat)), expectedMsgs)
+    val contents     = TestContents(Nil, Some(baseClass), Nil, List(testStat), expectedMsgs)
   }
 
   object meth2 extends MkInMemoryTestLinesFile {
@@ -220,7 +220,7 @@ object EtaX {
 
     def testCase(stat: Stat, msgs: Severity => List[Msg]) = {
       val expectedMsgs = List(Nil, Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
-      TestContents(Nil, Some(baseClass), Nil, List(List(stat)), expectedMsgs)
+      TestContents(Nil, Some(baseClass), Nil, List(stat), expectedMsgs)
     }
   }
 
@@ -231,7 +231,7 @@ object EtaX {
     val msgs2        = List(warn(   pathN(0), 3, autoApp2("boom")))
     val msgs3        = msgs( msg(_, pathN(0), 3, parensCall3("boom")))
     val expectedMsgs = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
-    val contents     = TestContents(List(List(outerDefn)), None, Nil, List(List(testStat)), expectedMsgs)
+    val contents     = TestContents(List(outerDefn), None, Nil, List(testStat), expectedMsgs)
   }
 
   def msgs(mkMsg: Severity => Msg) : Severity => List[Msg] = sev => List(mkMsg(sev))
