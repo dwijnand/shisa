@@ -156,15 +156,13 @@ final case class TestContents(
     testStats: List[List[Stat]],
     expectedMsgs: List[List[Msg]],
 ) {
-  def ++(that: TestContents) = {
-    TestContents(
-      outerDefns ::: that.outerDefns,
-      mergeBaseClasses(baseClass, that.baseClass),
-      innerDefns ::: that.innerDefns,
-      testStats ::: that.testStats,
-      expectedMsgs.zipAll(that.expectedMsgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
-    )
-  }
+  def ++(that: TestContents) = TestContents(
+    outerDefns ::: that.outerDefns,
+    mergeBaseClasses(baseClass, that.baseClass),
+    innerDefns ::: that.innerDefns,
+    testStats ::: that.testStats,
+    expectedMsgs.zipAll(that.expectedMsgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
+  )
 
   private def mergeBaseClasses[A](x: Option[A], y: Option[A]) = (x, y) match {
     case (x @ Some(_), None)          => x
