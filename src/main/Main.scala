@@ -37,8 +37,8 @@ object Main {
   val cwdAbs        = Paths.get("").toAbsolutePath
   val testdataDir   = Paths.get("target/testdata")
   val compilerIds   = mkCompilers.map(_.id)
-  val tests         = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
-  val testsMap      = tests.toMap
+  val tests         = Call.tests ::: EtaX.tests
+  val testsMap      = tests.groupMapReduce(_.path)(tf => tf)((tf1, tf2) => TestFile(tf1.path, tf1.contents ++ tf2.contents))
   val MissingExp    = new Msg(Severity.Error, "exp.scala", 0, "missing exp msg", "")
   val MissingObt    = new Msg(Severity.Error, "obt.scala", 0, "missing obt msg", "")
 
@@ -51,10 +51,10 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val testFiles = args.toList match {
-      case Nil  => tests.sortBy(_._1).tap(tests => println(s"Files: ${tests.map(_._1).mkString("[", ", ", "]")}"))
+      case Nil  => tests.sortBy(_.path).tap(tests => println(s"Files: ${tests.map(_.path).mkString("[", ", ", "]")}"))
       case args =>
         val (missing, tests) = args.map(arg => makeRelative(Paths.get(arg))).partitionMap { path =>
-          testsMap.get(path).map(path -> _).toRight(Left(path))
+          testsMap.get(path).toRight(Left(path))
         }
         if (missing.isEmpty) tests
         else sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
@@ -63,9 +63,7 @@ object Main {
     if (Files.exists(testdataDir)) IOUtil.deleteRecursive(testdataDir)
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = testFiles.map { case (src, contents) =>
-      pool.submit[TestResult](() => compile1(src, contents, mkCompilers))
-    }
+    val futures = testFiles.map(tf => pool.submit[TestResult](() => compile1(tf, mkCompilers)))
 
     pool.shutdown()
 
@@ -83,24 +81,24 @@ object Main {
     }
   }
 
-  def compile1(src: Path, contents: TestContents, mkCompilers: List[MkCompiler]): TestResult = {
-    println(s"* $src")
+  def compile1(testFile: TestFile, mkCompilers: List[MkCompiler]): TestResult = {
+    println(s"* ${testFile.path}")
     val compilers = mkCompilers.map(_.mkCompiler())
-    if (src.toString.endsWith(".lines.scala")) doLines(src, contents, compilers)
-    else                                        doUnit(src, contents, compilers)
+    if (testFile.path.toString.endsWith(".lines.scala")) doLines(testFile, compilers)
+    else                                                  doUnit(testFile, compilers)
   }
 
-  def doUnit(src: Path, contents: TestContents, compilers: List[Compiler]): TestResult = {
-    compareMsgs(contents.msgs, writeAndCompile(compilers, src, toSource(contents)), src)
+  def doUnit(testFile: TestFile, compilers: List[Compiler]): TestResult = {
+    compareMsgs(testFile, writeAndCompile(compilers, testFile.path, toSource(testFile.contents)))
   }
 
-  def doLines(src: Path, contents: TestContents, compilers: List[Compiler]) = {
-    val msgss = contents.stats
-      .map(stat => contents.copy(stats = List(stat)))
+  def doLines(testFile: TestFile, compilers: List[Compiler]) = {
+    val msgss = testFile.contents.stats
+      .map(stat => testFile.contents.copy(stats = List(stat)))
       .zipWithIndex.map { case (contents, idx) =>
-        writeAndCompile(compilers, pathN(src, idx), toSource(contents, Some(idx)))
+        writeAndCompile(compilers, pathN(testFile.path, idx), toSource(contents, Some(idx)))
       }.reduce(_.zip(_).map { case (a, b) => a ::: b })
-    compareMsgs(contents.msgs, msgss, src)
+    compareMsgs(testFile, msgss)
   }
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
@@ -119,7 +117,8 @@ object Main {
     compilers.map(_.compile1(src2)).map(msgsDropSummary)
   }
 
-  def compareMsgs(expMsgss: List[List[Msg]], obtMsgss: List[List[Msg]], src: Path): TestResult = {
+  def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {
+    val TestFile(src, TestContents(_, _, expMsgss)) = testFile
     val msgss2 = expMsgss.zipAll(obtMsgss, Nil, Nil)
     val msgss3 = msgss2.zipAll(compilerIds, (Nil, Nil), "<unknown-compiler-id>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgss3) yield {
@@ -166,6 +165,8 @@ final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: List[L
     msgs.zipAll(that.msgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
   )
 }
+
+final case class TestFile(path: Path, contents: TestContents)
 
 sealed trait TestResult { def src: Path }
 final case class TestSuccess(src: Path)                               extends TestResult

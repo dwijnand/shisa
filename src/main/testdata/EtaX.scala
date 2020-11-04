@@ -49,7 +49,7 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile.{ err, msg, warn }
 
-  def tests = List(boom, meth2, cloneEta, methF0, prop, meth1, meth)
+  def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
   object meth extends MkInMemoryTestLinesFile {
     val path  = Paths.get("EtaX/EtaX.meth.lines.scala")
@@ -201,10 +201,9 @@ object EtaX {
     }
   }
 
-  object cloneEta extends MkInMemoryTestUnitFile {
-    val path     = Paths.get("EtaX/EtaX.clone.scala")
-    val stat     = q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"
-    val contents = TestContents(Nil, List(stat), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil))
+  val cloneEta = {
+    val stat = q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"
+    TestFile(Paths.get("EtaX/EtaX.clone.scala"), TestContents(Nil, List(stat), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
   }
 
   object meth2 extends MkInMemoryTestLinesFile {
@@ -222,14 +221,13 @@ object EtaX {
     }
   }
 
-  object boom extends MkInMemoryTestUnitFile {
-    val path     = Paths.get("EtaX/EtaX.boom.scala")
-    val defns    = List(q"class A { def boom(): Unit = () }")
-    val stat     = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgs2    = List(warn(   path, 3, autoApp2("boom")))
-    val msgs3    = msgs( msg(_, path, 3, parensCall3("boom")))
-    val msgss    = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
-    val contents = TestContents(defns, List(stat), msgss)
+  val boom = {
+    val defns = List(q"class A { def boom(): Unit = () }")
+    val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
+    val msgs2 = List(warn(Paths.get("EtaX/EtaX.boom.scala"), 3, autoApp2("boom")))
+    val msgs3 = msgs( msg(_, Paths.get("EtaX/EtaX.boom.scala"), 3, parensCall3("boom")))
+    val msgss = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
+    TestFile(Paths.get("EtaX/EtaX.boom.scala"), TestContents(defns, List(stat), msgss))
   }
 
   def msgs(mkMsg: Severity => Msg) : Severity => List[Msg] = sev => List(mkMsg(sev))

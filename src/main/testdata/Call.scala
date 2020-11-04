@@ -16,6 +16,7 @@ object MkInMemoryTestFile {
 trait MkInMemoryTestFile {
   def path: Path
   def contents: TestContents
+  final def testFile: TestFile = TestFile(path, contents)
 }
 
 trait MkInMemoryTestUnitFile extends MkInMemoryTestFile
@@ -23,7 +24,8 @@ trait MkInMemoryTestUnitFile extends MkInMemoryTestFile
 object Call {
   def idF[A]: A => A = x => x
 
-  def tests         = List(hashHash, pos, def_meth_p, def_prop_m) ::: switchTests ::: switchVcTests
+  def tests         = allTests.map(_.testFile)
+  def allTests      = List(hashHash, pos, def_meth_p, def_prop_m) ::: switchTests ::: switchVcTests
   def switchTests   = List(switch_m2p_m, switch_m2p_p, switch_p2m_m, switch_p2m_p)
   def switchVcTests = List(switch_vc_m2p_m, switch_vc_m2p_p, switch_vc_p2m_m, switch_vc_p2m_p)
 
