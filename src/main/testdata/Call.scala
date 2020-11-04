@@ -182,7 +182,7 @@ object Call {
       expectedMsgs: (Path, String) => List[List[Msg]]
   ) extends MkInMemoryTestUnitFile {
     val path     = Paths.get(pathStr)
-    val contents = TestContents(List(traitDefn, clsDefn), None, List(valDefn), List(testStat), expectedMsgs(path, traitDefn.name.value))
+    val contents = TestContents(List(traitDefn, clsDefn), List(valDefn), List(testStat), expectedMsgs(path, traitDefn.name.value))
   }
 
   object switch_m2p_m    extends SwitchFile("Call.switch/Call.m2p_m.scala", M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
@@ -202,7 +202,7 @@ object Call {
     def warns2       = List(warn(3, autoApp2("meth")))
     def warns3       = List(warn(3, parensCall3("meth")))
     def  errs3       = List( err(3, parensCall3("meth")))
-    def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
+    def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
   }
 
   object def_prop_m extends MkInMemoryTestUnitFile {
@@ -212,17 +212,17 @@ object Call {
     val expectedMsgs = multi(err2, err3)
     def err2         = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
     def err3         = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
-    def contents     = TestContents(Nil, None, innerDefns, testStats, expectedMsgs)
+    def contents     = TestContents(Nil, innerDefns, testStats, expectedMsgs)
   }
 
   object hashHash extends MkInMemoryTestUnitFile {
     val path = Paths.get("Call.##.scala")
 
     val contents = List(
-      TestContents(Nil, None, List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
-      TestContents(Nil, None, List(ref.defn), duo(ref.name, q"##"), multi(err2( 9), err3( 9))),
-      TestContents(Nil, None, List(obj.defn), duo(obj.name, q"##"), multi(err2(11), err3(11))),
-      TestContents(Nil, None, List(str.defn), duo(str.name, q"##"), multi(err2(13), err3(13))),
+      TestContents(Nil, List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
+      TestContents(Nil, List(ref.defn), duo(ref.name, q"##"), multi(err2( 9), err3( 9))),
+      TestContents(Nil, List(obj.defn), duo(obj.name, q"##"), multi(err2(11), err3(11))),
+      TestContents(Nil, List(str.defn), duo(str.name, q"##"), multi(err2(13), err3(13))),
     ).reduce(_ ++ _)
 
     def err2(lineNo: Int) = err(lineNo, "Int does not take parameters")
@@ -250,6 +250,6 @@ object Call {
         toStringsAndRun(q"CCR()")     :::
         toStrings(q"""VCCR("")""")
 
-    def contents = TestContents(outerDefns, None, innerDefns, testStats, noMsgs)
+    def contents = TestContents(outerDefns, innerDefns, testStats, noMsgs)
   }
 }

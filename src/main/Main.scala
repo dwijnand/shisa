@@ -40,7 +40,7 @@ object Main {
 
   val compilerIds   = mkCompilers.map(_.id)
   val inMemoryTests = (Call.tests ::: EtaX.tests).map(mk => (mk.path, mk.contents))
-  val NoContents    = TestContents(Nil, None, Nil, Nil, Nil)
+  val NoContents    = TestContents(Nil, Nil, Nil, Nil)
 
   def makeRelative(p: Path) = if (p.isAbsolute) cwdAbs.relativize(p) else p
 
@@ -101,14 +101,10 @@ object Main {
   }
 
   def toSource(contents: TestContents, pkgName: Option[Term.Ref] = None): String = {
-    val TestContents(outerDefnss, baseClass, innerDefns, testStatss, _) = contents
+    val TestContents(outerDefnss, innerDefns, testStatss, _) = contents
 
     val classStats  = innerDefns ::: testStatss
-    val classDefn   = baseClass match {
-      case Some(base) => Defn.Class(Nil, t"Test", Nil, Ctor.Primary(Nil, Name(""), Nil), Template(Nil, List(Init(base.name, Name(""), Nil)), Self(Name(""), None), classStats))
-      case None       => q"class Test { ..$classStats }"
-    }
-    val sourceDefns = outerDefnss ++ baseClass :+ classDefn
+    val sourceDefns = outerDefnss :+ q"class Test { ..$classStats }"
     val source      = pkgName match {
       case Some(name) => source"package $name; ..$sourceDefns"
       case None       => source"..$sourceDefns"
@@ -168,24 +164,14 @@ object Main {
 
 final case class TestContents(
     outerDefns: List[Defn],
-     baseClass: Option[Defn.Class],
     innerDefns: List[Defn],
     testStats: List[Stat],
     expectedMsgs: List[List[Msg]],
 ) {
   def ++(that: TestContents) = TestContents(
-    outerDefns ::: that.outerDefns,
-    mergeBaseClasses(baseClass, that.baseClass),
-    innerDefns ::: that.innerDefns,
+    (outerDefns ::: that.outerDefns).distinct,
+    (innerDefns ::: that.innerDefns).distinct,
     testStats ::: that.testStats,
     expectedMsgs.zipAll(that.expectedMsgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
   )
-
-  private def mergeBaseClasses[A](x: Option[A], y: Option[A]) = (x, y) match {
-    case (x @ Some(_), None)          => x
-    case (None, y @ Some(_))          => y
-    case (None, None)                 => None
-    case (Some(x), Some(y)) if x == y => Some(x)
-    case (Some(x), Some(y))           => throw new Exception(s"Can't mergeBaseClasses $x ++ $y")
-  }
 }
