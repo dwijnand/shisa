@@ -10,7 +10,7 @@ class TestFileSourceTest extends FunSuite {
   test("Call_pos toSource")(compareToSource(Call.pos, Call_pos_expected))
 
   def Call_hashhash_expected =
-    """class Test {
+    """object Test {
       |  val any: Any = ""
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
@@ -27,31 +27,31 @@ class TestFileSourceTest extends FunSuite {
       |""".stripMargin
 
   def Call_pos_expected =
-    """class CR extends Runnable { def run() = () }
-      |class CS extends Runnable {
-      |  def run() = ()
-      |  override def toString = ""
-      |}
-      |class CJ extends Runnable {
-      |  def run() = ()
-      |  override def toString() = ""
-      |}
-      |case class CCR() extends Runnable { def run() = () }
-      |case class CCS() extends Runnable {
-      |  def run() = ()
-      |  override def toString = ""
-      |}
-      |case class CCJ() extends Runnable {
-      |  def run() = ()
-      |  override def toString() = ""
-      |}
-      |class VCR(val x: String) extends AnyVal
-      |class VCS(val x: String) extends AnyVal { override def toString = "" }
-      |class VCJ(val x: String) extends AnyVal { override def toString() = "" }
-      |case class VCCR(x: String) extends AnyVal
-      |case class VCCS(x: String) extends AnyVal { override def toString = "" }
-      |case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
-      |class Test {
+    """object Test {
+      |  class CR extends Runnable { def run() = () }
+      |  class CS extends Runnable {
+      |    def run() = ()
+      |    override def toString = ""
+      |  }
+      |  class CJ extends Runnable {
+      |    def run() = ()
+      |    override def toString() = ""
+      |  }
+      |  case class CCR() extends Runnable { def run() = () }
+      |  case class CCS() extends Runnable {
+      |    def run() = ()
+      |    override def toString = ""
+      |  }
+      |  case class CCJ() extends Runnable {
+      |    def run() = ()
+      |    override def toString() = ""
+      |  }
+      |  class VCR(val x: String) extends AnyVal
+      |  class VCS(val x: String) extends AnyVal { override def toString = "" }
+      |  class VCJ(val x: String) extends AnyVal { override def toString() = "" }
+      |  case class VCCR(x: String) extends AnyVal
+      |  case class VCCS(x: String) extends AnyVal { override def toString = "" }
+      |  case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
       |  val any: Any = ""
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
