@@ -40,7 +40,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
 object FreshCompiler3 {
   def diaToMsg(dia: Diagnostic)(implicit ctx: Context): Msg = {
     val pos = dia.pos.nonInlined
-    new Msg(diaSeverity(dia), pos.source.file.path, pos.line + 1, dia.message)
+    new Msg(diaSeverity(dia), pos.line + 1, dia.message)
   }
 
   def diaSeverity(dia: Diagnostic) = dia match {

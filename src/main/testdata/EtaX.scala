@@ -1,17 +1,13 @@
 package shisa
 package testdata
 
-import java.nio.file._
-
 import scala.Function.const
 
 import scala.meta._
 
 import Severity.{ Warn, Error }
 
-trait MkInMemoryTestLinesFile extends MkInMemoryTestFile {
-  def pathN(n: Int): Path = Main.pathN(path, n)
-}
+trait MkInMemoryTestLinesFile extends MkInMemoryTestFile
 
 object ErrorMsgs {
   val str1 = "(): String"
@@ -49,10 +45,9 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile.{ err, msg, warn }
 
-  def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
+  def tests = boom :: meth2.contents :: cloneEta :: List(methF0, prop, meth1, meth).map(_.contents)
 
   object meth extends MkInMemoryTestLinesFile {
-    val path  = Paths.get("EtaX/EtaX.meth.lines.scala")
     val Sam0S = q"                     trait Sam0S { def apply(): Any }"
     val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
     val defns = List(Sam0S, Sam0J, q"""def meth() = """"")
@@ -68,39 +63,38 @@ object EtaX {
     )
 
     val msgs2 = List(
-       err(Paths.get("EtaX/EtaX.meth.01.scala"), 6, typeMismatch2("String", "p01.Test.Sam0S")),
-       err(Paths.get("EtaX/EtaX.meth.02.scala"), 6, typeMismatch2("String", "p02.Test.Sam0J")),
-      warn(Paths.get("EtaX/EtaX.meth.03.scala"), 7, autoApp2("meth")),
-       err(Paths.get("EtaX/EtaX.meth.07.scala"), 6, mustFollow("String")),
+       err(6, typeMismatch2("String", "p01.Test.Sam0S")),
+       err(6, typeMismatch2("String", "p02.Test.Sam0J")),
+      warn(7, autoApp2("meth")),
+       err(6, mustFollow("String")),
     )
-    def msgs3Pair(sev: Severity, path: Path, lineNo: Int, exp: String) = List(
-      msg(sev, path, lineNo, parensCall3("meth")),
+    def msgs3Pair(sev: Severity, lineNo: Int, exp: String) = List(
+      msg(sev, lineNo, parensCall3("meth")),
     ) ::: (if (sev == Error) Nil else List(
-      err(     path, lineNo, typeMismatch3("String", exp)),
+      err(     lineNo, typeMismatch3("String", exp)),
     ))
     def msgs30I(sev: Severity) = {
-      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.01.scala"), 6, "p01.Test.Sam0S") :::
-      msgs3Pair(sev, Paths.get("EtaX/EtaX.meth.02.scala"), 6, "p02.Test.Sam0J") ::: List(
-      msg(      sev, Paths.get("EtaX/EtaX.meth.03.scala"), 7, mustParens("meth")),
-      msg(      sev, Paths.get("EtaX/EtaX.meth.07.scala"), 6, onlyFuncs("String")),
+      msgs3Pair(sev, 6, "p01.Test.Sam0S") :::
+      msgs3Pair(sev, 6, "p02.Test.Sam0J") ::: List(
+      msg(      sev, 7, mustParens("meth")),
+      msg(      sev, 6, onlyFuncs("String")),
     )
     }
     def msgs31I(sev: Severity) = List(
-      err(     Paths.get("EtaX/EtaX.meth.01.scala"), 6, parensCall3("meth")),
-      err(     Paths.get("EtaX/EtaX.meth.02.scala"), 6, parensCall3("meth")),
-      err(     Paths.get("EtaX/EtaX.meth.03.scala"), 7, parensCall3("meth")),
-      msg(sev, Paths.get("EtaX/EtaX.meth.04.scala"), 6, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.meth.05.scala"), 7, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.meth.06.scala"), 6, etaFunction),
-      msg(sev, Paths.get("EtaX/EtaX.meth.07.scala"), 6, onlyFuncs("String")),
+      err(     6, parensCall3("meth")),
+      err(     6, parensCall3("meth")),
+      err(     7, parensCall3("meth")),
+      msg(sev, 6, etaFunction),
+      msg(sev, 7, etaFunction),
+      msg(sev, 6, etaFunction),
+      msg(sev, 6, onlyFuncs("String")),
     )
 
     val msgs     = List(msgs2, msgs2, msgs2, msgs30I(Warn), msgs30I(Error), msgs31I(Warn), msgs31I(Error))
-    val contents = TestContents(defns, stats, msgs)
+    val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
   object meth1 extends MkInMemoryTestLinesFile {
-    val path  = Paths.get("EtaX/EtaX.meth1.lines.scala")
     val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
     val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
     val defns = List(Sam1S, Sam1J, q"""def meth1(x: Any) = """"")
@@ -111,16 +105,15 @@ object EtaX {
       q"val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0",
       q"val t5e: Any => Any = { val t = meth1 _ ; t } // ok",
     )
-    val msgs2 = List( err(Paths.get("EtaX/EtaX.meth1.03.scala"), 7, missingArgs("meth1", "Test")))
-    val msgs3 = List(warn(Paths.get("EtaX/EtaX.meth1.01.scala"), 6, stillEta("meth1", "p01.Test.Sam1S")))
-    def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, Paths.get("EtaX/EtaX.meth1.04.scala"), 7, etaFunction2))
+    val msgs2 = List( err(7, missingArgs("meth1", "Test")))
+    val msgs3 = List(warn(6, stillEta("meth1", "p01.Test.Sam1S")))
+    def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, 7, etaFunction2))
 
     val msgs     = List(msgs2, msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
-    val contents = TestContents(defns, stats, msgs)
+    val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
   object prop extends MkInMemoryTestLinesFile {
-    val path  = Paths.get("EtaX/EtaX.prop.lines.scala")
     val defns = List(q"""def prop = """"")
     val stats = List(
       q"val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods",
@@ -133,61 +126,55 @@ object EtaX {
     )
 
     def msgs2(sev: Severity)  = List(
-      err(     pathN(0), 4, typeMismatch2("String", "() => Any")),
-      err(     pathN(2), 4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
-      msg(sev, pathN(3), 4, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      msg(sev, pathN(4), 5, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      msg(sev, pathN(5), 4, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      err(     pathN(6), 4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      err(     4, typeMismatch2("String", "() => Any")),
+      err(     4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      msg(sev, 4, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
+      msg(sev, 5, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
+      msg(sev, 4, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
+      err(     4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
     )
     def msgs3(sev: Severity)  = List(
-      err(     pathN(0), 4, typeMismatch3("String", "() => Any")),
-      err(     pathN(2), 4, missingArgForParam("apply: (i: Int): Char", "i")),
-      msg(sev, pathN(3), 4, onlyFuncs("String")),
-      msg(sev, pathN(4), 5, onlyFuncs("String")),
+      err(     4, typeMismatch3("String", "() => Any")),
+      err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
+      msg(sev, 4, onlyFuncs("String")),
+      msg(sev, 5, onlyFuncs("String")),
     ) ::: (if (sev != Error) Nil else List(
-      msg(sev, pathN(4), 6, typeMismatch3("(t : String)", "() => Any")),
+      msg(sev, 6, typeMismatch3("(t : String)", "() => Any")),
     )) ::: List(
-      msg(sev, pathN(5), 4, onlyFuncs("String")),
-      msg(sev, pathN(6), 4, onlyFuncs("<error unspecified error>")),
+      msg(sev, 4, onlyFuncs("String")),
+      msg(sev, 4, onlyFuncs("<error unspecified error>")),
     ) ::: (if (sev == Error) Nil else List(
-      err(     pathN(6), 4, missingArgForParam("apply: (i: Int): Char", "i"))
+      err(     4, missingArgForParam("apply: (i: Int): Char", "i"))
     ))
     def msgs31(sev: Severity) = List(
-      err(     pathN(0), 4, typeMismatch3("String", "() => Any")),
-      err(     pathN(2), 4, missingArgForParam("apply: (i: Int): Char", "i")),
-      msg(sev, pathN(3), 4, onlyFuncs("String")),
+      err(     4, typeMismatch3("String", "() => Any")),
+      err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
+      msg(sev, 4, onlyFuncs("String")),
     ) ::: (if (sev == Error) Nil else List(
-      err(     pathN(3), 4, typeMismatch3("String", "() => Any")),
+      err(     4, typeMismatch3("String", "() => Any")),
     )) ::: List(
-      msg(sev, pathN(4), 5, onlyFuncs("String")),
-      err(     pathN(4), 6, typeMismatch3("(t : String)", "() => Any")),
-      msg(sev, pathN(5), 4, onlyFuncs("String")),
-      msg(sev, pathN(6), 4, onlyFuncs("<error unspecified error>")),
+      msg(sev, 5, onlyFuncs("String")),
+      err(     6, typeMismatch3("(t : String)", "() => Any")),
+      msg(sev, 4, onlyFuncs("String")),
+      msg(sev, 4, onlyFuncs("<error unspecified error>")),
     ) ::: (if (sev == Error) Nil else List(
-      err(     pathN(6), 4, missingArgForParam("apply: (i: Int): Char", "i")),
+      err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
     ))
 
     val msgs     = List(msgs2(Warn), msgs2(Warn), msgs2(Error), msgs3(Warn), msgs3(Error), msgs31(Warn), msgs31(Error))
-    val contents = TestContents(defns, stats, msgs)
-
-    def testCase(stat: Stat, msgs2: Severity => List[Msg], msgs30: Severity => List[Msg], msgs31: Severity => List[Msg]) = {
-      val msgs = List(msgs2(Warn), msgs2(Warn), msgs2(Error), msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
-      TestContents(defns, List(stat), msgs)
-    }
+    val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
   object methF0 extends MkInMemoryTestLinesFile {
-    val path      = Paths.get("EtaX/EtaX.methF0.lines.scala")
     val defns     = List(q"""def methF0() = () => """"")
-    val msgs2_1   = warn(   pathN(1), 5, autoApp2("methF0"))
-    val msgs30_1  =  msg(_, pathN(1), 5, parensCall3("methF0"))
-    val msgs31_1  =  err(   pathN(1), 5, parensCall3("methF0"))
-    val msgs31_2  =  msg(_, pathN(2), 4, etaFunction)
-    val msgs31_3  =  msg(_, pathN(3), 4, etaFunction)
-    val msgs2_4   =  err(   pathN(4), 4, mustFollow("() => String"))
-    val msgs30_4  =  msg(_, pathN(4), 4,  onlyFuncs("() => String"))
-    val msgs31_4  =  msg(_, pathN(4), 4,  onlyFuncs("() => String"))
+    val msgs2_1   = warn(   5, autoApp2("methF0"))
+    val msgs30_1  =  msg(_, 5, parensCall3("methF0"))
+    val msgs31_1  =  err(   5, parensCall3("methF0"))
+    val msgs31_2  =  msg(_, 4, etaFunction)
+    val msgs31_3  =  msg(_, 4, etaFunction)
+    val msgs2_4   =  err(   4, mustFollow("() => String"))
+    val msgs30_4  =  msg(_, 4,  onlyFuncs("() => String"))
+    val msgs31_4  =  msg(_, 4,  onlyFuncs("() => String"))
     val testCase0 = testCase(q"val t1a: () => Any = methF0",                Nil,           noMsgs,         noMsgs)                // ok, eta-expansion
     val testCase1 = testCase(q"val t1b: () => Any = { val t = methF0; t }", List(msgs2_1), msgs(msgs30_1), msgs(const(msgs31_1))) // `()`-insert b/c no expected type
     val testCase2 = testCase(q"val t1c: () => Any = methF0 _",              Nil,           noMsgs,         msgs(msgs31_2))        // ok, explicit eta-expansion requested
@@ -197,37 +184,36 @@ object EtaX {
 
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Severity => List[Msg], msgs31: Severity => List[Msg]) = {
       val msgs = List(msgs2, msgs2, msgs2, msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
-      TestContents(defns, List(stat), msgs)
+      TestContents(defns, List(List(stat)), msgs)
     }
   }
 
   val cloneEta = {
     val stat = q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"
-    TestFile(Paths.get("EtaX/EtaX.clone.scala"), TestContents(Nil, List(stat), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
+    TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil))
   }
 
   object meth2 extends MkInMemoryTestLinesFile {
-    val path  = Paths.get("EtaX/EtaX.meth2.lines.scala")
     val defns = List(q"""def meth2()() = """"")
-    val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(msg(_, pathN(0), 4, etaFunction))) // eta-expansion, but lint warning
-    val tc1   = testCase(q"val t4b: () => Any = meth2()",   noMsgs)                                 // ditto
-    val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(msg(_, pathN(2), 4, etaFunction))) // ok
-    val tc3   = testCase(q"val t4d: () => Any = meth2() _", msgs(msg(_, pathN(3), 4, etaFunction))) // ok
+    val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(msg(_, 4, etaFunction))) // eta-expansion, but lint warning
+    val tc1   = testCase(q"val t4b: () => Any = meth2()",   noMsgs)                       // ditto
+    val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(msg(_, 4, etaFunction))) // ok
+    val tc3   = testCase(q"val t4d: () => Any = meth2() _", msgs(msg(_, 4, etaFunction))) // ok
     val contents  = List(tc0, tc1, tc2, tc3).reduce(_ ++ _)
 
     def testCase(stat: Stat, msgs: Severity => List[Msg]) = {
       val msgss = List(Nil, Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
-      TestContents(defns, List(stat), msgss)
+      TestContents(defns, List(List(stat)), msgss)
     }
   }
 
   val boom = {
     val defns = List(q"class A { def boom(): Unit = () }")
     val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgs2 = List(warn(Paths.get("EtaX/EtaX.boom.scala"), 3, autoApp2("boom")))
-    val msgs3 = msgs( msg(_, Paths.get("EtaX/EtaX.boom.scala"), 3, parensCall3("boom")))
+    val msgs2 = List(warn(   3, autoApp2("boom")))
+    val msgs3 = msgs( msg(_, 3, parensCall3("boom")))
     val msgss = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
-    TestFile(Paths.get("EtaX/EtaX.boom.scala"), TestContents(defns, List(stat), msgss))
+    TestContents(defns, List(List(stat)), msgss)
   }
 
   def msgs(mkMsg: Severity => Msg) : Severity => List[Msg] = sev => List(mkMsg(sev))

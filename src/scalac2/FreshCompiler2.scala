@@ -33,7 +33,7 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
 
 object FreshCompiler2 {
   def infoToMsg(info: StoreReporter.Info): Msg = {
-    new Msg(infoSeverity(info), info.pos.source.file.path, info.pos.line, info.msg)
+    new Msg(infoSeverity(info), info.pos.line, info.msg)
   }
 
   def infoSeverity(info: StoreReporter.Info): Severity = info.severity match {
