@@ -40,7 +40,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
 object FreshCompiler3 {
   def diaToMsg(dia: Diagnostic)(implicit ctx: Context): Msg = {
     val pos = dia.pos.nonInlined
-    new Msg(diaSeverity(dia), pos.source.file.path, pos.line + 1, dia.message, FreshCompiler3.display(dia))
+    new Msg(diaSeverity(dia), pos.source.file.path, pos.line + 1, dia.message)
   }
 
   def diaSeverity(dia: Diagnostic) = dia match {
@@ -53,40 +53,6 @@ object FreshCompiler3 {
     case _: Diagnostic.Info               => Severity.Info
   }
 
-  // from dotc.reporting.ConsoleReporter
-  def display(dia: Diagnostic)(implicit ctx: Context): String = dia match {
-    case dia: Diagnostic.ConditionalWarning => if (dia.enablingOption.value) display1(dia) else ""
-    case _                                  => display1(dia)
-  }
-
-  private def display1(dia: Diagnostic)(implicit ctx: Context): String = {
-    // Error/Warning/Info/Feature Warning/Deprecation Warning/Unchecked Warning/Migration Warning
-    val diaLvl  = rendering.diagnosticLevel(dia)
-    val msgPos  = rendering.messageAndPos(dia.msg, dia.pos, diaLvl)
-    val explain = if (dia.msg.explanation.isEmpty) "" else "\n" + rendering.explanation(dia.msg)
-    msgPos + explain
-    // -- [E050] Type Error: target/testdata/Call.##.scala:8:6 ------------------------
-    // 8 |  any.##()
-    //   |  ^^^^^^
-    //   |  method ## in class Any does not take parameters
-    //
-    // Explanation
-    // ===========
-    // You have specified more parameter lists as defined in the method definition(s).
-    // Nullary methods may not be called with parenthesis
-  }
-  // AbstractFile { name: String, path: String, jfile: Optional[File] }
-  // SourceFile <: AbstractFile { content: Array[Char] }
-  // SourcePosition {
-  //          source: SourceFile,
-  //     lineContent: String,
-  //     point,      line,      column: Int,
-  //     start, startLine, startColumn: Int,
-  //       end,   endLine,   endColumn: Int,
-  // }
-  // Diagnostic (level): Error Warning Info FeatureWarning DeprecationWarning UncheckedWarning MigrationWarning
-
-  object rendering extends MessageRendering
   object Driver extends dotc.Driver {
     override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(using Context): Reporter =
         super.doCompile(compiler, fileNames)

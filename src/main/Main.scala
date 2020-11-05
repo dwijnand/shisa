@@ -39,8 +39,8 @@ object Main {
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: EtaX.tests
   val testsMap      = tests.groupMapReduce(_.path)(tf => tf)((tf1, tf2) => TestFile(tf1.path, tf1.contents ++ tf2.contents))
-  val MissingExp    = new Msg(Severity.Error, "exp.scala", 0, "missing exp msg", "")
-  val MissingObt    = new Msg(Severity.Error, "obt.scala", 0, "missing obt msg", "")
+  val MissingExp    = new Msg(Severity.Error, "exp.scala", 0, "missing exp msg")
+  val MissingObt    = new Msg(Severity.Error, "obt.scala", 0, "missing obt msg")
 
   def makeRelative(p: Path)     = if (p.isAbsolute) cwdAbs.relativize(p) else p
   def idxStr(idx: Int)          = if (idx < 10) s"0$idx" else s"$idx"

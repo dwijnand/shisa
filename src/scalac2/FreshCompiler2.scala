@@ -4,10 +4,10 @@ import java.io.File
 import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
-import scala.reflect.internal.util.{ Position, StringOps }
-import scala.reflect.internal.{ Reporter => IReporter }
+import scala.reflect.internal.util.StringOps
+import scala.reflect.internal
 import scala.reflect.io.{ AbstractFile, VirtualDirectory }
-import scala.tools.nsc, nsc._, reporters.{ Reporter, StoreReporter }
+import scala.tools.nsc, nsc._, reporters.StoreReporter
 
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends MkCompiler {
   def mkCompiler(): Compiler = new Compiler {
@@ -33,34 +33,19 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
 
 object FreshCompiler2 {
   def infoToMsg(info: StoreReporter.Info): Msg = {
-    new Msg(infoSeverity(info), info.pos.source.file.path, info.pos.line, info.msg, display(info))
+    new Msg(infoSeverity(info), info.pos.source.file.path, info.pos.line, info.msg)
   }
 
   def infoSeverity(info: StoreReporter.Info): Severity = info.severity match {
-    case IReporter.ERROR   => Severity.Error
-    case IReporter.WARNING => Severity.Warn
-    case IReporter.INFO    => Severity.Info
-  }
-
-  // from nsc.reporters.PrintReporter
-  def display(info: StoreReporter.Info): String = {
-    val label = info.severity match {
-      case IReporter.ERROR   => "error: "
-      case IReporter.WARNING => "warning: "
-      case IReporter.INFO    => ""
-    }
-    val msg  = Reporter.explanation(info.msg)
-    val text = Position.formatMessage(info.pos, s"$label$msg", shortenFile = false)
-    StringOps.trimAllTrailingSpace(text)
-    // target/testdata/Call.##.scala:8: error: Int does not take parameters
-    //   any.##()
-    //         ^
+    case internal.Reporter.ERROR   => Severity.Error
+    case internal.Reporter.WARNING => Severity.Warn
+    case internal.Reporter.INFO    => Severity.Info
   }
 
   // from nsc.reporters.ConsoleReporter
-  def finish(reporter: IReporter): Unit = {
+  def finish(reporter: internal.Reporter): Unit = {
     def echo(lbl: String, n: Int) = if (n > 0) reporter.echo(StringOps.countElementsAsString(n, lbl))
     echo("warning", reporter.warningCount)
-    echo("error", reporter.errorCount)
+    echo("error",   reporter.errorCount)
   }
 }

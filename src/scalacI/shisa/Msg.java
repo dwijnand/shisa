@@ -8,14 +8,12 @@ public final class Msg {
     public final String path;
     public final int lineNo;
     public final String text;
-    public final String output;
 
-    public Msg(Severity severity, String path, int lineNo, String text, String output) {
+    public Msg(Severity severity, String path, int lineNo, String text) {
         this.severity = severity;
         this.path = path;
         this.lineNo = lineNo;
         this.text = text;
-        this.output = output;
     }
 
     public boolean equals(Object o) {

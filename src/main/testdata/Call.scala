@@ -8,7 +8,7 @@ import scala.meta._
 import Severity.{ Warn, Error }
 
 object MkInMemoryTestFile {
-  def  msg(sev: Severity, path: Path, lineNo: Int, str: String) = new Msg(sev,  s"target/testdata/$path", lineNo, str, "")
+  def  msg(sev: Severity, path: Path, lineNo: Int, str: String) = new Msg(sev,  s"target/testdata/$path", lineNo, str)
   def warn(path: Path, lineNo: Int, str: String)                = msg(Severity.Warn,  path, lineNo, str)
   def  err(path: Path, lineNo: Int, str: String)                = msg(Severity.Error, path, lineNo, str)
 }
