@@ -7,13 +7,13 @@ import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
 import dotty.tools.{ FatalError, dotc }
-import dotc.{ Driver, Run, report, Compiler => _ }
+import dotc.{ Run, report, Compiler => _ }
 import dotc.ast.Positioned
-import dotc.config.{ CommandLineParser, Settings }
+import dotc.config.CommandLineParser
 import dotc.core.TypeError
 import dotc.core.Contexts._
 import dotc.reporting._
-import dotc.util.NoSourcePosition
+import dotc.util.SourceFile
 import dotty.tools.io.VirtualDirectory
 
 final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends MkCompiler {
@@ -34,7 +34,8 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
 
     def compile1(src: Path) = {
       ctx.setReporter(new StoreReporter(/* outer = */ null) with UniqueMessagePositions with HideNonSensicalMessages)
-      Scalac3Driver.doCompile(compiler, List(src.toString))
+      val source = SourceFile.virtual(src.getFileName.toString, java.nio.file.Files.readString(src))
+      Scalac3Driver.doCompile(compiler, List(source))
       new Msgs(ctx.reporter.removeBufferedMessages.map(FreshCompiler3.diaToMsg(_)).asJava)
     }
   }
@@ -57,38 +58,32 @@ object FreshCompiler3 {
   }
 }
 
-object Scalac3Driver extends Driver {
-  override def doCompile(compiler: dotc.Compiler, fileNames: List[String])(implicit ctx: Context): Reporter = {
-    if (fileNames.nonEmpty)
-      try {
-        val run = compiler.newRun
-        run.compile(fileNames)
+object Scalac3Driver {
+  def doCompile(compiler: dotc.Compiler, sources: List[SourceFile])(implicit ctx: Context): Reporter = {
+    try {
+      val run: Run = compiler.newRun
+      run.compileSources(sources)
 
-        @tailrec def finish(run: Run): Unit = {
-          run.printSummary()
-          if (!ctx.reporter.errorsReported && run.suspendedUnits.nonEmpty) {
-            val suspendedUnits = run.suspendedUnits.toList
-            if (ctx.settings.XprintSuspension.value)
-              report.echo(s"compiling suspended ${suspendedUnits.mkString(", ")}", NoSourcePosition)
-            val run1 = compiler.newRun
-            for (unit <- suspendedUnits)
-              unit.suspended = false
-            run1.compileUnits(suspendedUnits)
-            finish(run1)
-          }
+      @tailrec def finish(run: Run): Unit = {
+        run.printSummary()
+        if (!ctx.reporter.errorsReported && run.suspendedUnits.nonEmpty) {
+          val suspendedUnits = run.suspendedUnits.toList
+          if (ctx.settings.XprintSuspension.value)
+            report.echo(s"compiling suspended ${suspendedUnits.mkString(", ")}")
+          val run1: Run = compiler.newRun
+          for (unit <- suspendedUnits)
+            unit.suspended = false
+          run1.compileUnits(suspendedUnits)
+          finish(run1)
         }
-
-        finish(run)
-      } catch {
-        case ex: FatalError  =>
-          report.error(new NoExplanation(ex.getMessage), NoSourcePosition, /* sticky = */ false) // signals that we should fail compilation.
-        case ex: TypeError =>
-          println(s"${ex.toMessage} while compiling ${fileNames.mkString(", ")}")
-          throw ex
-        case ex: Throwable =>
-          println(s"$ex while compiling ${fileNames.mkString(", ")}")
-          throw ex
       }
+
+      finish(run)
+    } catch {
+      case ex: FatalError => report.error(ex.getMessage) // signals that we should fail compilation.
+      case ex: TypeError  => println(s"${ex.toMessage} while compiling ${sources.mkString(", ")}") ; throw ex
+      case ex: Throwable  => println(s"$ex while compiling ${sources.mkString(", ")}")             ; throw ex
+    }
     ctx.reporter
   }
 }
