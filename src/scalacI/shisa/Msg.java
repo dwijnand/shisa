@@ -18,9 +18,7 @@ public final class Msg {
         if (this == o) return true;
         if (!(o instanceof Msg)) return false;
         Msg msg = (Msg) o;
-        return lineNo == msg.lineNo &&
-                severity == msg.severity &&
-                text.equals(msg.text);
+        return lineNo == msg.lineNo && severity == msg.severity && text.equals(msg.text);
     }
 
     public int hashCode() { return Objects.hash(severity, lineNo, text); }

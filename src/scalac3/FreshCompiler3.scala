@@ -1,7 +1,6 @@
 package shisa
 
 import java.io.File
-import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
 
@@ -30,11 +29,10 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     Positioned.updateDebugPos
     val compiler = new dotc.Compiler
 
-    def compile1(src: Path) = {
+    def compile1(src: SrcFile) = {
       ctx.setReporter(new StoreReporter(/* outer = */ null) with UniqueMessagePositions with HideNonSensicalMessages)
-      val source = SourceFile.virtual(src.getFileName.toString, java.nio.file.Files.readString(src))
       val run: Run = compiler.newRun
-      run.compileSources(List(source))
+      run.compileSources(List(SourceFile.virtual(src.name, src.content)))
       assert(ctx.reporter.errorsReported || run.suspendedUnits.isEmpty, "Suspended units support now required")
       new Msgs(ctx.reporter.removeBufferedMessages.map(getMsg(_)).asJava)
     }

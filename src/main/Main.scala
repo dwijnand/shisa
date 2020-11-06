@@ -4,7 +4,6 @@ import scala.language.implicitConversions
 
 import java.io.File
 import java.net.URLClassLoader
-import java.nio.file._
 import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
@@ -80,17 +79,20 @@ object Main {
   }
 
   def doUnit(testFile: TestFile, compilers: List[Compiler]): TestResult = {
-    compareMsgs(testFile, writeAndCompile(compilers, toSource(testFile.contents)))
+    compareMsgs(testFile, writeAndCompile(compilers, testFile.name, toSource(testFile.contents)))
   }
 
   def doLines(testFile: TestFile, compilers: List[Compiler]) = {
     val msgss = testFile.contents.stats
       .map(stat => testFile.contents.copy(stats = List(stat)))
       .zipWithIndex.map { case (contents, idx) =>
-        writeAndCompile(compilers, toSource(contents, Some(idx)))
+        writeAndCompile(compilers, testFile.name + idxStr(idx), toSource(contents, Some(idx)))
       }.reduce(_.zip(_).map { case (a, b) => a ::: b })
     compareMsgs(testFile, msgss)
   }
+
+  def writeAndCompile(compilers: List[Compiler], name: String, content: String) =
+    compilers.map(_.compile1(new SrcFile(name, content))).map(_.msgs.asScala.toList)
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
     val sourceDefn = q"object Test { ..${contents.defns ::: contents.stats.flatten} }"
@@ -99,13 +101,6 @@ object Main {
       case Some(pkgName) => source"package $pkgName; $sourceDefn"
     }
     source.syntax + "\n"
-  }
-
-  def writeAndCompile(compilers: List[Compiler], sourceStr: String) = {
-    val src = Files.createTempFile("shisa", ".scala")
-    Files.createDirectories(src.getParent)
-    Files.writeString(src, sourceStr)
-    compilers.map(_.compile1(src)).map(_.msgs.asScala.toList)
   }
 
   def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {

@@ -1,11 +1,11 @@
 package shisa
 
 import java.io.File
-import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
 import scala.reflect.internal
-import scala.reflect.io.{ AbstractFile, VirtualDirectory }
+import scala.reflect.internal.util.BatchSourceFile
+import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends MkCompiler {
@@ -21,9 +21,8 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
     val reporter = new StoreReporter(settings)
     val compiler = Global(settings, reporter)
 
-    def compile1(src: Path) = try {
-      val source = compiler.getSourceFile(AbstractFile.getFile(src.toFile))
-      new compiler.Run().compileSources(List(source))
+    def compile1(src: SrcFile) = try {
+      new compiler.Run().compileSources(List(new BatchSourceFile(src.name, src.content.toArray)))
       new Msgs(reporter.infos.toList.map(getMsg(_)).asJava)
     } finally reporter.reset()
   }
