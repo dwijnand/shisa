@@ -10,6 +10,7 @@ import java.util.concurrent.Executors
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.chaining._
+import scala.Console.{ GREEN, RED, RESET }
 
 import scala.meta._
 
@@ -108,20 +109,19 @@ object Main {
   }
 
   def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {
-    val TestFile(src, TestContents(_, _, expMsgss)) = testFile
-    val msgss2 = expMsgss.zipAll(obtMsgss, Nil, Nil)
-    val msgss3 = msgss2.zipAll(compilerIds, (Nil, Nil), "<unknown-compiler-id>")
-    val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgss3) yield {
+    val TestFile(name, TestContents(_, _, expMsgss)) = testFile
+    val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
+    val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
       expMsgs.zipAll(obtMsgs, MissingExp, MissingObt).collect {
         case (exp, obt) if exp != obt => showExp(exp) + showObt(obt)
       }.mkString match {
-        case ""    => TestSuccess(src)
-        case lines => TestFailure(src, s"$src: message mismatch (compiler $compilerId) (${Console.RED}-expected${Console.RESET}/${Console.GREEN}+obtained${Console.RESET}):$lines")
+        case ""    => TestSuccess(name)
+        case lines => TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-expected$RESET/$GREEN+obtained$RESET):$lines")
       }
     }
     testResults.collect { case tf: TestFailure => tf } match {
-      case Nil          => TestSuccess(src)
-      case testFailures => TestFailures(src, testFailures)
+      case Nil          => TestSuccess(name)
+      case testFailures => TestFailures(name, testFailures)
     }
   }
 
@@ -129,8 +129,8 @@ object Main {
   def msgsDropSummary(msgs: Msgs) = msgs.msgs.asScala.toList.takeWhile(_.lineNo != 0)
 
   val LineStart         = "(?m)^".r
-  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.RED   + "  -") + Console.RESET
-  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), Console.GREEN + "  +") + Console.RESET
+  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
+  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg) = s"${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
 
   def showSev(sev: Severity) = sev match {
