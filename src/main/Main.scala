@@ -105,7 +105,7 @@ object Main {
     val src = Files.createTempFile("shisa", ".scala")
     Files.createDirectories(src.getParent)
     Files.writeString(src, sourceStr)
-    compilers.map(_.compile1(src)).map(msgsDropSummary)
+    compilers.map(_.compile1(src)).map(_.msgs.asScala.toList)
   }
 
   def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {
@@ -124,9 +124,6 @@ object Main {
       case testFailures => TestFailures(name, testFailures)
     }
   }
-
-  // drop summary ("3 errors"/"3 errors found")
-  def msgsDropSummary(msgs: Msgs) = msgs.msgs.asScala.toList.takeWhile(_.lineNo != 0)
 
   val LineStart         = "(?m)^".r
   def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET

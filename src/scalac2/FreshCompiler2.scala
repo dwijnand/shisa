@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.Path
 
 import scala.jdk.CollectionConverters._
-import scala.reflect.internal.util.StringOps
 import scala.reflect.internal
 import scala.reflect.io.{ AbstractFile, VirtualDirectory }
 import scala.tools.nsc, nsc._, reporters.StoreReporter
@@ -23,29 +22,17 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
     val compiler = Global(settings, reporter)
 
     def compile1(src: Path) = try {
-      new compiler.Run().compileFiles(List(AbstractFile.getFile(src.toFile)))
-      FreshCompiler2.finish(reporter)
-      val msgs = reporter.infos.toList.map(FreshCompiler2.infoToMsg(_))
-      new Msgs(msgs.asJava)
+      val source = compiler.getSourceFile(AbstractFile.getFile(src.toFile))
+      new compiler.Run().compileSources(List(source))
+      new Msgs(reporter.infos.toList.map(getMsg(_)).asJava)
     } finally reporter.reset()
   }
-}
 
-object FreshCompiler2 {
-  def infoToMsg(info: StoreReporter.Info): Msg = {
-    new Msg(infoSeverity(info), info.pos.line, info.msg)
-  }
+  def getMsg(info: StoreReporter.Info) = new Msg(getSeverity(info), info.pos.line, info.msg)
 
-  def infoSeverity(info: StoreReporter.Info): Severity = info.severity match {
+  def getSeverity(info: StoreReporter.Info) = info.severity match {
     case internal.Reporter.ERROR   => Severity.Error
     case internal.Reporter.WARNING => Severity.Warn
     case internal.Reporter.INFO    => Severity.Info
-  }
-
-  // from nsc.reporters.ConsoleReporter
-  def finish(reporter: internal.Reporter): Unit = {
-    def echo(lbl: String, n: Int) = if (n > 0) reporter.echo(StringOps.countElementsAsString(n, lbl))
-    echo("warning", reporter.warningCount)
-    echo("error",   reporter.errorCount)
   }
 }
