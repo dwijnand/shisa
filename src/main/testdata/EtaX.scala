@@ -45,9 +45,10 @@ object EtaX {
   import ErrorMsgs._
   import MkInMemoryTestFile.{ err, msg, warn }
 
-  def tests = boom :: meth2.contents :: cloneEta :: List(methF0, prop, meth1, meth).map(_.contents)
+  def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
   object meth extends MkInMemoryTestLinesFile {
+    val name = "EtaX.meth"
     val Sam0S = q"                     trait Sam0S { def apply(): Any }"
     val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
     val defns = List(Sam0S, Sam0J, q"""def meth() = """"")
@@ -95,6 +96,7 @@ object EtaX {
   }
 
   object meth1 extends MkInMemoryTestLinesFile {
+    val name  = "EtaX.meth1"
     val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
     val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
     val defns = List(Sam1S, Sam1J, q"""def meth1(x: Any) = """"")
@@ -114,6 +116,7 @@ object EtaX {
   }
 
   object prop extends MkInMemoryTestLinesFile {
+    val name  = "EtaX.prop"
     val defns = List(q"""def prop = """"")
     val stats = List(
       q"val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods",
@@ -166,6 +169,7 @@ object EtaX {
   }
 
   object methF0 extends MkInMemoryTestLinesFile {
+    val name      = "EtaX.methF0"
     val defns     = List(q"""def methF0() = () => """"")
     val msgs2_1   = warn(   5, autoApp2("methF0"))
     val msgs30_1  =  msg(_, 5, parensCall3("methF0"))
@@ -190,10 +194,11 @@ object EtaX {
 
   val cloneEta = {
     val stat = q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"
-    TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil))
+    TestFile("EtaX.clone", TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
   }
 
   object meth2 extends MkInMemoryTestLinesFile {
+    val name  = "EtaX.meth2"
     val defns = List(q"""def meth2()() = """"")
     val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(msg(_, 4, etaFunction))) // eta-expansion, but lint warning
     val tc1   = testCase(q"val t4b: () => Any = meth2()",   noMsgs)                       // ditto
@@ -213,7 +218,7 @@ object EtaX {
     val msgs2 = List(warn(   3, autoApp2("boom")))
     val msgs3 = msgs( msg(_, 3, parensCall3("boom")))
     val msgss = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
-    TestContents(defns, List(List(stat)), msgss)
+    TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }
 
   def msgs(mkMsg: Severity => Msg) : Severity => List[Msg] = sev => List(mkMsg(sev))

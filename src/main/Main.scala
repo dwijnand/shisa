@@ -9,6 +9,7 @@ import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+import scala.util.chaining._
 
 import scala.meta._
 
@@ -35,14 +36,23 @@ object Main {
 
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: EtaX.tests
+  val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((tf1, tf2) => TestFile(tf1.name, tf1.contents ++ tf2.contents))
   val MissingExp    = new Msg(Severity.Error, 0, "missing exp msg")
   val MissingObt    = new Msg(Severity.Error, 0, "missing obt msg")
 
   def idxStr(idx: Int) = if (idx < 10) s"0$idx" else s"$idx"
 
   def main(args: Array[String]): Unit = {
+    val testFiles = args.toList match {
+      case Nil  => tests.sortBy(_.name).tap(tests => println(s"Files: ${tests.map(_.name).mkString("[", ", ", "]")}"))
+      case args =>
+        val (missing, tests) = args.partitionMap(name => testsMap.get(name).toRight(Left(name)))
+        if (missing.isEmpty) tests
+        else sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
+    }
+
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = tests.map(tc => pool.submit[TestResult](() => compile1(tc, mkCompilers)))
+    val futures = testFiles.map(tf => pool.submit[TestResult](() => compile1(tf, mkCompilers)))
 
     pool.shutdown()
 
@@ -51,8 +61,8 @@ object Main {
 
     val testResults  = futures.map(_.get(0, NANOSECONDS))
     val testFailures = testResults.collect {
-      case TestFailure(msg)       => s"$msg"
-      case TestFailures(failures) => s"\n${failures.map(tf => s"  ${tf.msg}").mkString("\n")}"
+      case TestFailure(src, msg)       => s"$src: $msg"
+      case TestFailures(src, failures) => s"$src:\n${failures.map(tf => s"  ${tf.msg}").mkString("\n")}"
     }
 
     if (testFailures.nonEmpty) {
@@ -61,23 +71,24 @@ object Main {
     }
   }
 
-  def compile1(testContents: TestContents, mkCompilers: List[MkCompiler]): TestResult = {
+  def compile1(testFile: TestFile, mkCompilers: List[MkCompiler]): TestResult = {
+    println(s"* ${testFile.name}")
     val compilers = mkCompilers.map(_.mkCompiler())
-    if (testContents.stats.sizeIs > 1) doLines(testContents, compilers)
-    else                                doUnit(testContents, compilers)
+    if (testFile.contents.stats.sizeIs > 1) doLines(testFile, compilers)
+    else                                     doUnit(testFile, compilers)
   }
 
-  def doUnit(testContents: TestContents, compilers: List[Compiler]): TestResult = {
-    compareMsgs(testContents, writeAndCompile(compilers, toSource(testContents)))
+  def doUnit(testFile: TestFile, compilers: List[Compiler]): TestResult = {
+    compareMsgs(testFile, writeAndCompile(compilers, toSource(testFile.contents)))
   }
 
-  def doLines(testContents: TestContents, compilers: List[Compiler]) = {
-    val msgss = testContents.stats
-      .map(stat => testContents.copy(stats = List(stat)))
+  def doLines(testFile: TestFile, compilers: List[Compiler]) = {
+    val msgss = testFile.contents.stats
+      .map(stat => testFile.contents.copy(stats = List(stat)))
       .zipWithIndex.map { case (contents, idx) =>
         writeAndCompile(compilers, toSource(contents, Some(idx)))
       }.reduce(_.zip(_).map { case (a, b) => a ::: b })
-    compareMsgs(testContents, msgss)
+    compareMsgs(testFile, msgss)
   }
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
@@ -91,25 +102,26 @@ object Main {
 
   def writeAndCompile(compilers: List[Compiler], sourceStr: String) = {
     val src = Files.createTempFile("shisa", ".scala")
+    Files.createDirectories(src.getParent)
     Files.writeString(src, sourceStr)
     compilers.map(_.compile1(src)).map(msgsDropSummary)
   }
 
-  def compareMsgs(contents: TestContents, obtMsgss: List[List[Msg]]): TestResult = {
-    val TestContents(_, _, expMsgss) = contents
+  def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {
+    val TestFile(src, TestContents(_, _, expMsgss)) = testFile
     val msgss2 = expMsgss.zipAll(obtMsgss, Nil, Nil)
     val msgss3 = msgss2.zipAll(compilerIds, (Nil, Nil), "<unknown-compiler-id>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgss3) yield {
       expMsgs.zipAll(obtMsgs, MissingExp, MissingObt).collect {
         case (exp, obt) if exp != obt => showExp(exp) + showObt(obt)
       }.mkString match {
-        case ""    => TestSuccess
-        case lines => TestFailure(s"message mismatch (compiler $compilerId) (${Console.RED}-expected${Console.RESET}/${Console.GREEN}+obtained${Console.RESET}):$lines")
+        case ""    => TestSuccess(src)
+        case lines => TestFailure(src, s"$src: message mismatch (compiler $compilerId) (${Console.RED}-expected${Console.RESET}/${Console.GREEN}+obtained${Console.RESET}):$lines")
       }
     }
     testResults.collect { case tf: TestFailure => tf } match {
-      case Nil          => TestSuccess
-      case testFailures => TestFailures(testFailures)
+      case Nil          => TestSuccess(src)
+      case testFailures => TestFailures(src, testFailures)
     }
   }
 
@@ -138,7 +150,9 @@ final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: 
   def toUnit = TestContents(defns, List(stats.flatten), msgs)
 }
 
-sealed trait TestResult
-case object      TestSuccess                               extends TestResult
-final case class TestFailure(msg: String)                  extends TestResult
-final case class TestFailures(failures: List[TestFailure]) extends TestResult
+final case class TestFile(name: String, contents: TestContents)
+
+sealed trait TestResult { def name: String }
+final case class TestSuccess(name: String)                               extends TestResult
+final case class TestFailure(name: String, msg: String)                  extends TestResult
+final case class TestFailures(name: String, failures: List[TestFailure]) extends TestResult

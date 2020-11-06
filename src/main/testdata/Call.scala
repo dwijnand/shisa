@@ -12,7 +12,9 @@ object MkInMemoryTestFile {
 }
 
 trait MkInMemoryTestFile {
+  def name: String
   def contents: TestContents
+  final def testFile: TestFile = TestFile(name, contents)
 }
 
 trait MkInMemoryTestUnitFile extends MkInMemoryTestFile
@@ -20,7 +22,7 @@ trait MkInMemoryTestUnitFile extends MkInMemoryTestFile
 object Call {
   def idF[A]: A => A = x => x
 
-  def tests         = allTests.map(_.contents)
+  def tests         = allTests.map(_.testFile)
   def allTests      = List(hashHash, pos, def_meth_p, def_prop_m) ::: switchTests ::: switchVcTests
   def switchTests   = List(switch_m2p_m, switch_m2p_p, switch_p2m_m, switch_p2m_p)
   def switchVcTests = List(switch_vc_m2p_m, switch_vc_m2p_p, switch_vc_p2m_m, switch_vc_p2m_p)
@@ -173,22 +175,24 @@ object Call {
   }
 
   sealed class SwitchFile(
-      traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
+      nameStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
       msgs: String => List[List[Msg]]
   ) extends MkInMemoryTestUnitFile {
+    val name     = nameStr
     val contents = TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs(traitDefn.name.value))
   }
 
-  object switch_m2p_m    extends SwitchFile(M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
-  object switch_m2p_p    extends SwitchFile(M,  M2P,    m2p,    q"m2p.d",      m2p_p_msgs)
-  object switch_p2m_m    extends SwitchFile(P,  P2M,    p2m,    q"p2m.d()",    p2m_m_msgs)
-  object switch_p2m_p    extends SwitchFile(P,  P2M,    p2m,    q"p2m.d",      p2m_p_msgs)
-  object switch_vc_m2p_m extends SwitchFile(MU, M2P_VC, m2p_vc, q"m2p_vc.d()", m2p_m_msgs)
-  object switch_vc_m2p_p extends SwitchFile(MU, M2P_VC, m2p_vc, q"m2p_vc.d",   m2p_p_msgs)
-  object switch_vc_p2m_m extends SwitchFile(PU, P2M_VC, p2m_vc, q"p2m_vc.d()", p2m_m_msgs)
-  object switch_vc_p2m_p extends SwitchFile(PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
+  object switch_m2p_m    extends SwitchFile("Call.switch/m2p_m",    M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
+  object switch_m2p_p    extends SwitchFile("Call.switch/m2p_p",    M,  M2P,    m2p,    q"m2p.d",      m2p_p_msgs)
+  object switch_p2m_m    extends SwitchFile("Call.switch/p2m_m",    P,  P2M,    p2m,    q"p2m.d()",    p2m_m_msgs)
+  object switch_p2m_p    extends SwitchFile("Call.switch/p2m_p",    P,  P2M,    p2m,    q"p2m.d",      p2m_p_msgs)
+  object switch_vc_m2p_m extends SwitchFile("Call.switch_vc/m2p_m", MU, M2P_VC, m2p_vc, q"m2p_vc.d()", m2p_m_msgs)
+  object switch_vc_m2p_p extends SwitchFile("Call.switch_vc/m2p_p", MU, M2P_VC, m2p_vc, q"m2p_vc.d",   m2p_p_msgs)
+  object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m", PU, P2M_VC, p2m_vc, q"p2m_vc.d()", p2m_m_msgs)
+  object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p", PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
 
   object def_meth_p extends MkInMemoryTestUnitFile {
+    val name     = "Call.meth_p"
     val warns2   = List(warn(3, autoApp2("meth")))
     val msgs3Old = List(warn(3, parensCall3("meth")))
     val msgs3    = List( err(3, parensCall3("meth")))
@@ -197,12 +201,14 @@ object Call {
   }
 
   object def_prop_m extends MkInMemoryTestUnitFile {
+    val name     = "Call.prop_m"
     val err2     = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
     val err3     = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
     val contents = TestContents(List(q"""def prop = """""), List(List(q"prop()")), multi(err2, err3))
   }
 
   object hashHash extends MkInMemoryTestUnitFile {
+    val name     = "Call.##"
     val contents = List(
       TestContents(List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
       TestContents(List(ref.defn), duo(ref.name, q"##"), multi(err2( 9), err3( 9))),
@@ -214,6 +220,7 @@ object Call {
   }
 
   object pos extends MkInMemoryTestUnitFile {
+    val name  = "Call.pos"
     val defns = CR.defns ::: CCR.defns ::: VCR.defns ::: VCCR.defns ::: vals.map(_.defn)
 
     def alt(t: Term, suff: Char) = t match {
