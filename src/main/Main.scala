@@ -144,7 +144,7 @@ final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: 
   def ++(that: TestContents) = TestContents(
     (defns ::: that.defns).distinct,
     stats ::: that.stats,
-    msgs.zipAll(that.msgs, Nil, Nil).map { case (as, bs) => (as ::: bs).distinct },
+    msgs.zipAll(that.msgs, Nil, Nil).map { case (as, bs) => as ::: bs },
   )
 
   def toUnit = TestContents(defns, List(stats.flatten), msgs)
