@@ -7,8 +7,6 @@ import scala.meta._
 
 import Severity.{ Warn, Error }
 
-trait MkInMemoryTestLinesFile extends MkInMemoryTestFile
-
 object ErrorMsgs {
   val str1 = "(): String"
   val str2 = "=> String"
@@ -47,7 +45,7 @@ object EtaX {
 
   def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
-  object meth extends MkInMemoryTestLinesFile {
+  object meth extends MkInMemoryTestFile {
     val name = "EtaX.meth"
     val Sam0S = q"                     trait Sam0S { def apply(): Any }"
     val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
@@ -95,7 +93,7 @@ object EtaX {
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
-  object meth1 extends MkInMemoryTestLinesFile {
+  object meth1 extends MkInMemoryTestFile {
     val name  = "EtaX.meth1"
     val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
     val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
@@ -115,7 +113,7 @@ object EtaX {
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
-  object prop extends MkInMemoryTestLinesFile {
+  object prop extends MkInMemoryTestFile {
     val name  = "EtaX.prop"
     val defns = List(q"""def prop = """"")
     val stats = List(
@@ -168,7 +166,7 @@ object EtaX {
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
-  object methF0 extends MkInMemoryTestLinesFile {
+  object methF0 extends MkInMemoryTestFile {
     val name      = "EtaX.methF0"
     val defns     = List(q"""def methF0() = () => """"")
     val msgs2_1   = warn(   5, autoApp2("methF0"))
@@ -197,7 +195,7 @@ object EtaX {
     TestFile("EtaX.clone", TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
   }
 
-  object meth2 extends MkInMemoryTestLinesFile {
+  object meth2 extends MkInMemoryTestFile {
     val name  = "EtaX.meth2"
     val defns = List(q"""def meth2()() = """"")
     val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(msg(_, 4, etaFunction))) // eta-expansion, but lint warning

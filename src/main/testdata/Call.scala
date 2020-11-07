@@ -17,8 +17,6 @@ trait MkInMemoryTestFile {
   final def testFile: TestFile = TestFile(name, contents)
 }
 
-trait MkInMemoryTestUnitFile extends MkInMemoryTestFile
-
 object Call {
   def idF[A]: A => A = x => x
 
@@ -177,7 +175,7 @@ object Call {
   sealed class SwitchFile(
       nameStr: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
       msgs: String => List[List[Msg]]
-  ) extends MkInMemoryTestUnitFile {
+  ) extends MkInMemoryTestFile {
     val name     = nameStr
     val contents = TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs(traitDefn.name.value))
   }
@@ -191,7 +189,7 @@ object Call {
   object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m", PU, P2M_VC, p2m_vc, q"p2m_vc.d()", p2m_m_msgs)
   object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p", PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
 
-  object def_meth_p extends MkInMemoryTestUnitFile {
+  object def_meth_p extends MkInMemoryTestFile {
     val name     = "Call.meth_p"
     val warns2   = List(warn(3, autoApp2("meth")))
     val msgs3Old = List(warn(3, parensCall3("meth")))
@@ -200,14 +198,14 @@ object Call {
     val contents = TestContents(List(q"""def meth() = """""), List(List(q"meth")), msgs)
   }
 
-  object def_prop_m extends MkInMemoryTestUnitFile {
+  object def_prop_m extends MkInMemoryTestFile {
     val name     = "Call.prop_m"
     val err2     = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
     val err3     = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
     val contents = TestContents(List(q"""def prop = """""), List(List(q"prop()")), multi(err2, err3))
   }
 
-  object hashHash extends MkInMemoryTestUnitFile {
+  object hashHash extends MkInMemoryTestFile {
     val name     = "Call.##"
     val contents = List(
       TestContents(List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
@@ -219,7 +217,7 @@ object Call {
     def err3(lineNo: Int) = err(lineNo, "method ## in class Any does not take parameters")
   }
 
-  object pos extends MkInMemoryTestUnitFile {
+  object pos extends MkInMemoryTestFile {
     val name  = "Call.pos"
     val defns = CR.defns ::: CCR.defns ::: VCR.defns ::: VCCR.defns ::: vals.map(_.defn)
 
