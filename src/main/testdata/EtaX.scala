@@ -5,22 +5,37 @@ import scala.Function.const
 
 import scala.meta._
 
-import Severity.{ Warn, Error }
+import Severity.{ Info, Error, Warn }
 
 object ErrorMsgs {
-  val str1 = "(): String"
-  val str2 = "=> String"
+  def  msg(sev: Severity, lineNo: Int, str: String) = new Msg(sev, lineNo, str)
+  def warn(lineNo: Int, str: String)                = msg(Warn,  lineNo, str)
+  def  err(lineNo: Int, str: String)                = msg(Error, lineNo, str)
+
+  val methStr = "(): String"
+  val propStr = "=> String"
+
   def autoApp2(meth: String) =
     s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
        |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
-  def parensCall3(meth: String) = s"method $meth must be called with () argument"
-  def p2mMsg = "method with a single empty parameter list overrides method without any parameter list"
-  def p2mErr(nme: String) = s"$p2mMsg\ndef d: String (defined in trait $nme)"
-  def errOverride2 = "method without a parameter list overrides a method with a single empty one"
-  def errOverride31(nme: String, tp1: String) = s"error overriding method d in trait $nme of type $tp1"
-  def errOverride3A(nme: String, tp1: String, tp2: String) = errOverride31(nme, tp1) + s";\n  method d of type $tp2 no longer has compatible type"
-  def errOverride3B(nme: String, tp1: String, tp2: String) = errOverride31(nme, tp1) + s";\n  method d of type $tp2 has incompatible type"
+  def autoApp3(meth: String) = s"method $meth must be called with () argument"
+
+  def override2_meth2prop = "method without a parameter list overrides a method with a single empty one"
+  def override2_prop2meth(sev: Severity, nme: String) = sev match {
+    case Error => s"method with a single empty parameter list overrides method without any parameter list\ndef d: String (defined in trait $nme)"
+    case Warn  => s"method with a single empty parameter list overrides method without any parameter list"
+    case Info  => ""
+  }
+
+  def override3_meth2prop(sev: Severity, nme: String) = override3(sev, nme, methStr, propStr)
+  def override3_prop2meth(sev: Severity, nme: String) = override3(sev, nme, propStr, methStr)
+  def override3(sev: Severity, nme: String, tp1: String, tp2: String) = sev match {
+    case Error => s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
+    case Warn  => s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
+    case Info  => ""
+  }
+
   def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
   def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
   def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
@@ -30,9 +45,8 @@ object ErrorMsgs {
        |Unapplied methods are only converted to functions when a function type is expected.
        |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
   def stillEta(meth: String, traitName: String) = s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
-  def mustFollow(tpe: String)  = s"_ must follow method; cannot follow $tpe"
-  def mustParens(meth: String) = s"method $meth must be called with () argument"
-  def onlyFuncs(tpe: String)   = s"Only function types can be followed by _ but the current expression has type $tpe"
+  def mustFollow(tpe: String) = s"_ must follow method; cannot follow $tpe"
+  def onlyFuncs(tpe: String)  = s"Only function types can be followed by _ but the current expression has type $tpe"
   def methodsWithoutParams    = "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
   def methodsWithoutParamsNew = "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
   def notEnoughArgs(methsig: String, className: String, param: String) = s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
@@ -41,7 +55,6 @@ object ErrorMsgs {
 
 object EtaX {
   import ErrorMsgs._
-  import MkInMemoryTestFile.{ err, msg, warn }
 
   def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
@@ -68,21 +81,21 @@ object EtaX {
        err(6, mustFollow("String")),
     )
     def msgs3Pair(sev: Severity, lineNo: Int, exp: String) = List(
-      msg(sev, lineNo, parensCall3("meth")),
+      msg(sev, lineNo, autoApp3("meth")),
     ) ::: (if (sev == Error) Nil else List(
       err(     lineNo, typeMismatch3("String", exp)),
     ))
     def msgs30I(sev: Severity) = {
       msgs3Pair(sev, 6, "p01.Test.Sam0S") :::
       msgs3Pair(sev, 6, "p02.Test.Sam0J") ::: List(
-      msg(      sev, 7, mustParens("meth")),
+      msg(      sev, 7, autoApp3("meth")),
       msg(      sev, 6, onlyFuncs("String")),
     )
     }
     def msgs31I(sev: Severity) = List(
-      err(     6, parensCall3("meth")),
-      err(     6, parensCall3("meth")),
-      err(     7, parensCall3("meth")),
+      err(     6, autoApp3("meth")),
+      err(     6, autoApp3("meth")),
+      err(     7, autoApp3("meth")),
       msg(sev, 6, etaFunction),
       msg(sev, 7, etaFunction),
       msg(sev, 6, etaFunction),
@@ -170,8 +183,8 @@ object EtaX {
     val name      = "EtaX.methF0"
     val defns     = List(q"""def methF0() = () => """"")
     val msgs2_1   = warn(   5, autoApp2("methF0"))
-    val msgs30_1  =  msg(_, 5, parensCall3("methF0"))
-    val msgs31_1  =  err(   5, parensCall3("methF0"))
+    val msgs30_1  =  msg(_, 5, autoApp3("methF0"))
+    val msgs31_1  =  err(   5, autoApp3("methF0"))
     val msgs31_2  =  msg(_, 4, etaFunction)
     val msgs31_3  =  msg(_, 4, etaFunction)
     val msgs2_4   =  err(   4, mustFollow("() => String"))
@@ -214,7 +227,7 @@ object EtaX {
     val defns = List(q"class A { def boom(): Unit = () }")
     val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
     val msgs2 = List(warn(   3, autoApp2("boom")))
-    val msgs3 = msgs( msg(_, 3, parensCall3("boom")))
+    val msgs3 = msgs( msg(_, 3, autoApp3("boom")))
     val msgss = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
     TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }

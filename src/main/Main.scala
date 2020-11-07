@@ -61,12 +61,14 @@ object Main {
 
     val testResults  = futures.map(_.get(0, NANOSECONDS))
     val testFailures = testResults.collect {
-      case TestFailure(src, msg)       => s"$src: $msg"
-      case TestFailures(src, failures) => s"$src:\n${failures.map(tf => s"  ${tf.msg}").mkString("\n")}"
+      case TestFailure(src, msg)       => TestFailure(src, msg)
+      case TestFailures(src, failures) => TestFailure(src, failures.map(tf => s"\n  ${tf.msg}").mkString)
     }
 
     if (testFailures.nonEmpty) {
-      System.err.println(s"Test failures:\n${testFailures.mkString("\n")}")
+      System.err.println(s"Test failures:")
+      testFailures.foreach { case TestFailure(src, failures) => System.err.println(s"  $src $failures") }
+      System.err.println(s"> run ${testFailures.map(_.name).mkString(" ")}")
       throw new Exception(s"Test failures", null, false, false) {}
     }
   }
@@ -107,11 +109,11 @@ object Main {
     val TestFile(name, TestContents(_, _, expMsgss)) = testFile
     val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
-      expMsgs.zipAll(obtMsgs, MissingExp, MissingObt).collect {
-        case (exp, obt) if exp != obt => showExp(exp) + showObt(obt)
+      expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
+        case (exp, obt) if exp != obt => showObt(obt) + showExp(exp)
       }.mkString match {
         case ""    => TestSuccess(name)
-        case lines => TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-expected$RESET/$GREEN+obtained$RESET):$lines")
+        case lines => TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-obtained$RESET/$GREEN+expected$RESET):$lines")
       }
     }
     testResults.collect { case tf: TestFailure => tf } match {
@@ -120,9 +122,16 @@ object Main {
     }
   }
 
+  implicit def orderingMsg: Ordering[Msg]      = Ordering.by((msg: Msg) => (msg.lineNo, msg.severity, msg.text))
+  implicit def orderingSev: Ordering[Severity] = Ordering.by {
+    case Severity.Error => 1
+    case Severity.Warn  => 2
+    case Severity.Info  => 3
+  }
+
   val LineStart         = "(?m)^".r
-  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
-  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
+  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
+  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg) = s"${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
 
   def showSev(sev: Severity) = sev match {
