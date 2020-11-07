@@ -50,7 +50,7 @@ object Call {
       case (ClassVariant.Runnable, name) => name
     }
 
-    val defn = {
+    val defn: Defn.Class = {
       if (variants.isEmpty) q"class $name".withRunnable
       else {
         variants.foldLeft(q"class $name") {
@@ -61,11 +61,9 @@ object Call {
       }
     }
 
-    val defns = List(
-      defn,
-      defn.copy(name = defn.name.chSuff('S')).addStat(q"""override def toString   = """""),
-      defn.copy(name = defn.name.chSuff('J')).addStat(q"""override def toString() = """""),
-    )
+    val defnS = defn.copy(name = defn.name.chSuff('S')).addStat(q"""override def toString   = """"")
+    val defnJ = defn.copy(name = defn.name.chSuff('J')).addStat(q"""override def toString() = """"")
+    val defns = List(defn, defnS, defnJ)
   }
 
   val any  = Val(q"any", t"Any")
@@ -105,13 +103,12 @@ object Call {
   def duo(qual: Term, name: Term.Name) = List(List(q"$qual.$name", q"$qual.$name()"))
 
   def multi(msg2: Msg, msg3: Msg) =
-    List(List(msg2), List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
+    multi2(List(msg2), List(msg2), List(msg3), List(msg3))
 
   def multi2(msg2W: List[Msg], msg2E: List[Msg], msg3W: List[Msg], msg3E: List[Msg]) =
-    List(msg2W, msg2W, msg2E, msg3W, msg3E, msg3E, msg3E)
+    List(msg2W, msg2E, msg3W, msg3E, msg3E, msg3E)
 
-  def multi3(msgs: (SV, Severity) => List[Msg]) =
-    List(msgs(S2, Warn), msgs(S2, Warn), msgs(S2, Error), msgs(S3, Warn), msgs(S3, Error), msgs(S3, Error), msgs(S3, Error))
+  def multi3(msgs: (SV, WorE) => List[Msg]) = multi2(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E))
 
   val M  = q"trait M              { def d() : String }"
   val P  = q"trait P              { def d   : String }"
@@ -130,62 +127,61 @@ object Call {
 
   import ErrorMsgs._
 
-  sealed trait MethPropSwitch
-  case object Meth2Prop extends MethPropSwitch
-  case object Prop2Meth extends MethPropSwitch
+  sealed trait MethOrProp;     case object Meth      extends MethOrProp;     case object Prop      extends MethOrProp
+  sealed trait MethPropSwitch; case object Meth2Prop extends MethPropSwitch; case object Prop2Meth extends MethPropSwitch
+  sealed trait SV;             case object S2        extends SV;             case object S3        extends SV
+  sealed trait WorE;           case object W         extends WorE;           case object E         extends WorE
 
-  sealed trait SV; case object S2 extends SV; case object S3 extends SV
+  object WorE {
+    implicit class Ops(private val wore: WorE) extends AnyVal {
+      def toSev: Severity = wore match { case W => Warn case E => Error }
+    }
+  }
 
-  def overrideM(sv: SV, switch: MethPropSwitch, sev: Severity, traitName: String) = (sv, switch) match {
-    case (S2, Meth2Prop) => msg(sev, 3, override2_meth2prop)
-    case (S3, Meth2Prop) => msg(sev, 3, override3_meth2prop(sev, traitName))
-    case (S2, Prop2Meth) => msg(sev, 3, override2_prop2meth(sev, traitName))
-    case (S3, Prop2Meth) => msg(sev, 3, override3_prop2meth(sev, traitName))
+  def overrideM(sv: SV, switch: MethPropSwitch, wore: WorE, traitName: String) = (sv, switch) match {
+    case (S2, Meth2Prop) => msg(wore.toSev, 3, override2_meth2prop)
+    case (S3, Meth2Prop) => msg(wore.toSev, 3, override3_meth2prop(wore.toSev, traitName))
+    case (S2, Prop2Meth) => msg(wore.toSev, 3, override2_prop2meth(wore.toSev, traitName))
+    case (S3, Prop2Meth) => msg(wore.toSev, 3, override3_prop2meth(wore.toSev, traitName))
   }
 
   def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
 
-  def m2p_m_msgs(traitName: String) = multi3 {
-    case (sv, sev) => List(overrideM(sv, Meth2Prop, sev, traitName))
-  }
+  def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, wore: WorE, traitName: String) = (switch, call, sv, wore) match {
+    case (_,         Meth, _, _)  => List(overrideM(sv, switch, wore, traitName))
 
-  def m2p_p_msgs(traitName: String) = multi3 {
-    case (sv @ S2, sev) => List(overrideM(sv, Meth2Prop, sev, traitName), warn(5, autoApp(sv, "d")))
-    case (sv @ S3, sev) => List(overrideM(sv, Meth2Prop, sev, traitName))
-  }
+    case (Meth2Prop, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), warn(5, autoApp(sv, "d")))
+    case (Meth2Prop, Prop, S3, _) => List(overrideM(sv, switch, wore, traitName))
 
-  def p2m_m_msgs(traitName: String) = multi3 {
-    case (sv, sev) => List(overrideM(sv, Prop2Meth, sev, traitName))
-  }
-
-  def p2m_p_msgs(traitName: String) = multi3 {
-    case (S2, sev)         => List(overrideM(S2, Prop2Meth, sev, traitName), msg(Warn, 5, autoApp(S2, "d")))
-    case (S3, sev @ Warn)  => List(overrideM(S3, Prop2Meth, sev, traitName), msg(sev,  5, autoApp(S3, "d")))
-    case (S3, sev @ Error) => List(                                          msg(sev,  5, autoApp(S3, "d")))
-    case ( _, Info)        => Nil
+    case (Prop2Meth, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp(sv, "d")))
+    case (Prop2Meth, Prop, S3, W) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp(sv, "d")))
+    case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp(sv, "d")))
   }
 
   sealed class SwitchFile(
       val name: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
-      msgs: String => List[List[Msg]]
+      switch: MethPropSwitch, call: MethOrProp
   ) extends MkInMemoryTestFile {
-    val contents = TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs(traitDefn.name.value))
+    val msgs     = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value))
+    val contents = TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs)
   }
 
-  object switch_m2p_m    extends SwitchFile("Call.switch/m2p_m",    M,  M2P,    m2p,    q"m2p.d()",    m2p_m_msgs)
-  object switch_m2p_p    extends SwitchFile("Call.switch/m2p_p",    M,  M2P,    m2p,    q"m2p.d",      m2p_p_msgs)
-  object switch_p2m_m    extends SwitchFile("Call.switch/p2m_m",    P,  P2M,    p2m,    q"p2m.d()",    p2m_m_msgs)
-  object switch_p2m_p    extends SwitchFile("Call.switch/p2m_p",    P,  P2M,    p2m,    q"p2m.d",      p2m_p_msgs)
-  object switch_vc_m2p_m extends SwitchFile("Call.switch_vc/m2p_m", MU, M2P_VC, m2p_vc, q"m2p_vc.d()", m2p_m_msgs)
-  object switch_vc_m2p_p extends SwitchFile("Call.switch_vc/m2p_p", MU, M2P_VC, m2p_vc, q"m2p_vc.d",   m2p_p_msgs)
-  object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m", PU, P2M_VC, p2m_vc, q"p2m_vc.d()", p2m_m_msgs)
-  object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p", PU, P2M_VC, p2m_vc, q"p2m_vc.d",   p2m_p_msgs)
+  object switch_m2p_m    extends SwitchFile("Call.switch/m2p_m",    M,  M2P,    m2p,    q"m2p.d()",    Meth2Prop, Meth)
+  object switch_m2p_p    extends SwitchFile("Call.switch/m2p_p",    M,  M2P,    m2p,    q"m2p.d",      Meth2Prop, Prop)
+  object switch_p2m_m    extends SwitchFile("Call.switch/p2m_m",    P,  P2M,    p2m,    q"p2m.d()",    Prop2Meth, Meth)
+  object switch_p2m_p    extends SwitchFile("Call.switch/p2m_p",    P,  P2M,    p2m,    q"p2m.d",      Prop2Meth, Prop)
+  object switch_vc_m2p_m extends SwitchFile("Call.switch_vc/m2p_m", MU, M2P_VC, m2p_vc, q"m2p_vc.d()", Meth2Prop, Meth)
+  object switch_vc_m2p_p extends SwitchFile("Call.switch_vc/m2p_p", MU, M2P_VC, m2p_vc, q"m2p_vc.d",   Meth2Prop, Prop)
+  object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m", PU, P2M_VC, p2m_vc, q"p2m_vc.d()", Prop2Meth, Meth)
+  object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p", PU, P2M_VC, p2m_vc, q"p2m_vc.d",   Prop2Meth, Prop)
 
   object def_meth_p extends MkInMemoryTestFile {
     val name     = "Call.meth_p"
-    val msgs2    = List(warn(3, autoApp2("meth")))
-    def msgs3(sev: Severity) = List(msg(sev, 3, autoApp3("meth")))
-    val msgs     = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
+    val msgs     = multi3 {
+      case (S2, _) => List(msg(Warn,  3, autoApp(S2, "meth")))
+      case (S3, W) => List(msg(Warn,  3, autoApp(S3, "meth")))
+      case (S3, E) => List(msg(Error, 3, autoApp(S3, "meth")))
+    }
     val contents = TestContents(List(q"""def meth() = """""), List(List(q"meth")), msgs)
   }
 

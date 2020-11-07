@@ -102,7 +102,7 @@ object EtaX {
       msg(sev, 6, onlyFuncs("String")),
     )
 
-    val msgs     = List(msgs2, msgs2, msgs2, msgs30I(Warn), msgs30I(Error), msgs31I(Warn), msgs31I(Error))
+    val msgs     = List(msgs2, msgs2, msgs30I(Warn), msgs30I(Error), msgs31I(Warn), msgs31I(Error))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
@@ -122,7 +122,7 @@ object EtaX {
     val msgs3 = List(warn(6, stillEta("meth1", "p01.Test.Sam1S")))
     def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, 7, etaFunction2))
 
-    val msgs     = List(msgs2, msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
+    val msgs     = List(msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
@@ -175,7 +175,7 @@ object EtaX {
       err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
     ))
 
-    val msgs     = List(msgs2(Warn), msgs2(Warn), msgs2(Error), msgs3(Warn), msgs3(Error), msgs31(Warn), msgs31(Error))
+    val msgs     = List(msgs2(Warn), msgs2(Error), msgs3(Warn), msgs3(Error), msgs31(Warn), msgs31(Error))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
@@ -198,14 +198,14 @@ object EtaX {
     val contents  = List(testCase0, testCase1, testCase2, testCase3, testCase4).reduce(_ ++ _)
 
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Severity => List[Msg], msgs31: Severity => List[Msg]) = {
-      val msgs = List(msgs2, msgs2, msgs2, msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
+      val msgs = List(msgs2, msgs2, msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
       TestContents(defns, List(List(stat)), msgs)
     }
   }
 
   val cloneEta = {
     val stat = q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"
-    TestFile("EtaX.clone", TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil, Nil)))
+    TestFile("EtaX.clone", TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil)))
   }
 
   object meth2 extends MkInMemoryTestFile {
@@ -218,7 +218,7 @@ object EtaX {
     val contents  = List(tc0, tc1, tc2, tc3).reduce(_ ++ _)
 
     def testCase(stat: Stat, msgs: Severity => List[Msg]) = {
-      val msgss = List(Nil, Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
+      val msgss = List(Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
       TestContents(defns, List(List(stat)), msgss)
     }
   }
@@ -228,7 +228,7 @@ object EtaX {
     val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
     val msgs2 = List(warn(   3, autoApp2("boom")))
     val msgs3 = msgs( msg(_, 3, autoApp3("boom")))
-    val msgss = List(msgs2, msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
+    val msgss = List(msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
     TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }
 

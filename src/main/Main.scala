@@ -14,31 +14,31 @@ import scala.Console.{ GREEN, RED, RESET }
 import scala.meta._
 
 import shisa.testdata._
+import Severity.{ Info, Error, Warn }
 
 object Main {
-  val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00_base
+  val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00
   val dotcCl = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
   val freshCompiler3Cls  = dotcCl.loadClass("shisa.FreshCompiler3")
   val freshCompiler3Ctor = freshCompiler3Cls.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
 
   def FreshCompiler3(id: String, cmd: String): MkCompiler =
-    freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00_base.toArray, cmd).asInstanceOf[MkCompiler]
+    freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00.toArray, cmd).asInstanceOf[MkCompiler]
 
   val mkCompilers = List[MkCompiler](
-    FreshCompiler2("2.13-base", Deps.scalac_2_13_base, ""),
-    FreshCompiler2("2.13-head", Deps.scalac_2_13_head, ""),
-    FreshCompiler2("2.13-new",  Deps.scalac_2_13_head, "-Xsource:3"),
-    FreshCompiler3("3.0-old",                          "-source 3.0-migration"),
-    FreshCompiler3("3.0",                              ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr",                         "-source 3.1-migration"),
-    FreshCompiler3("3.1",                              "-source 3.1"),
+    FreshCompiler2("2.13-head", Deps.scalac_2_13, ""),
+    FreshCompiler2("2.13-new",  Deps.scalac_2_13, "-Xsource:3"),
+    FreshCompiler3("3.0-old",                     "-source 3.0-migration"),
+    FreshCompiler3("3.0",                         ""), // assumes -source 3.0 is the default
+    FreshCompiler3("3.1-migr",                    "-source 3.1-migration"),
+    FreshCompiler3("3.1",                         "-source 3.1"),
   )
 
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: EtaX.tests
   val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((tf1, tf2) => TestFile(tf1.name, tf1.contents ++ tf2.contents))
-  val MissingExp    = new Msg(Severity.Error, 0, "missing exp msg")
-  val MissingObt    = new Msg(Severity.Error, 0, "missing obt msg")
+  val MissingExp    = new Msg(Error, 0, "missing exp msg")
+  val MissingObt    = new Msg(Error, 0, "missing obt msg")
 
   def idxStr(idx: Int) = if (idx < 10) s"0$idx" else s"$idx"
 
@@ -123,22 +123,13 @@ object Main {
   }
 
   implicit def orderingMsg: Ordering[Msg]      = Ordering.by((msg: Msg) => (msg.lineNo, msg.severity, msg.text))
-  implicit def orderingSev: Ordering[Severity] = Ordering.by {
-    case Severity.Error => 1
-    case Severity.Warn  => 2
-    case Severity.Info  => 3
-  }
+  implicit def orderingSev: Ordering[Severity] = Ordering.by { case Error => 1 case Warn => 2 case Info => 3 }
 
-  val LineStart         = "(?m)^".r
-  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
-  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
-  def showMsg(msg: Msg) = s"${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
-
-  def showSev(sev: Severity) = sev match {
-    case Severity.Error => "  error"
-    case Severity.Warn  => "warning"
-    case Severity.Info  => "   info"
-  }
+  val LineStart              = "(?m)^".r
+  def showObt(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
+  def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
+  def showMsg(msg: Msg)      = s"${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
+  def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
 }
 
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) {
