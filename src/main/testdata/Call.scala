@@ -12,8 +12,8 @@ trait MkInMemoryTestFile {
 }
 
 object Call {
-  def tests         = allTests.map(_.testFile)
-  def allTests      = List(hashHash, pos, def_meth_p, def_prop_m) ::: switchTests ::: switchVcTests
+  def tests         = otherTests ::: switchTests ::: switchVcTests
+  def otherTests    = List(hashHash, pos, def_meth_p, def_prop_m).map(_.testFile)
   def switchTests   = List(switch_m2p_m, switch_m2p_p, switch_p2m_m, switch_p2m_p)
   def switchVcTests = List(switch_vc_m2p_m, switch_vc_m2p_p, switch_vc_p2m_m, switch_vc_p2m_p)
 
@@ -26,7 +26,7 @@ object Call {
 
   implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
     def notValParam = param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))
-    def  toValParam = param.copy(mods = param.mods :+ Mod.ValParam())
+    def  toValParam = if (param.mods.exists(_.is[Mod.ValParam])) param else param.copy(mods = param.mods :+ Mod.ValParam())
   }
 
   sealed trait ClassVariant
@@ -110,20 +110,12 @@ object Call {
 
   def multi3(msgs: (SV, WorE) => List[Msg]) = multi2(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E))
 
-  val M  = q"trait M              { def d() : String }"
-  val P  = q"trait P              { def d   : String }"
-  val MU = q"trait MU extends Any { def d() : String }"
-  val PU = q"trait PU extends Any { def d   : String }"
-
-  val M2P    = q"""class M2P                   extends             M  { def d   = "" }"""
-  val P2M    = q"""class P2M                   extends             P  { def d() = "" }"""
-  val M2P_VC = q"""class M2P_VC(val x: String) extends AnyVal with MU { def d   = "" }"""
-  val P2M_VC = q"""class P2M_VC(val x: String) extends AnyVal with PU { def d() = "" }"""
-
-  val m2p    = q"""val m2p    = new M2P"""
-  val p2m    = q"""val p2m    = new P2M"""
-  val m2p_vc = q"""val m2p_vc = new M2P_VC("")"""
-  val p2m_vc = q"""val p2m_vc = new P2M_VC("")"""
+  val M   = q"trait M extends Any { def d() : String }"
+  val P   = q"trait P extends Any { def d   : String }"
+  val M2P = q"""class M2P(val x: String) extends M { def d   = "" }"""
+  val P2M = q"""class P2M(val x: String) extends P { def d() = "" }"""
+  val m2p = q"""val m2p = new M2P("")"""
+  val p2m = q"""val p2m = new P2M("")"""
 
   import ErrorMsgs._
 
@@ -158,22 +150,22 @@ object Call {
     case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp(sv, "d")))
   }
 
-  sealed class SwitchFile(
-      val name: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
+  def switchFile(
+      name: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
       switch: MethPropSwitch, call: MethOrProp
-  ) extends MkInMemoryTestFile {
-    val msgs     = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value))
-    val contents = TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs)
+  ): TestFile = {
+    val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value))
+    TestFile(name, TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs))
   }
 
-  object switch_m2p_m    extends SwitchFile("Call.switch/m2p_m",    M,  M2P,    m2p,    q"m2p.d()",    Meth2Prop, Meth)
-  object switch_m2p_p    extends SwitchFile("Call.switch/m2p_p",    M,  M2P,    m2p,    q"m2p.d",      Meth2Prop, Prop)
-  object switch_p2m_m    extends SwitchFile("Call.switch/p2m_m",    P,  P2M,    p2m,    q"p2m.d()",    Prop2Meth, Meth)
-  object switch_p2m_p    extends SwitchFile("Call.switch/p2m_p",    P,  P2M,    p2m,    q"p2m.d",      Prop2Meth, Prop)
-  object switch_vc_m2p_m extends SwitchFile("Call.switch_vc/m2p_m", MU, M2P_VC, m2p_vc, q"m2p_vc.d()", Meth2Prop, Meth)
-  object switch_vc_m2p_p extends SwitchFile("Call.switch_vc/m2p_p", MU, M2P_VC, m2p_vc, q"m2p_vc.d",   Meth2Prop, Prop)
-  object switch_vc_p2m_m extends SwitchFile("Call.switch_vc/p2m_m", PU, P2M_VC, p2m_vc, q"p2m_vc.d()", Prop2Meth, Meth)
-  object switch_vc_p2m_p extends SwitchFile("Call.switch_vc/p2m_p", PU, P2M_VC, p2m_vc, q"p2m_vc.d",   Prop2Meth, Prop)
+  val switch_m2p_m    = switchFile("Call.switch/m2p_m",    M, M2P,              m2p, q"m2p.d()", Meth2Prop, Meth)
+  val switch_m2p_p    = switchFile("Call.switch/m2p_p",    M, M2P,              m2p, q"m2p.d",   Meth2Prop, Prop)
+  val switch_p2m_m    = switchFile("Call.switch/p2m_m",    P, P2M,              p2m, q"p2m.d()", Prop2Meth, Meth)
+  val switch_p2m_p    = switchFile("Call.switch/p2m_p",    P, P2M,              p2m, q"p2m.d",   Prop2Meth, Prop)
+  val switch_vc_m2p_m = switchFile("Call.switch_vc/m2p_m", M, M2P.toValueClass, m2p, q"m2p.d()", Meth2Prop, Meth)
+  val switch_vc_m2p_p = switchFile("Call.switch_vc/m2p_p", M, M2P.toValueClass, m2p, q"m2p.d",   Meth2Prop, Prop)
+  val switch_vc_p2m_m = switchFile("Call.switch_vc/p2m_m", P, P2M.toValueClass, p2m, q"p2m.d()", Prop2Meth, Meth)
+  val switch_vc_p2m_p = switchFile("Call.switch_vc/p2m_p", P, P2M.toValueClass, p2m, q"p2m.d",   Prop2Meth, Prop)
 
   object def_meth_p extends MkInMemoryTestFile {
     val name     = "Call.meth_p"
