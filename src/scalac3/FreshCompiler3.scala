@@ -34,7 +34,8 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
       val run: Run = compiler.newRun
       run.compileSources(List(SourceFile.virtual(src.name, src.content)))
       assert(ctx.reporter.errorsReported || run.suspendedUnits.isEmpty, "Suspended units support now required")
-      new Msgs(ctx.reporter.removeBufferedMessages.map(getMsg(_)).asJava)
+      val dias: List[Diagnostic] = ctx.reporter.removeBufferedMessages
+      new Msgs(dias.map(getMsg(_)).asJava)
     }
   }
 
