@@ -35,14 +35,14 @@ object Switch {
   def tests = List(call_meth_p, call_prop_m) ::: switchTests
 
   def switchTests = List(
-    switchFile(Meth2Prop, Meth, q"m2p_m"),
-    switchFile(Meth2Prop, Prop, q"m2p_p"),
-    switchFile(Prop2Meth, Meth, q"p2m_m"),
-    switchFile(Prop2Meth, Prop, q"p2m_P"),
-    switchFile(Meth2Prop, Meth, q"m2p_m_vc", true),
-    switchFile(Meth2Prop, Prop, q"m2p_p_vc", true),
-    switchFile(Prop2Meth, Meth, q"p2m_m_vc", true),
-    switchFile(Prop2Meth, Prop, q"p2m_p_vc", true),
+    switchFile(Meth2Prop, Meth, t"Foo_M2P_M",    t"Bar_M2P_M",    q"m2p_m",    q"qux_m2p_m"),
+    switchFile(Meth2Prop, Prop, t"Foo_M2P_P",    t"Bar_M2P_P",    q"m2p_p",    q"qux_m2p_p"),
+    switchFile(Prop2Meth, Meth, t"Foo_P2M_M",    t"Bar_P2M_M",    q"p2m_m",    q"qux_p2m_m"),
+    switchFile(Prop2Meth, Prop, t"Foo_P2M_P",    t"Bar_P2M_P",    q"p2m_P",    q"qux_p2m_p"),
+    switchFile(Meth2Prop, Meth, t"Foo_M2P_M_VC", t"Bar_M2P_M_VC", q"m2p_m_vc", q"qux_m2p_m_vc", true),
+    switchFile(Meth2Prop, Prop, t"Foo_M2P_P_VC", t"Bar_M2P_P_VC", q"m2p_p_vc", q"qux_m2p_p_vc", true),
+    switchFile(Prop2Meth, Meth, t"Foo_P2M_M_VC", t"Bar_P2M_M_VC", q"p2m_m_vc", q"qux_p2m_m_vc", true),
+    switchFile(Prop2Meth, Prop, t"Foo_P2M_P_VC", t"Bar_P2M_P_VC", q"p2m_p_vc", q"qux_p2m_p_vc", true),
   )
 
   def CallMethP(meth: Term.Name, value: Lit) = {
@@ -67,21 +67,21 @@ object Switch {
 
   object MethPropSwitch {
     implicit class Ops(private val switch: MethPropSwitch) extends AnyVal {
-      def clsDefn(meth: Term.Name): Defn.Class = switch match {
-        case Meth2Prop => q"""class M2P(val x: String) extends M { def $meth   = "" }"""
-        case Prop2Meth => q"""class P2M(val x: String) extends P { def $meth() = "" }"""
+      def clsDefn(clsName: Type.Name, traitName: Type.Name, meth: Term.Name): Defn.Class = switch match {
+        case Meth2Prop => q"""class $clsName(val x: String) extends $traitName() { def $meth   = "" }"""
+        case Prop2Meth => q"""class $clsName(val x: String) extends $traitName() { def $meth() = "" }"""
       }
-      def traitDefn(meth: Term.Name): Defn.Trait = switch match {
-        case Meth2Prop => q"trait M extends Any { def $meth() : String }"
-        case Prop2Meth => q"trait P extends Any { def $meth   : String }"
+      def traitDefn(traitName: Type.Name, meth: Term.Name): Defn.Trait = switch match {
+        case Meth2Prop => q"trait $traitName extends Any { def $meth() : String }"
+        case Prop2Meth => q"trait $traitName extends Any { def $meth   : String }"
       }
-      def valDefn: Defn.Val = switch match {
-        case Meth2Prop => q"""val m2p = new M2P("")"""
-        case Prop2Meth => q"""val p2m = new P2M("")"""
+      def valDefn(valName: Term.Name, clsName: Type.Name): Defn.Val = switch match {
+        case Meth2Prop => q"""val ${Pat.Var(valName)} = new $clsName("")"""
+        case Prop2Meth => q"""val ${Pat.Var(valName)} = new $clsName("")"""
       }
-      def toStat(call: MethOrProp, meth: Term.Name): Term = call match {
-        case Prop => valDefn match { case Defn.Val(_, List(Pat.Var(name)), _, _) => Term.Select(name, meth) }
-        case Meth => Term.Apply(switch.toStat(Prop, meth), Nil)
+      def toStat(call: MethOrProp, valName: Term.Name, meth: Term.Name): Term = call match {
+        case Prop => Term.Select(valName, meth)
+        case Meth => Term.Apply(switch.toStat(Prop, valName, meth), Nil)
       }
     }
   }
@@ -120,13 +120,14 @@ object Switch {
     case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp3(meth.value)))
   }
 
-  def switchFile(switch: MethPropSwitch, call: MethOrProp, meth: Term.Name, isVC: Boolean = false): TestFile = {
+  def switchFile(switch: MethPropSwitch, call: MethOrProp, clsName: Type.Name, traitName: Type.Name, meth: Term.Name, valName: Term.Name, isVC: Boolean = false): TestFile = {
     val pre = switch match { case Meth2Prop => "m2p" case Prop2Meth => "p2m" }
     val suf = call   match { case Meth      => "m"   case Prop      => "p"   }
     val name = if (isVC) s"switch_vc/${pre}_$suf" else s"switch/${pre}_$suf"
-    val clsDefn   = if (isVC) switch.clsDefn(meth).toValueClass else switch.clsDefn(meth)
-    val traitDefn = switch.traitDefn(meth)
+    val clsDefn0  = switch.clsDefn(clsName, traitName, meth)
+    val clsDefn   = if (isVC) clsDefn0.toValueClass else clsDefn0
+    val traitDefn = switch.traitDefn(traitName, meth)
     val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value, meth))
-    TestFile(name, TestContents(List(traitDefn, clsDefn, switch.valDefn), List(List(switch.toStat(call, meth))), msgs))
+    TestFile(name, TestContents(List(traitDefn, clsDefn, switch.valDefn(valName, clsName)), List(List(switch.toStat(call, valName, meth))), msgs))
   }
 }
