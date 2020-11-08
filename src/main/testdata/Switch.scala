@@ -34,11 +34,16 @@ object Switch {
 
   def tests = List(call_meth_p, call_prop_m) ::: switchTests
 
-  def switchTests = for {
-    switch <- List(Meth2Prop, Prop2Meth)
-    call   <- List(Meth, Prop)
-    isVC   <- List(false, true)
-  } yield switchFile(switch, call, isVC)
+  def switchTests = List(
+    switchFile(Meth2Prop, Meth, q"m2p_m"),
+    switchFile(Meth2Prop, Prop, q"m2p_p"),
+    switchFile(Prop2Meth, Meth, q"p2m_m"),
+    switchFile(Prop2Meth, Prop, q"p2m_P"),
+    switchFile(Meth2Prop, Meth, q"m2p_m_vc", true),
+    switchFile(Meth2Prop, Prop, q"m2p_p_vc", true),
+    switchFile(Prop2Meth, Meth, q"p2m_m_vc", true),
+    switchFile(Prop2Meth, Prop, q"p2m_p_vc", true),
+  )
 
   def CallMethP(meth: Term.Name, value: Lit) = {
     val msgs = multi3 {
@@ -62,21 +67,21 @@ object Switch {
 
   object MethPropSwitch {
     implicit class Ops(private val switch: MethPropSwitch) extends AnyVal {
-      def clsDefn: Defn.Class = switch match {
-        case Meth2Prop => q"""class M2P(val x: String) extends M { def d   = "" }"""
-        case Prop2Meth => q"""class P2M(val x: String) extends P { def d() = "" }"""
+      def clsDefn(meth: Term.Name): Defn.Class = switch match {
+        case Meth2Prop => q"""class M2P(val x: String) extends M { def $meth   = "" }"""
+        case Prop2Meth => q"""class P2M(val x: String) extends P { def $meth() = "" }"""
       }
-      def traitDefn: Defn.Trait = switch match {
-        case Meth2Prop => q"trait M extends Any { def d() : String }"
-        case Prop2Meth => q"trait P extends Any { def d   : String }"
+      def traitDefn(meth: Term.Name): Defn.Trait = switch match {
+        case Meth2Prop => q"trait M extends Any { def $meth() : String }"
+        case Prop2Meth => q"trait P extends Any { def $meth   : String }"
       }
       def valDefn: Defn.Val = switch match {
         case Meth2Prop => q"""val m2p = new M2P("")"""
         case Prop2Meth => q"""val p2m = new P2M("")"""
       }
-      def toStat(call: MethOrProp): Term = call match {
-        case Prop => valDefn match { case Defn.Val(_, List(Pat.Var(name)), _, _) => Term.Select(name, q"d") }
-        case Meth => Term.Apply(switch.toStat(Prop), Nil)
+      def toStat(call: MethOrProp, meth: Term.Name): Term = call match {
+        case Prop => valDefn match { case Defn.Val(_, List(Pat.Var(name)), _, _) => Term.Select(name, meth) }
+        case Meth => Term.Apply(switch.toStat(Prop, meth), Nil)
       }
     }
   }
@@ -104,23 +109,24 @@ object Switch {
     case (S3, Prop2Meth) => msg(wore.toSev, 3, override3_prop2meth(wore, traitName))
   }
 
-  def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, wore: WorE, traitName: String) = (switch, call, sv, wore) match {
+  def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, wore: WorE, traitName: String, meth: Term.Name) = (switch, call, sv, wore) match {
     case (_,         Meth, _, _)  => List(overrideM(sv, switch, wore, traitName))
 
-    case (Meth2Prop, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), warn(5, autoApp2("d")))
+    case (Meth2Prop, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), warn(5, autoApp2(meth.value)))
     case (Meth2Prop, Prop, S3, _) => List(overrideM(sv, switch, wore, traitName))
 
-    case (Prop2Meth, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp2("d")))
-    case (Prop2Meth, Prop, S3, W) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp3("d")))
-    case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp3("d")))
+    case (Prop2Meth, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp2(meth.value)))
+    case (Prop2Meth, Prop, S3, W) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp3(meth.value)))
+    case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp3(meth.value)))
   }
 
-  def switchFile(switch: MethPropSwitch, call: MethOrProp, isVC: Boolean = false): TestFile = {
+  def switchFile(switch: MethPropSwitch, call: MethOrProp, meth: Term.Name, isVC: Boolean = false): TestFile = {
     val pre = switch match { case Meth2Prop => "m2p" case Prop2Meth => "p2m" }
     val suf = call   match { case Meth      => "m"   case Prop      => "p"   }
     val name = if (isVC) s"switch_vc/${pre}_$suf" else s"switch/${pre}_$suf"
-    val clsDefn = if (isVC) switch.clsDefn.toValueClass else switch.clsDefn
-    val msgs = multi3(switchMsgs(switch, call, _, _, switch.traitDefn.name.value))
-    TestFile(name, TestContents(List(switch.traitDefn, clsDefn, switch.valDefn), List(List(switch.toStat(call))), msgs))
+    val clsDefn   = if (isVC) switch.clsDefn(meth).toValueClass else switch.clsDefn(meth)
+    val traitDefn = switch.traitDefn(meth)
+    val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value, meth))
+    TestFile(name, TestContents(List(traitDefn, clsDefn, switch.valDefn), List(List(switch.toStat(call, meth))), msgs))
   }
 }
