@@ -35,7 +35,7 @@ object Main {
   )
 
   val compilerIds   = mkCompilers.map(_.id)
-  val tests         = Call.tests ::: EtaX.tests
+  val tests         = Call.tests ::: Switch.tests ::: EtaX.tests
   val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((tf1, tf2) => TestFile(tf1.name, tf1.contents ++ tf2.contents))
   val MissingExp    = new Msg(Error, 0, "missing exp msg")
   val MissingObt    = new Msg(Error, 0, "missing obt msg")

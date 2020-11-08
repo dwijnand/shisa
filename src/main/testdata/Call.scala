@@ -12,10 +12,9 @@ trait MkInMemoryTestFile {
 }
 
 object Call {
-  def tests         = otherTests ::: switchTests ::: switchVcTests
-  def otherTests    = List(hashHash, pos, def_meth_p, def_prop_m).map(_.testFile)
-  def switchTests   = List(switch_m2p_m, switch_m2p_p, switch_p2m_m, switch_p2m_p)
-  def switchVcTests = List(switch_vc_m2p_m, switch_vc_m2p_p, switch_vc_p2m_m, switch_vc_p2m_p)
+  import ErrorMsgs._, Switch._
+
+  def tests = List(hashHash, pos, def_meth_p, def_prop_m).map(_.testFile)
 
   implicit class NameOps[N <: Name](private val name: N) extends AnyVal {
     def chSuff(ch: Char) = name match {
@@ -30,18 +29,10 @@ object Call {
   }
 
   sealed trait ClassVariant
-  object ClassVariant {
-    case object Case     extends ClassVariant
-    case object Value    extends ClassVariant
-    case object Runnable extends ClassVariant
-  }
+  object ClassVariant { case object Case extends ClassVariant; case object Value extends ClassVariant; case object Runnable extends ClassVariant }
 
-  sealed trait ClassMethOverride
-  object ClassMethOverride {
-    case object No        extends ClassMethOverride
-    case object  JavaMeth extends ClassMethOverride
-    case object ScalaMeth extends ClassMethOverride
-  }
+  sealed trait Override
+  object Override { case object No extends Override; case object Java extends Override; case object Scala extends Override }
 
   final case class Cls(variants: List[ClassVariant]) {
     val name: Type.Name = variants.foldRight(t"CR") {
@@ -110,69 +101,12 @@ object Call {
 
   def multi3(msgs: (SV, WorE) => List[Msg]) = multi2(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E))
 
-  val M   = q"trait M extends Any { def d() : String }"
-  val P   = q"trait P extends Any { def d   : String }"
-  val M2P = q"""class M2P(val x: String) extends M { def d   = "" }"""
-  val P2M = q"""class P2M(val x: String) extends P { def d() = "" }"""
-  val m2p = q"""val m2p = new M2P("")"""
-  val p2m = q"""val p2m = new P2M("")"""
-
-  import ErrorMsgs._
-
-  sealed trait MethOrProp;     case object Meth      extends MethOrProp;     case object Prop      extends MethOrProp
-  sealed trait MethPropSwitch; case object Meth2Prop extends MethPropSwitch; case object Prop2Meth extends MethPropSwitch
-  sealed trait SV;             case object S2        extends SV;             case object S3        extends SV
-  sealed trait WorE;           case object W         extends WorE;           case object E         extends WorE
-
-  object WorE {
-    implicit class Ops(private val wore: WorE) extends AnyVal {
-      def toSev: Severity = wore match { case W => Warn case E => Error }
-    }
-  }
-
-  def overrideM(sv: SV, switch: MethPropSwitch, wore: WorE, traitName: String) = (sv, switch) match {
-    case (S2, Meth2Prop) => msg(wore.toSev, 3, override2_meth2prop)
-    case (S3, Meth2Prop) => msg(wore.toSev, 3, override3_meth2prop(wore.toSev, traitName))
-    case (S2, Prop2Meth) => msg(wore.toSev, 3, override2_prop2meth(wore.toSev, traitName))
-    case (S3, Prop2Meth) => msg(wore.toSev, 3, override3_prop2meth(wore.toSev, traitName))
-  }
-
-  def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
-
-  def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, wore: WorE, traitName: String) = (switch, call, sv, wore) match {
-    case (_,         Meth, _, _)  => List(overrideM(sv, switch, wore, traitName))
-
-    case (Meth2Prop, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), warn(5, autoApp(sv, "d")))
-    case (Meth2Prop, Prop, S3, _) => List(overrideM(sv, switch, wore, traitName))
-
-    case (Prop2Meth, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp(sv, "d")))
-    case (Prop2Meth, Prop, S3, W) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp(sv, "d")))
-    case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp(sv, "d")))
-  }
-
-  def switchFile(
-      name: String, traitDefn: Defn.Trait, clsDefn: Defn.Class, valDefn: Defn.Val, stat: Stat,
-      switch: MethPropSwitch, call: MethOrProp
-  ): TestFile = {
-    val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value))
-    TestFile(name, TestContents(List(traitDefn, clsDefn, valDefn), List(List(stat)), msgs))
-  }
-
-  val switch_m2p_m    = switchFile("Call.switch/m2p_m",    M, M2P,              m2p, q"m2p.d()", Meth2Prop, Meth)
-  val switch_m2p_p    = switchFile("Call.switch/m2p_p",    M, M2P,              m2p, q"m2p.d",   Meth2Prop, Prop)
-  val switch_p2m_m    = switchFile("Call.switch/p2m_m",    P, P2M,              p2m, q"p2m.d()", Prop2Meth, Meth)
-  val switch_p2m_p    = switchFile("Call.switch/p2m_p",    P, P2M,              p2m, q"p2m.d",   Prop2Meth, Prop)
-  val switch_vc_m2p_m = switchFile("Call.switch_vc/m2p_m", M, M2P.toValueClass, m2p, q"m2p.d()", Meth2Prop, Meth)
-  val switch_vc_m2p_p = switchFile("Call.switch_vc/m2p_p", M, M2P.toValueClass, m2p, q"m2p.d",   Meth2Prop, Prop)
-  val switch_vc_p2m_m = switchFile("Call.switch_vc/p2m_m", P, P2M.toValueClass, p2m, q"p2m.d()", Prop2Meth, Meth)
-  val switch_vc_p2m_p = switchFile("Call.switch_vc/p2m_p", P, P2M.toValueClass, p2m, q"p2m.d",   Prop2Meth, Prop)
-
   object def_meth_p extends MkInMemoryTestFile {
     val name     = "Call.meth_p"
     val msgs     = multi3 {
-      case (S2, _) => List(msg(Warn,  3, autoApp(S2, "meth")))
-      case (S3, W) => List(msg(Warn,  3, autoApp(S3, "meth")))
-      case (S3, E) => List(msg(Error, 3, autoApp(S3, "meth")))
+      case (S2, _) => List(msg(Warn,  3, autoApp2("meth")))
+      case (S3, W) => List(msg(Warn,  3, autoApp3("meth")))
+      case (S3, E) => List(msg(Error, 3, autoApp3("meth")))
     }
     val contents = TestContents(List(q"""def meth() = """""), List(List(q"meth")), msgs)
   }
