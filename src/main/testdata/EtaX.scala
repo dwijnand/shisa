@@ -12,51 +12,44 @@ object ErrorMsgs {
   def warn(lineNo: Int, str: String)                = msg(Warn,  lineNo, str)
   def  err(lineNo: Int, str: String)                = msg(Error, lineNo, str)
 
-  val methStr = "(): String"
-  val propStr = "=> String"
-
   def autoApp2(meth: String) =
     s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
        |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
   def autoApp3(meth: String) = s"method $meth must be called with () argument"
-
-  def override2_meth2prop = "method without a parameter list overrides a method with a single empty one"
-  def override2_prop2meth(sev: Severity, nme: String) = sev match {
-    case Error => s"method with a single empty parameter list overrides method without any parameter list\ndef d: String (defined in trait $nme)"
-    case Warn  => s"method with a single empty parameter list overrides method without any parameter list"
-    case Info  => ""
-  }
-
-  def override3_meth2prop(sev: Severity, nme: String) = override3(sev, nme, methStr, propStr)
-  def override3_prop2meth(sev: Severity, nme: String) = override3(sev, nme, propStr, methStr)
-  def override3(sev: Severity, nme: String, tp1: String, tp2: String) = sev match {
-    case Error => s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 has incompatible type"
-    case Warn  => s"error overriding method d in trait $nme of type $tp1;\n  method d of type $tp2 no longer has compatible type"
-    case Info  => ""
-  }
-
-  def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
-  def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
-  def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
-  def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
-  def missingArgs(meth: String, cls: String) =
-    s"""missing argument list for method $meth in object $cls
-       |Unapplied methods are only converted to functions when a function type is expected.
-       |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
-  def stillEta(meth: String, traitName: String) = s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
-  def mustFollow(tpe: String) = s"_ must follow method; cannot follow $tpe"
-  def onlyFuncs(tpe: String)  = s"Only function types can be followed by _ but the current expression has type $tpe"
-  def methodsWithoutParams    = "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
-  def methodsWithoutParamsNew = "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
-  def notEnoughArgs(methsig: String, className: String, param: String) = s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
-  def missingArgForParam(methsig: String, param: String)               = s"missing argument for parameter $param of method $methsig"
 }
 
 object EtaX {
   import ErrorMsgs._
 
   def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
+
+  def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
+  def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
+
+  def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
+  def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
+
+  def missingArgs(meth: String, cls: String) =
+    s"""missing argument list for method $meth in object $cls
+       |Unapplied methods are only converted to functions when a function type is expected.
+       |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
+
+  def stillEta(meth: String, traitName: String) =
+    s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
+
+  def mustFollow(tpe: String) = s"_ must follow method; cannot follow $tpe"
+  def onlyFuncs(tpe: String)  = s"Only function types can be followed by _ but the current expression has type $tpe"
+
+  def methodsWithoutParams    =
+    "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
+  def methodsWithoutParamsNew =
+    "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
+
+  def notEnoughArgs(methsig: String, className: String, param: String) =
+    s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
+  def missingArgForParam(methsig: String, param: String) =
+    s"missing argument for parameter $param of method $methsig"
 
   object meth extends MkInMemoryTestFile {
     val name = "EtaX.meth"

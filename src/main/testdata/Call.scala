@@ -12,7 +12,7 @@ trait MkInMemoryTestFile {
 }
 
 object Call {
-  import ErrorMsgs._, Switch._
+  import ErrorMsgs._, Types._
 
   def tests = List(hashHash, pos, def_meth_p, def_prop_m).map(_.testFile)
 
