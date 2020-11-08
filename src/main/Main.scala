@@ -26,12 +26,12 @@ object Main {
     freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00.toArray, cmd).asInstanceOf[MkCompiler]
 
   val mkCompilers = List[MkCompiler](
-    FreshCompiler2("2.13-head", Deps.scalac_2_13, ""),
-    FreshCompiler2("2.13-new",  Deps.scalac_2_13, "-Xsource:3"),
-    FreshCompiler3("3.0-old",                     "-source 3.0-migration"),
-    FreshCompiler3("3.0",                         ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr",                    "-source 3.1-migration"),
-    FreshCompiler3("3.1",                         "-source 3.1"),
+    FreshCompiler2("2.13",     Deps.scalac_2_13, ""),
+    FreshCompiler2("2.13-new", Deps.scalac_2_13, "-Xsource:3"),
+    FreshCompiler3("3.0-old",                    "-source 3.0-migration"),
+    FreshCompiler3("3.0",                        ""), // assumes -source 3.0 is the default
+    FreshCompiler3("3.1-migr",                   "-source 3.1-migration"),
+    FreshCompiler3("3.1",                        "-source 3.1"),
   )
 
   val compilerIds   = mkCompilers.map(_.id)
@@ -109,11 +109,16 @@ object Main {
     val TestFile(name, TestContents(_, _, expMsgss)) = testFile
     val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
+      val obt = obtMsgs.sorted
+      val exp = expMsgs.sorted
       expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
         case (exp, obt) if exp != obt => showObt(obt) + showExp(exp)
       }.mkString match {
         case ""    => TestSuccess(name)
-        case lines => TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-obtained$RESET/$GREEN+expected$RESET):$lines")
+        case lines =>
+          println(s"obt:" + obt.map(showObt(_)).mkString)
+          println(s"exp:" + exp.map(showExp(_)).mkString)
+          TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-obtained$RESET/$GREEN+expected$RESET):$lines")
       }
     }
     testResults.collect { case tf: TestFailure => tf } match {

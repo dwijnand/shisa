@@ -14,7 +14,7 @@ trait MkInMemoryTestFile {
 object Call {
   import ErrorMsgs._, Types._
 
-  def tests = List(hashHash, pos, def_meth_p, def_prop_m).map(_.testFile)
+  def tests = List(hashHash, pos).map(_.testFile)
 
   implicit class NameOps[N <: Name](private val name: N) extends AnyVal {
     def chSuff(ch: Char) = name match {
@@ -23,9 +23,37 @@ object Call {
     }
   }
 
+  def appendOnce[T, U](xs: List[T], x: T)(implicit classifier: classifiers.Classifier[T, U]) = {
+    if (xs.exists(classifier(_))) xs else xs :+ x
+  }
+
+  def prependOnce[T, U](x: T, xs: List[T])(implicit classifier: classifiers.Classifier[T, U]) = {
+    if (xs.exists(classifier(_))) xs else x :: xs
+  }
+
   implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
     def notValParam = param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))
-    def  toValParam = if (param.mods.exists(_.is[Mod.ValParam])) param else param.copy(mods = param.mods :+ Mod.ValParam())
+    def  toValParam = param.copy(mods = appendOnce(param.mods, Mod.ValParam()))
+  }
+
+  implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
+    def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
+    def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = prependOnce(init, cls.templ.inits)))
+
+    def toCaseClass = cls.copy(
+      mods = appendOnce(cls.mods, Mod.Case()),
+      ctor = cls.ctor.copy(paramss = if (cls.ctor.paramss.isEmpty) List(Nil) else cls.ctor.paramss.map(_.map(_.notValParam))),
+    )
+
+    def toValueClass = cls.addInit(init"AnyVal").copy(
+      ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
+        case Nil           => List(List(param"val x: String"))
+        case List(List(p)) => List(List(p.toValParam))
+        case paramss       => sys.error(s"Can't toValueClass ${cls.name} b/c of paramss: $paramss")
+      }),
+    )
+
+    def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
   }
 
   sealed trait ClassVariant
@@ -67,56 +95,11 @@ object Call {
   val  VCR = Cls(List(ClassVariant.Value))
   val VCCR = Cls(List(ClassVariant.Value, ClassVariant.Case))
 
-  implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
-    def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
-    def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = init :: cls.templ.inits))
-
-    def toCaseClass = cls.copy(
-      mods = cls.mods :+ Mod.Case(),
-      ctor = cls.ctor.copy(paramss = (if (cls.ctor.paramss.isEmpty) List(Nil) else cls.ctor.paramss).map(_.map(_.notValParam))),
-    )
-
-    def toValueClass = cls.addInit(init"AnyVal").copy(
-      ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
-        case Nil           => List(List(param"val x: String"))
-        case List(List(p)) => List(List(p.toValParam))
-        case paramss       => sys.error(s"Can't toValueClass ${cls.name} b/c of paramss: $paramss")
-      }),
-    )
-
-    def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
-  }
-
   final case class Val(name: Term.Name, tpe: Type.Name) {
     val defn = Defn.Val(Nil, List(Pat.Var(name)), Option(tpe), Lit.String(""))
   }
 
   def duo(qual: Term, name: Term.Name) = List(List(q"$qual.$name", q"$qual.$name()"))
-
-  def multi(msg2: Msg, msg3: Msg) =
-    multi2(List(msg2), List(msg2), List(msg3), List(msg3))
-
-  def multi2(msg2W: List[Msg], msg2E: List[Msg], msg3W: List[Msg], msg3E: List[Msg]) =
-    List(msg2W, msg2E, msg3W, msg3E, msg3E, msg3E)
-
-  def multi3(msgs: (SV, WorE) => List[Msg]) = multi2(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E))
-
-  object def_meth_p extends MkInMemoryTestFile {
-    val name     = "Call.meth_p"
-    val msgs     = multi3 {
-      case (S2, _) => List(msg(Warn,  3, autoApp2("meth")))
-      case (S3, W) => List(msg(Warn,  3, autoApp3("meth")))
-      case (S3, E) => List(msg(Error, 3, autoApp3("meth")))
-    }
-    val contents = TestContents(List(q"""def meth() = """""), List(List(q"meth")), msgs)
-  }
-
-  object def_prop_m extends MkInMemoryTestFile {
-    val name     = "Call.prop_m"
-    val err2     = err(3, "not enough arguments for method apply: (i: Int): Char in class StringOps.\nUnspecified value parameter i.")
-    val err3     = err(3, "missing argument for parameter i of method apply: (i: Int): Char")
-    val contents = TestContents(List(q"""def prop = """""), List(List(q"prop()")), multi(err2, err3))
-  }
 
   object hashHash extends MkInMemoryTestFile {
     val name              = "Call.##"

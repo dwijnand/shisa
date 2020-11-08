@@ -6,7 +6,8 @@ import scala.meta._
 import Severity.{ Info, Warn, Error }
 
 object Types {
-  sealed trait SV;   case object S2 extends SV;   case object S3 extends SV
+  sealed trait SV;   case object S2  extends  SV; case object S3  extends  SV
+  sealed trait BSV;  case object S2X extends BSV; case object S30 extends BSV; case object S31 extends BSV
   sealed trait WorE; case object W  extends WorE; case object E  extends WorE
 
   object WorE {
@@ -14,16 +15,46 @@ object Types {
       def toSev: Severity = wore match { case W => Warn case E => Error }
     }
   }
+
+  def multi(msg2: Msg, msg3: Msg) =
+    List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
+
+  def multi3(msgs: (SV, WorE) => List[Msg]) =
+    List(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E), msgs(S3, E), msgs(S3, E))
+
+  def multi4(msgs2: WorE => List[Msg], msgs30: WorE => List[Msg], msgs31: WorE => List[Msg]) =
+    List(msgs2(W), msgs2(E), msgs30(W), msgs30(E), msgs31(W), msgs31(E))
+
+  def multi5(msgs: (BSV, WorE) => List[Msg]) =
+    List(msgs(S2X, W), msgs(S2X, E), msgs(S30, W), msgs(S30, E), msgs(S31, W), msgs(S31, E))
 }
 
 object Switch {
   import Call._, ErrorMsgs._, Types._
 
-  def tests = for {
+  def tests = List(call_meth_p, call_prop_m).map(_.testFile) ::: switchTests
+
+  def switchTests = for {
     switch <- List(Meth2Prop, Prop2Meth)
     call   <- List(Meth, Prop)
     isVC   <- List(false, true)
   } yield switchFile(switch, call, isVC)
+
+  object call_meth_p extends MkInMemoryTestFile {
+    val name     = "Call.meth_p"
+    val msgs     = multi3 {
+      case (S2,    _) => List(msg(Warn,       3, autoApp2("meth")))
+      case (S3, wore) => List(msg(wore.toSev, 3, autoApp3("meth")))
+    }
+    val contents = TestContents(List(q"""def meth() = """""), List(List(q"meth")), msgs)
+  }
+
+  object call_prop_m extends MkInMemoryTestFile {
+    val name     = "Call.prop_m"
+    val err2     = err(3, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i"))
+    val err3     = err(3, missingArgForParam("apply: (i: Int): Char", "i"))
+    val contents = TestContents(List(q"""def prop = """""), List(List(q"prop()")), multi(err2, err3))
+  }
 
   sealed trait MethPropSwitch; case object Meth2Prop extends MethPropSwitch; case object Prop2Meth extends MethPropSwitch
   sealed trait MethOrProp;     case object Meth      extends MethOrProp;     case object Prop      extends MethOrProp

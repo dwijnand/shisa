@@ -17,12 +17,18 @@ object ErrorMsgs {
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
        |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
   def autoApp3(meth: String) = s"method $meth must be called with () argument"
+
+  def notEnoughArgs(methsig: String, className: String, param: String) =
+    s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
+  def missingArgForParam(methsig: String, param: String) =
+    s"missing argument for parameter $param of method $methsig"
 }
 
 object EtaX {
-  import ErrorMsgs._
+  import ErrorMsgs._, Types._
 
   def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
+
 
   def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
   def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
@@ -41,15 +47,16 @@ object EtaX {
   def mustFollow(tpe: String) = s"_ must follow method; cannot follow $tpe"
   def onlyFuncs(tpe: String)  = s"Only function types can be followed by _ but the current expression has type $tpe"
 
-  def methodsWithoutParams    =
+  def methodsWithoutParams(wore: WorE) = wore match {
+    case W => methodsWithoutParamsW
+    case E => methodsWithoutParamsNew
+  }
+
+  def methodsWithoutParamsW   =
     "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
   def methodsWithoutParamsNew =
     "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
 
-  def notEnoughArgs(methsig: String, className: String, param: String) =
-    s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
-  def missingArgForParam(methsig: String, param: String) =
-    s"missing argument for parameter $param of method $methsig"
 
   object meth extends MkInMemoryTestFile {
     val name = "EtaX.meth"
@@ -73,29 +80,29 @@ object EtaX {
       warn(7, autoApp2("meth")),
        err(6, mustFollow("String")),
     )
-    def msgs3Pair(sev: Severity, lineNo: Int, exp: String) = List(
-      msg(sev, lineNo, autoApp3("meth")),
-    ) ::: (if (sev == Error) Nil else List(
+    def msgs3Pair(wore: WorE, lineNo: Int, exp: String) = List(
+      msg(wore.toSev, lineNo, autoApp3("meth")),
+    ) ::: (if (wore == E) Nil else List(
       err(     lineNo, typeMismatch3("String", exp)),
     ))
-    def msgs30I(sev: Severity) = {
-      msgs3Pair(sev, 6, "p01.Test.Sam0S") :::
-      msgs3Pair(sev, 6, "p02.Test.Sam0J") ::: List(
-      msg(      sev, 7, autoApp3("meth")),
-      msg(      sev, 6, onlyFuncs("String")),
+    def msgs30I(wore: WorE) = {
+      msgs3Pair(wore,       6, "p01.Test.Sam0S") :::
+      msgs3Pair(wore,       6, "p02.Test.Sam0J") ::: List(
+      msg(      wore.toSev, 7, autoApp3("meth")),
+      msg(      wore.toSev, 6, onlyFuncs("String")),
     )
     }
-    def msgs31I(sev: Severity) = List(
-      err(     6, autoApp3("meth")),
-      err(     6, autoApp3("meth")),
-      err(     7, autoApp3("meth")),
-      msg(sev, 6, etaFunction),
-      msg(sev, 7, etaFunction),
-      msg(sev, 6, etaFunction),
-      msg(sev, 6, onlyFuncs("String")),
+    def msgs31I(wore: WorE) = List(
+      err(            6, autoApp3("meth")),
+      err(            6, autoApp3("meth")),
+      err(            7, autoApp3("meth")),
+      msg(wore.toSev, 6, etaFunction),
+      msg(wore.toSev, 7, etaFunction),
+      msg(wore.toSev, 6, etaFunction),
+      msg(wore.toSev, 6, onlyFuncs("String")),
     )
 
-    val msgs     = List(msgs2, msgs2, msgs30I(Warn), msgs30I(Error), msgs31I(Warn), msgs31I(Error))
+    val msgs     = List(msgs2, msgs2, msgs30I(W), msgs30I(E), msgs31I(W), msgs31I(E))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
   }
 
@@ -111,9 +118,9 @@ object EtaX {
       q"val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0",
       q"val t5e: Any => Any = { val t = meth1 _ ; t } // ok",
     )
-    val msgs2 = List( err(7, missingArgs("meth1", "Test")))
-    val msgs3 = List(warn(6, stillEta("meth1", "p01.Test.Sam1S")))
-    def msgs31I(sev: Severity) = msgs3 ::: List(msg(sev, 7, etaFunction2))
+    val msgs2                  = List( err(7, missingArgs("meth1", "Test")))
+    val msgs3                  = List(warn(6, stillEta("meth1", "p01.Test.Sam1S")))
+    def msgs31I(sev: Severity) = List(warn(6, stillEta("meth1", "p01.Test.Sam1S")), msg(sev, 7, etaFunction2))
 
     val msgs     = List(msgs2, Nil, msgs3, msgs3, msgs31I(Warn), msgs31I(Error))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
@@ -132,44 +139,41 @@ object EtaX {
       q"val t2g: Any       = prop() _               // error: not enough arguments for method apply",
     )
 
-    def msgs2(sev: Severity)  = List(
-      err(     4, typeMismatch2("String", "() => Any")),
-      err(     4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
-      msg(sev, 4, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      msg(sev, 5, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      msg(sev, 4, if (sev == Error) methodsWithoutParamsNew else methodsWithoutParams),
-      err(     4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+    def msgs2(wore: WorE)  = List(
+      err(            4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      err(            4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      err(            4, typeMismatch2("String", "() => Any")),
+      msg(wore.toSev, 4, methodsWithoutParams(wore)),
+      msg(wore.toSev, 4, methodsWithoutParams(wore)),
+      msg(wore.toSev, 5, methodsWithoutParams(wore)),
     )
-    def msgs3(sev: Severity)  = List(
-      err(     4, typeMismatch3("String", "() => Any")),
-      err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
-      msg(sev, 4, onlyFuncs("String")),
-      msg(sev, 5, onlyFuncs("String")),
-    ) ::: (if (sev != Error) Nil else List(
-      msg(sev, 6, typeMismatch3("(t : String)", "() => Any")),
-    )) ::: List(
-      msg(sev, 4, onlyFuncs("String")),
-      msg(sev, 4, onlyFuncs("<error unspecified error>")),
-    ) ::: (if (sev == Error) Nil else List(
-      err(     4, missingArgForParam("apply: (i: Int): Char", "i"))
+    def msgs30(wore: WorE) = List(
+      err(            4, typeMismatch3("String", "() => Any")),
+      err(            4, missingArgForParam("apply: (i: Int): Char", "i")),
+      msg(wore.toSev, 4, onlyFuncs("String")),
+      msg(wore.toSev, 4, onlyFuncs("String")),
+      msg(wore.toSev, 4, onlyFuncs("<error unspecified error>")),
+      msg(wore.toSev, 5, onlyFuncs("String")),
+    ) ::: (if (wore == E) List(
+      msg(wore.toSev, 6, typeMismatch3("(t : String)", "() => Any")),
+    ) else List(
+      err(            4, missingArgForParam("apply: (i: Int): Char", "i")),
     ))
-    def msgs31(sev: Severity) = List(
-      err(     4, typeMismatch3("String", "() => Any")),
-      err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
-      msg(sev, 4, onlyFuncs("String")),
-    ) ::: (if (sev == Error) Nil else List(
-      err(     4, typeMismatch3("String", "() => Any")),
+    def msgs31(wore: WorE) = List(
+      err(            4, typeMismatch3("String", "() => Any")),
+      err(            4, missingArgForParam("apply: (i: Int): Char", "i")),
+    ) ::: (if (wore == E) Nil else List(
+      err(4, typeMismatch3("String", "() => Any")),
+      err(4, missingArgForParam("apply: (i: Int): Char", "i")),
     )) ::: List(
-      msg(sev, 5, onlyFuncs("String")),
-      err(     6, typeMismatch3("(t : String)", "() => Any")),
-      msg(sev, 4, onlyFuncs("String")),
-      msg(sev, 4, onlyFuncs("<error unspecified error>")),
-    ) ::: (if (sev == Error) Nil else List(
-      err(     4, missingArgForParam("apply: (i: Int): Char", "i")),
-    ))
+      msg(wore.toSev, 4, onlyFuncs("<error unspecified error>")),
+      msg(wore.toSev, 4, onlyFuncs("String")),
+      msg(wore.toSev, 4, onlyFuncs("String")),
+      msg(wore.toSev, 5, onlyFuncs("String")),
+      err(            6, typeMismatch3("(t : String)", "() => Any")),
+    )
 
-    val msgs     = List(msgs2(Warn), msgs2(Error), msgs3(Warn), msgs3(Error), msgs31(Warn), msgs31(Error))
-    val contents = TestContents(defns, stats.map(List(_)), msgs)
+    val contents = TestContents(defns, stats.map(List(_)), multi4(msgs2, msgs30, msgs31))
   }
 
   object methF0 extends MkInMemoryTestFile {
@@ -191,8 +195,7 @@ object EtaX {
     val contents  = List(testCase0, testCase1, testCase2, testCase3, testCase4).reduce(_ ++ _)
 
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Severity => List[Msg], msgs31: Severity => List[Msg]) = {
-      val msgs = List(msgs2, msgs2, msgs30(Warn), msgs30(Error), msgs31(Warn), msgs31(Error))
-      TestContents(defns, List(List(stat)), msgs)
+      TestContents(defns, List(List(stat)), multi4(const(msgs2), wore => msgs30(wore.toSev), wore => msgs31(wore.toSev)))
     }
   }
 
@@ -208,20 +211,20 @@ object EtaX {
     val tc1   = testCase(q"val t4b: () => Any = meth2()",   noMsgs)                       // ditto
     val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(msg(_, 4, etaFunction))) // ok
     val tc3   = testCase(q"val t4d: () => Any = meth2() _", msgs(msg(_, 4, etaFunction))) // ok
-    val contents  = List(tc0, tc1, tc2, tc3).reduce(_ ++ _)
+    val contents = List(tc0, tc1, tc2, tc3).reduce(_ ++ _)
 
     def testCase(stat: Stat, msgs: Severity => List[Msg]) = {
-      val msgss = List(Nil, Nil, Nil, Nil, msgs(Warn), msgs(Error))
-      TestContents(defns, List(List(stat)), msgss)
+      TestContents(defns, List(List(stat)), multi4(_ => Nil, _ => Nil, wore => msgs(wore.toSev)))
     }
   }
 
   val boom = {
     val defns = List(q"class A { def boom(): Unit = () }")
     val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgs2 = List(warn(   3, autoApp2("boom")))
-    val msgs3 = msgs( msg(_, 3, autoApp3("boom")))
-    val msgss = List(msgs2, msgs2, msgs3(Warn), msgs3(Error), msgs3(Error), msgs3(Error))
+    val msgss = multi3 {
+      case (S2, _)    => List(warn(           3, autoApp2("boom")))
+      case (S3, wore) => List(msg(wore.toSev, 3, autoApp3("boom")))
+    }
     TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }
 
