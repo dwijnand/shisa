@@ -8,20 +8,27 @@ import scala.meta._
 import Severity.{ Info, Error, Warn }
 
 object ErrorMsgs {
+  import Types._
+
   def  msg(sev: Severity, lineNo: Int, str: String) = new Msg(sev, lineNo, str)
   def warn(lineNo: Int, str: String)                = msg(Warn,  lineNo, str)
   def  err(lineNo: Int, str: String)                = msg(Error, lineNo, str)
 
+  def anyWarn(lineNo: Int) = warn(lineNo, "*")
+  def anyErr(lineNo: Int)  =  err(lineNo, "*")
+
+  def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
   def autoApp2(meth: String) =
     s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
        |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
   def autoApp3(meth: String) = s"method $meth must be called with () argument"
 
-  def notEnoughArgs(methsig: String, className: String, param: String) =
-    s"not enough arguments for method $methsig in class $className.\nUnspecified value parameter $param."
-  def missingArgForParam(methsig: String, param: String) =
-    s"missing argument for parameter $param of method $methsig"
+
+  def doesNotTakeParams(subject: String) = s"$subject does not take parameters"
+
+  def missingArg2(meth: String, cls: String, param: String) = s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param."
+  def missingArg3(meth: String, param: String)              = s"missing argument for parameter $param of method $meth"
 }
 
 object EtaX {
@@ -140,8 +147,8 @@ object EtaX {
     )
 
     def msgs2(wore: WorE)  = List(
-      err(            4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
-      err(            4, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i")),
+      err(            4, missingArg2("apply: (i: Int): Char", "StringOps", "i")),
+      err(            4, missingArg2("apply: (i: Int): Char", "StringOps", "i")),
       err(            4, typeMismatch2("String", "() => Any")),
       msg(wore.toSev, 4, methodsWithoutParams(wore)),
       msg(wore.toSev, 4, methodsWithoutParams(wore)),
@@ -149,7 +156,7 @@ object EtaX {
     )
     def msgs30(wore: WorE) = List(
       err(            4, typeMismatch3("String", "() => Any")),
-      err(            4, missingArgForParam("apply: (i: Int): Char", "i")),
+      err(            4, missingArg3("apply: (i: Int): Char", "i")),
       msg(wore.toSev, 4, onlyFuncs("String")),
       msg(wore.toSev, 4, onlyFuncs("String")),
       msg(wore.toSev, 4, onlyFuncs("<error unspecified error>")),
@@ -157,14 +164,14 @@ object EtaX {
     ) ::: (if (wore == E) List(
       msg(wore.toSev, 6, typeMismatch3("(t : String)", "() => Any")),
     ) else List(
-      err(            4, missingArgForParam("apply: (i: Int): Char", "i")),
+      err(            4, missingArg3("apply: (i: Int): Char", "i")),
     ))
     def msgs31(wore: WorE) = List(
       err(            4, typeMismatch3("String", "() => Any")),
-      err(            4, missingArgForParam("apply: (i: Int): Char", "i")),
+      err(            4, missingArg3("apply: (i: Int): Char", "i")),
     ) ::: (if (wore == E) Nil else List(
       err(4, typeMismatch3("String", "() => Any")),
-      err(4, missingArgForParam("apply: (i: Int): Char", "i")),
+      err(4, missingArg3("apply: (i: Int): Char", "i")),
     )) ::: List(
       msg(wore.toSev, 4, onlyFuncs("<error unspecified error>")),
       msg(wore.toSev, 4, onlyFuncs("String")),

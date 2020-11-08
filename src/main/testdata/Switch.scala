@@ -32,7 +32,7 @@ object Types {
 object Switch {
   import Call._, ErrorMsgs._, Types._
 
-  def tests = List(call_meth_p, call_prop_m).map(_.testFile) ::: switchTests
+  def tests = List(call_meth_p, call_prop_m) ::: switchTests
 
   def switchTests = for {
     switch <- List(Meth2Prop, Prop2Meth)
@@ -40,21 +40,22 @@ object Switch {
     isVC   <- List(false, true)
   } yield switchFile(switch, call, isVC)
 
-  object call_meth_p extends MkInMemoryTestFile {
-    val name     = "Call.meth_p"
-    val msgs     = multi3 {
-      case (S2,    _) => List(msg(Warn,       3, autoApp2("meth")))
-      case (S3, wore) => List(msg(wore.toSev, 3, autoApp3("meth")))
+  def CallMethP(meth: Term.Name, value: Lit) = {
+    val msgs = multi3 {
+      case (S2,    _) => List(msg(Warn,       3, autoApp2(meth.value)))
+      case (S3, wore) => List(msg(wore.toSev, 3, autoApp3(meth.value)))
     }
-    val contents = TestContents(List(q"""def meth() = """""), List(List(q"meth")), msgs)
+    val contents = TestContents(List(q"def $meth() = $value"), List(List(meth)), msgs)
+    TestFile("Call.meth_p", contents)
   }
 
-  object call_prop_m extends MkInMemoryTestFile {
-    val name     = "Call.prop_m"
-    val err2     = err(3, notEnoughArgs("apply: (i: Int): Char", "StringOps", "i"))
-    val err3     = err(3, missingArgForParam("apply: (i: Int): Char", "i"))
-    val contents = TestContents(List(q"""def prop = """""), List(List(q"prop()")), multi(err2, err3))
+  def CallPropM(meth: Term.Name, value: Lit) = {
+    val contents = TestContents(List(q"def $meth = $value"), List(List(q"$meth()")), multi(anyErr(3), anyErr(3)))
+    TestFile("Call.prop_m", contents)
   }
+
+  val call_meth_p = CallMethP(q"foo", q"1")
+  val call_prop_m = CallPropM(q"bar", q"1")
 
   sealed trait MethPropSwitch; case object Meth2Prop extends MethPropSwitch; case object Prop2Meth extends MethPropSwitch
   sealed trait MethOrProp;     case object Meth      extends MethOrProp;     case object Prop      extends MethOrProp

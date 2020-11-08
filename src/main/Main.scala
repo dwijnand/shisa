@@ -109,15 +109,13 @@ object Main {
     val TestFile(name, TestContents(_, _, expMsgss)) = testFile
     val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
-      val obt = obtMsgs.sorted
-      val exp = expMsgs.sorted
       expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
-        case (exp, obt) if exp != obt => showObt(obt) + showExp(exp)
+        case (exp, obt) if exp != obt && wildMatch(exp, obt) => showObt(obt) + showExp(exp)
       }.mkString match {
         case ""    => TestSuccess(name)
         case lines =>
-          println(s"obt:" + obt.map(showObt(_)).mkString)
-          println(s"exp:" + exp.map(showExp(_)).mkString)
+          //println(s"obt:" + obtMsgs.sorted.map(showObt(_)).mkString)
+          //println(s"exp:" + expMsgs.sorted.map(showExp(_)).mkString)
           TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-obtained$RESET/$GREEN+expected$RESET):$lines")
       }
     }
@@ -135,6 +133,7 @@ object Main {
   def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg)      = s"${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
+  def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" && exp.lineNo != obt.lineNo || exp.severity != obt.severity
 }
 
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) {

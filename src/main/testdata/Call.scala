@@ -103,8 +103,8 @@ object Call {
 
   object hashHash extends MkInMemoryTestFile {
     val name              = "Call.##"
-    def err2(lineNo: Int) = err(lineNo, "Int does not take parameters")
-    def err3(lineNo: Int) = err(lineNo, "method ## in class Any does not take parameters")
+    def err2(lineNo: Int) = err(lineNo, doesNotTakeParams("Int"))
+    def err3(lineNo: Int) = err(lineNo, doesNotTakeParams("method ## in class Any"))
     val contents          = List(
       TestContents(List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
       TestContents(List(ref.defn), duo(ref.name, q"##"), multi(err2( 9), err3( 9))),
