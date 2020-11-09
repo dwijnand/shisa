@@ -55,8 +55,10 @@ val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(
   Compile / unmanagedSourceDirectories := Nil,
      Test / unmanagedSourceDirectories += (Test / sourceDirectory).value,
      Test / sourceDirectory            := sourceDirectory.value,
-                   libraryDependencies += "org.scalameta" %% "munit" % "0.7.13" % Test,
-                        testFrameworks += new TestFramework("munit.Framework"),
+                   libraryDependencies += "org.scalameta" %% "munit"        % "0.7.13" % Test,
+                   libraryDependencies += "qa.hedgehog"   %% "hedgehog-sbt" % "0.5.1"  % Test,
+                        testFrameworks += TestFramework("munit.Framework"),
+                        testFrameworks += TestFramework("hedgehog.sbt.Framework"),
 )
 
 def proj1(p: Project) = p.settings(

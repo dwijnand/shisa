@@ -52,7 +52,10 @@ object Main {
     }
 
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = testFiles.map(tf => pool.submit[TestResult](() => compile1(tf, mkCompilers)))
+    val futures = testFiles.map(testFile => pool.submit[TestResult](() => {
+      println(s"* ${testFile.name}")
+      compile1(testFile)
+    }))
 
     pool.shutdown()
 
@@ -61,8 +64,8 @@ object Main {
 
     val testResults  = futures.map(_.get(0, NANOSECONDS))
     val testFailures = testResults.collect {
-      case TestFailure(src, msg)       => TestFailure(src, msg)
-      case TestFailures(src, failures) => TestFailure(src, failures.map(tf => s"\n  ${tf.msg}").mkString)
+      case tf: TestFailure   => tf
+      case tfs: TestFailures => tfs.toFailure
     }
 
     if (testFailures.nonEmpty) {
@@ -73,8 +76,7 @@ object Main {
     }
   }
 
-  def compile1(testFile: TestFile, mkCompilers: List[MkCompiler]): TestResult = {
-    println(s"* ${testFile.name}")
+  def compile1(testFile: TestFile): TestResult = {
     val compilers = mkCompilers.map(_.mkCompiler())
     if (testFile.contents.stats.sizeIs > 1) doLines(testFile, compilers)
     else                                     doUnit(testFile, compilers)
@@ -151,4 +153,6 @@ final case class TestFile(name: String, contents: TestContents)
 sealed trait TestResult { def name: String }
 final case class TestSuccess(name: String)                               extends TestResult
 final case class TestFailure(name: String, msg: String)                  extends TestResult
-final case class TestFailures(name: String, failures: List[TestFailure]) extends TestResult
+final case class TestFailures(name: String, failures: List[TestFailure]) extends TestResult {
+  def toFailure: TestFailure = TestFailure(name, failures.map(tf => s"\n  ${tf.msg}").mkString)
+}

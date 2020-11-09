@@ -4,7 +4,6 @@ import java.io.File
 
 import scala.jdk.CollectionConverters._
 import scala.reflect.internal
-import scala.reflect.internal.util.BatchSourceFile
 import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
@@ -22,7 +21,7 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
     val compiler = Global(settings, reporter)
 
     def compile1(src: SrcFile) = try {
-      new compiler.Run().compileSources(List(new BatchSourceFile(src.name, src.content.toArray)))
+      new compiler.Run().compileSources(List(compiler.newSourceFile(src.content, src.name)))
       new Msgs(reporter.infos.toList.map(getMsg(_)).asJava)
     } finally reporter.reset()
   }
