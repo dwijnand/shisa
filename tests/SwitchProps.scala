@@ -10,7 +10,7 @@ import shisa.tests.ScalaMetaGens._
 
 object SwitchProps extends Properties {
   def tests = List(
-    property("switch", switchProp).withTests(8),
+    //property("switch", switchProp).withTests(8),
   )
 
   def switchProp: Property = for {

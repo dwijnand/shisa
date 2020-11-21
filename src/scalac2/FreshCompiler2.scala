@@ -26,7 +26,7 @@ final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) e
     } finally reporter.reset()
   }
 
-  def getMsg(info: StoreReporter.Info) = new Msg(getSeverity(info), info.pos.line, info.msg)
+  def getMsg(info: StoreReporter.Info) = new Msg(getSeverity(info), info.msg)
 
   def getSeverity(info: StoreReporter.Info) = info.severity match {
     case internal.Reporter.ERROR   => Severity.Error

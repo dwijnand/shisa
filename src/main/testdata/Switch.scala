@@ -3,9 +3,11 @@ package testdata
 
 import scala.meta._
 
-import Severity.{ Info, Warn, Error }
+import Severity.{ Warn, Error }
 
 object Types {
+  val ns = "" // empty string ("no string")
+
   sealed trait SV;   case object S2  extends  SV; case object S3  extends  SV
   sealed trait BSV;  case object S2X extends BSV; case object S30 extends BSV; case object S31 extends BSV
   sealed trait WorE; case object W  extends WorE; case object E  extends WorE
@@ -47,15 +49,15 @@ object Switch {
 
   def CallMethP(meth: Term.Name, value: Lit) = {
     val msgs = multi3 {
-      case (S2,    _) => List(msg(Warn,       3, autoApp2(meth.value)))
-      case (S3, wore) => List(msg(wore.toSev, 3, autoApp3(meth.value)))
+      case (S2,    _) => List(msg(Warn,       autoApp2(meth.value)))
+      case (S3, wore) => List(msg(wore.toSev, autoApp3(meth.value)))
     }
     val contents = TestContents(List(q"def $meth() = $value"), List(List(meth)), msgs)
     TestFile("Call.meth_p", contents)
   }
 
   def CallPropM(meth: Term.Name, value: Lit) = {
-    val contents = TestContents(List(q"def $meth = $value"), List(List(q"$meth()")), multi(anyErr(3), anyErr(3)))
+    val contents = TestContents(List(q"def $meth = $value"), List(List(q"$meth()")), multi(anyErr, anyErr))
     TestFile("Call.prop_m", contents)
   }
 
@@ -68,16 +70,16 @@ object Switch {
   object MethPropSwitch {
     implicit class Ops(private val switch: MethPropSwitch) extends AnyVal {
       def clsDefn(clsName: Type.Name, traitName: Type.Name, meth: Term.Name): Defn.Class = switch match {
-        case Meth2Prop => q"""class $clsName(val x: String) extends $traitName() { def $meth   = "" }"""
-        case Prop2Meth => q"""class $clsName(val x: String) extends $traitName() { def $meth() = "" }"""
+        case Meth2Prop => q"class $clsName(val x: String) extends $traitName() { def $meth   = $ns }"
+        case Prop2Meth => q"class $clsName(val x: String) extends $traitName() { def $meth() = $ns }"
       }
       def traitDefn(traitName: Type.Name, meth: Term.Name): Defn.Trait = switch match {
         case Meth2Prop => q"trait $traitName extends Any { def $meth() : String }"
         case Prop2Meth => q"trait $traitName extends Any { def $meth   : String }"
       }
       def valDefn(valName: Term.Name, clsName: Type.Name): Defn.Val = switch match {
-        case Meth2Prop => q"""val ${Pat.Var(valName)} = new $clsName("")"""
-        case Prop2Meth => q"""val ${Pat.Var(valName)} = new $clsName("")"""
+        case Meth2Prop => q"val ${Pat.Var(valName)} = new $clsName($ns)"
+        case Prop2Meth => q"val ${Pat.Var(valName)} = new $clsName($ns)"
       }
       def toStat(call: MethOrProp, valName: Term.Name, meth: Term.Name): Term = call match {
         case Prop => Term.Select(valName, meth)
@@ -103,21 +105,21 @@ object Switch {
   }
 
   def overrideM(sv: SV, switch: MethPropSwitch, wore: WorE, traitName: String) = (sv, switch) match {
-    case (S2, Meth2Prop) => msg(wore.toSev, 3, override2_meth2prop)
-    case (S3, Meth2Prop) => msg(wore.toSev, 3, override3_meth2prop(wore, traitName))
-    case (S2, Prop2Meth) => msg(wore.toSev, 3, override2_prop2meth(wore, traitName))
-    case (S3, Prop2Meth) => msg(wore.toSev, 3, override3_prop2meth(wore, traitName))
+    case (S2, Meth2Prop) => msg(wore.toSev, override2_meth2prop)
+    case (S3, Meth2Prop) => msg(wore.toSev, override3_meth2prop(wore, traitName))
+    case (S2, Prop2Meth) => msg(wore.toSev, override2_prop2meth(wore, traitName))
+    case (S3, Prop2Meth) => msg(wore.toSev, override3_prop2meth(wore, traitName))
   }
 
   def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, wore: WorE, traitName: String, meth: Term.Name) = (switch, call, sv, wore) match {
     case (_,         Meth, _, _)  => List(overrideM(sv, switch, wore, traitName))
 
-    case (Meth2Prop, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), warn(5, autoApp2(meth.value)))
+    case (Meth2Prop, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), warn(autoApp2(meth.value)))
     case (Meth2Prop, Prop, S3, _) => List(overrideM(sv, switch, wore, traitName))
 
-    case (Prop2Meth, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp2(meth.value)))
-    case (Prop2Meth, Prop, S3, W) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  5, autoApp3(meth.value)))
-    case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp3(meth.value)))
+    case (Prop2Meth, Prop, S2, _) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  autoApp2(meth.value)))
+    case (Prop2Meth, Prop, S3, W) => List(overrideM(sv, switch, wore, traitName), msg(Warn,  autoApp3(meth.value)))
+    case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, autoApp3(meth.value)))
   }
 
   def switchFile(switch: MethPropSwitch, call: MethOrProp, clsName: Type.Name, traitName: Type.Name, meth: Term.Name, valName: Term.Name, isVC: Boolean = false): TestFile = {

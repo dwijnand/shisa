@@ -37,8 +37,8 @@ object Main {
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: Switch.tests ::: EtaX.tests
   val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((tf1, tf2) => TestFile(tf1.name, tf1.contents ++ tf2.contents))
-  val MissingExp    = new Msg(Error, 0, "missing exp msg")
-  val MissingObt    = new Msg(Error, 0, "missing obt msg")
+  val MissingExp    = new Msg(Error, "missing exp msg")
+  val MissingObt    = new Msg(Error, "missing obt msg")
 
   def idxStr(idx: Int) = if (idx < 10) s"0$idx" else s"$idx"
 
@@ -127,15 +127,15 @@ object Main {
     }
   }
 
-  implicit def orderingMsg: Ordering[Msg]      = Ordering.by((msg: Msg) => (msg.lineNo, msg.severity, msg.text))
+  implicit def orderingMsg: Ordering[Msg]      = Ordering.by((msg: Msg) => (msg.severity, msg.text))
   implicit def orderingSev: Ordering[Severity] = Ordering.by { case Error => 1 case Warn => 2 case Info => 3 }
 
   val LineStart              = "(?m)^".r
   def showObt(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
   def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
-  def showMsg(msg: Msg)      = s"${msg.lineNo} ${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
+  def showMsg(msg: Msg)      = s"${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
-  def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" && exp.lineNo != obt.lineNo || exp.severity != obt.severity
+  def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" || exp.severity != obt.severity
 }
 
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) {

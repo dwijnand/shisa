@@ -39,7 +39,7 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     }
   }
 
-  def getMsg(dia: Diagnostic)(implicit ctx: Context) = new Msg(getSeverity(dia), dia.pos.nonInlined.line + 1, dia.message)
+  def getMsg(dia: Diagnostic)(implicit ctx: Context) = new Msg(getSeverity(dia), dia.message)
 
   def getSeverity(dia: Diagnostic) = dia match {
     case _: Diagnostic.Error              => Severity.Error

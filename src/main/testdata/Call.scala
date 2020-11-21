@@ -57,10 +57,9 @@ object Call {
   }
 
   sealed trait ClassVariant
-  object ClassVariant { case object Case extends ClassVariant; case object Value extends ClassVariant; case object Runnable extends ClassVariant }
-
   sealed trait Override
-  object Override { case object No extends Override; case object Java extends Override; case object Scala extends Override }
+  object ClassVariant { case object Case extends ClassVariant; case object Value extends ClassVariant; case object Runnable extends ClassVariant }
+  object Override     { case object No   extends Override;     case object Java extends Override;      case object Scala    extends Override     }
 
   final case class Cls(variants: List[ClassVariant]) {
     val name: Type.Name = variants.foldRight(t"CR") {
@@ -80,15 +79,17 @@ object Call {
       }
     }
 
-    val defnS = defn.copy(name = defn.name.chSuff('S')).addStat(q"""override def toString   = """"")
-    val defnJ = defn.copy(name = defn.name.chSuff('J')).addStat(q"""override def toString() = """"")
+    val defnS = defn.copy(name = defn.name.chSuff('S')).addStat(q"override def toString   = $ns")
+    val defnJ = defn.copy(name = defn.name.chSuff('J')).addStat(q"override def toString() = $ns")
     val defns = List(defn, defnS, defnJ)
   }
 
-  val any  = Val(q"any", t"Any")
-  val ref  = Val(q"ref", t"AnyRef")
-  val obj  = Val(q"obj", t"Object")
-  val str  = Val(q"str", t"String")
+  val any   = Val(q"any", t"Any")
+  val ref   = Val(q"ref", t"AnyRef")
+  val obj   = Val(q"obj", t"Object")
+  val str   = Val(q"str", t"String")
+  val vals  = List(any, ref, obj, str)
+  val vnmes = vals.map(_.name)
 
   val   CR = Cls(List(ClassVariant.Runnable))
   val  CCR = Cls(List(ClassVariant.Runnable, ClassVariant.Case))
@@ -101,21 +102,19 @@ object Call {
 
   def duo(qual: Term, name: Term.Name) = List(List(q"$qual.$name", q"$qual.$name()"))
 
+  def doesNotTakeParams(subject: String) = s"$subject does not take parameters"
+
   object hashHash extends MkInMemoryTestFile {
-    val name              = "Call.##"
-    def err2(lineNo: Int) = err(lineNo, doesNotTakeParams("Int"))
-    def err3(lineNo: Int) = err(lineNo, doesNotTakeParams("method ## in class Any"))
-    val contents          = List(
-      TestContents(List(any.defn), duo(any.name, q"##"), multi(err2( 7), err3( 7))),
-      TestContents(List(ref.defn), duo(ref.name, q"##"), multi(err2( 9), err3( 9))),
-      TestContents(List(obj.defn), duo(obj.name, q"##"), multi(err2(11), err3(11))),
-      TestContents(List(str.defn), duo(str.name, q"##"), multi(err2(13), err3(13))),
-    ).reduce(_ ++ _).toUnit
+    val name     = "Call.##"
+    val err2     = err(doesNotTakeParams("Int"))
+    val err3     = err(doesNotTakeParams("method ## in class Any"))
+    val contents = vals.map { v =>
+      TestContents(List(v.defn), duo(v.name, q"##"), multi(err2, err3))
+    }.reduce(_ ++ _).toUnit
   }
 
   object pos extends MkInMemoryTestFile {
     val name  = "Call.pos"
-    val vals  = List(any, ref, obj, str)
     val defns = CR.defns ::: CCR.defns ::: VCR.defns ::: VCCR.defns ::: vals.map(_.defn)
 
     def alt(t: Term, suff: Char) = t match {
@@ -123,16 +122,15 @@ object Call {
       case q"${n @ Term.Name(_)}(..$args)"       => q"${n.chSuff(suff)}(..$args)"
     }
 
-    def toStrings(r: Term)       = duo(r, q"toString") ::: duo(alt(r, 'S'), q"toString") ::: duo(alt(r, 'J'), q"toString")
-    def toStringsAndRun(r: Term) = duo(r, q"run") ::: toStrings(r)
+    val toStr              = q"toString"
+    def toStrings(r: Term) = duo(r, toStr) ::: duo(alt(r, 'S'), toStr) ::: duo(alt(r, 'J'), toStr)
 
-    val stats = vals.map(_.name).flatMap { nme =>
-        duo(nme, q"getClass") ::: duo(nme, q"hashCode") ::: duo(nme, q"toString")
-      } :::
-        toStringsAndRun(q"new CR()")  :::
-        toStrings(q"""new VCR("")""") :::
-        toStringsAndRun(q"CCR()")     :::
-        toStrings(q"""VCCR("")""")
+    val stats =
+      vnmes.flatMap(duo(_, q"toString")) :::
+      vnmes.flatMap(duo(_, q"getClass")) :::
+      vnmes.flatMap(duo(_, q"hashCode")) :::
+      List(q"new CR()", q"CCR()").flatMap(r => duo(r, q"run") ::: toStrings(r)) :::
+      List(q"new VCR($ns)", q"VCCR($ns)").flatMap(r => toStrings(r))
 
     def contents = TestContents(defns, stats, List(Nil, Nil, Nil, Nil, Nil, Nil, Nil))
   }
