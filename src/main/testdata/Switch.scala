@@ -32,17 +32,17 @@ object Types {
 object Switch {
   import Call._, ErrorMsgs._, Types._
 
-  def tests = List(call_meth_p, call_prop_m) ::: switchTests.map(_.toTestFile)
+  def tests = List(call_meth_p, call_prop_m) ::: switchTests
 
   def switchTests = List(
-    SwitchFile(Meth2Prop, Meth, t"Foo_M2P_M",    t"Bar_M2P_M",    q"m2p_m",    q"qux_m2p_m",    false),
-    SwitchFile(Meth2Prop, Prop, t"Foo_M2P_P",    t"Bar_M2P_P",    q"m2p_p",    q"qux_m2p_p",    false),
-    SwitchFile(Prop2Meth, Meth, t"Foo_P2M_M",    t"Bar_P2M_M",    q"p2m_m",    q"qux_p2m_m",    false),
-    SwitchFile(Prop2Meth, Prop, t"Foo_P2M_P",    t"Bar_P2M_P",    q"p2m_P",    q"qux_p2m_p",    false),
-    SwitchFile(Meth2Prop, Meth, t"Foo_M2P_M_VC", t"Bar_M2P_M_VC", q"m2p_m_vc", q"qux_m2p_m_vc", true),
-    SwitchFile(Meth2Prop, Prop, t"Foo_M2P_P_VC", t"Bar_M2P_P_VC", q"m2p_p_vc", q"qux_m2p_p_vc", true),
-    SwitchFile(Prop2Meth, Meth, t"Foo_P2M_M_VC", t"Bar_P2M_M_VC", q"p2m_m_vc", q"qux_p2m_m_vc", true),
-    SwitchFile(Prop2Meth, Prop, t"Foo_P2M_P_VC", t"Bar_P2M_P_VC", q"p2m_p_vc", q"qux_p2m_p_vc", true),
+    switchFile(Meth2Prop, Meth, t"Foo_M2P_M",    t"Bar_M2P_M",    q"m2p_m",    q"qux_m2p_m"),
+    switchFile(Meth2Prop, Prop, t"Foo_M2P_P",    t"Bar_M2P_P",    q"m2p_p",    q"qux_m2p_p"),
+    switchFile(Prop2Meth, Meth, t"Foo_P2M_M",    t"Bar_P2M_M",    q"p2m_m",    q"qux_p2m_m"),
+    switchFile(Prop2Meth, Prop, t"Foo_P2M_P",    t"Bar_P2M_P",    q"p2m_P",    q"qux_p2m_p"),
+    switchFile(Meth2Prop, Meth, t"Foo_M2P_M_VC", t"Bar_M2P_M_VC", q"m2p_m_vc", q"qux_m2p_m_vc", true),
+    switchFile(Meth2Prop, Prop, t"Foo_M2P_P_VC", t"Bar_M2P_P_VC", q"m2p_p_vc", q"qux_m2p_p_vc", true),
+    switchFile(Prop2Meth, Meth, t"Foo_P2M_M_VC", t"Bar_P2M_M_VC", q"p2m_m_vc", q"qux_p2m_m_vc", true),
+    switchFile(Prop2Meth, Prop, t"Foo_P2M_P_VC", t"Bar_P2M_P_VC", q"p2m_p_vc", q"qux_p2m_p_vc", true),
   )
 
   def CallMethP(meth: Term.Name, value: Lit) = {
@@ -120,18 +120,14 @@ object Switch {
     case (Prop2Meth, Prop, S3, E) => List(                                        msg(Error, 5, autoApp3(meth.value)))
   }
 
-  final case class SwitchFile(
-      switch: MethPropSwitch, call: MethOrProp, clsName: Type.Name, traitName: Type.Name, meth: Term.Name, valName: Term.Name, isVC: Boolean,
-  ) {
-    def toTestFile: TestFile = {
-      val pre = switch match { case Meth2Prop => "m2p" case Prop2Meth => "p2m" }
-      val suf = call   match { case Meth      => "m"   case Prop      => "p"   }
-      val name = if (isVC) s"switch_vc/${pre}_$suf" else s"switch/${pre}_$suf"
-      val clsDefn0  = switch.clsDefn(clsName, traitName, meth)
-      val clsDefn   = if (isVC) clsDefn0.toValueClass else clsDefn0
-      val traitDefn = switch.traitDefn(traitName, meth)
-      val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value, meth))
-      TestFile(name, TestContents(List(traitDefn, clsDefn, switch.valDefn(valName, clsName)), List(List(switch.toStat(call, valName, meth))), msgs))
-    }
+  def switchFile(switch: MethPropSwitch, call: MethOrProp, clsName: Type.Name, traitName: Type.Name, meth: Term.Name, valName: Term.Name, isVC: Boolean = false): TestFile = {
+    val pre = switch match { case Meth2Prop => "m2p" case Prop2Meth => "p2m" }
+    val suf = call   match { case Meth      => "m"   case Prop      => "p"   }
+    val name = if (isVC) s"switch_vc/${pre}_$suf" else s"switch/${pre}_$suf"
+    val clsDefn0  = switch.clsDefn(clsName, traitName, meth)
+    val clsDefn   = if (isVC) clsDefn0.toValueClass else clsDefn0
+    val traitDefn = switch.traitDefn(traitName, meth)
+    val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value, meth))
+    TestFile(name, TestContents(List(traitDefn, clsDefn, switch.valDefn(valName, clsName)), List(List(switch.toStat(call, valName, meth))), msgs))
   }
 }
