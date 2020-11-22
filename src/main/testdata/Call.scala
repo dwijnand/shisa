@@ -36,6 +36,8 @@ object Call {
     def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
   }
 
+  val initAnyVal = init"AnyVal"
+
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
     def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
@@ -48,7 +50,7 @@ object Call {
       }),
     )
 
-    def toValueClass = cls.addInit(init"AnyVal").copy(
+    def toValueClass = cls.addInit(initAnyVal).copy(
       ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
         case Nil           => List(List(param"val x: String"))
         case List(List(p)) => List(List(p.toValParam))
@@ -57,12 +59,20 @@ object Call {
     )
 
     def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
+
+    def  name: Type.Name = cls.name
+    def tname: Term.Name = Term.Name(name.value)
+
+    def inst: Term = cls match {
+      case _ if !cls.mods.has[Mod.Case] && !cls.templ.inits.contains(initAnyVal) => q"new $name()"
+      case _ if  cls.mods.has[Mod.Case] && !cls.templ.inits.contains(initAnyVal) => q"$tname()"
+      case _ if !cls.mods.has[Mod.Case] &&  cls.templ.inits.contains(initAnyVal) => q"new $name($ns)"
+      case _ if  cls.mods.has[Mod.Case] &&  cls.templ.inits.contains(initAnyVal) => q"$tname($ns)"
+    }
   }
 
   sealed trait ClassVariant
-  sealed trait Override
   object ClassVariant { case object Case extends ClassVariant; case object Value extends ClassVariant; case object Runnable extends ClassVariant }
-  object Override     { case object No   extends Override;     case object Java extends Override;      case object Scala    extends Override     }
 
   final case class Cls(variants: List[ClassVariant], suffix: String = "R") {
     import ClassVariant._
@@ -80,12 +90,7 @@ object Call {
       case (cls, Runnable) => cls.withRunnable
     }
 
-    val inst: Term = variants match {
-      case vs if !vs.contains(Value) && !vs.contains(Case) => q"new $name()"
-      case vs if !vs.contains(Value) &&  vs.contains(Case) => q"$tname()"
-      case vs if  vs.contains(Value) && !vs.contains(Case) => q"new $name($ns)"
-      case vs if  vs.contains(Value) &&  vs.contains(Case) => q"$tname($ns)"
-    }
+    val inst: Term = defn.inst
 
     lazy val copyS = copy(suffix = "S")
     lazy val copyJ = copy(suffix = "J")
@@ -103,33 +108,30 @@ object Call {
   val  CCR = Cls(List(ClassVariant.Runnable, ClassVariant.Case))
   val  VCR = Cls(List(ClassVariant.Value))
   val VCCR = Cls(List(ClassVariant.Value, ClassVariant.Case))
-  val clss = List(CR, CCR, VCR, VCCR).flatMap(cls => List(cls, cls.copyS, cls.copyJ))
+  val cls1 = List(CR, CCR, VCR, VCCR)
+  val clss = cls1.flatMap(cls => List(cls, cls.copyS, cls.copyJ))
 
   final case class Val(name: Term.Name, tpe: Type.Name) {
     val defn = Defn.Val(Nil, List(Pat.Var(name)), Option(tpe), Lit.String(""))
   }
 
   object hashHash extends MkInMemoryTestFile {
-    val name      = "Call.##"
-    val err2      = err(                   "Int does not take parameters")
-    val err3      = err("method ## in class Any does not take parameters")
-    val hashHashS = vals.map(v => TestContents(List(v.defn), List(List(q"${v.name}.##")), noMsgs))
-    val hashHashJ = vals.map(v => TestContents(List(v.defn), List(List(q"${v.name}.##()")), multi(err2, err3)))
-    val contents  = (hashHashS ::: hashHashJ).reduce(_ ++ _).toUnit
+    val name     = "Call.##"
+    val err2     = err(                   "Int does not take parameters")
+    val err3     = err("method ## in class Any does not take parameters")
+    val contents = vals.map(v => TestContents(List(v.defn), List(List(q"${v.name}.##()")), multi(err2, err3))).reduce(_ ++ _).toUnit
   }
 
   object pos extends MkInMemoryTestFile {
     val name  = "Call.pos"
-    val defns = CR.defns ::: CCR.defns ::: VCR.defns ::: VCCR.defns ::: vals.map(_.defn)
-    def duo(qual: Term, name: Term.Name) = List(List(q"$qual.$name", q"$qual.$name()"))
-
+    val defns = cls1.flatMap(_.defns) ::: vals.map(_.defn)
     val stats =
-      vals.flatMap          { v   => duo(v.name,   q"toString") } :::
-      vals.flatMap          { v   => duo(v.name,   q"getClass") } :::
-      vals.flatMap          { v   => duo(v.name,   q"hashCode") } :::
-      clss.flatMap          { cls => duo(cls.inst, q"toString") } :::
-      List(CR, CCR).flatMap { cls => duo(cls.inst, q"run")      }
-
-    def contents = TestContents(defns, stats, List(Nil, Nil, Nil, Nil, Nil, Nil, Nil))
+      vals.map          { v   => List(q"${v.name}.##")                                    } :::
+      vals.map          { v   => List(q"${v.name}.toString",   q"${v.name}.toString()")   } :::
+      vals.map          { v   => List(q"${v.name}.getClass",   q"${v.name}.getClass()")   } :::
+      vals.map          { v   => List(q"${v.name}.hashCode",   q"${v.name}.hashCode()")   } :::
+      clss.map          { cls => List(q"${cls.inst}.toString", q"${cls.inst}.toString()") } :::
+      List(CR, CCR).map { cls => List(q"${cls.inst}.run",      q"${cls.inst}.run()")      }
+    def contents = TestContents(defns, stats, noMsgs).toUnit
   }
 }

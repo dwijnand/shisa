@@ -135,7 +135,7 @@ object Main {
   def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg)      = s"${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
-  def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" || exp.severity != obt.severity
+  def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" && exp.severity != obt.severity
 }
 
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) {
