@@ -25,15 +25,13 @@ object Main {
   def FreshCompiler3(id: String, cmd: String): MkCompiler =
     freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00.toArray, cmd).asInstanceOf[MkCompiler]
 
-  val mkCompilers = List[MkCompiler](
-    FreshCompiler2("2.13",     Deps.scalac_2_13, ""),
-    FreshCompiler2("2.13-new", Deps.scalac_2_13, "-Xsource:3"),
-    FreshCompiler3("3.0-old",                    "-source 3.0-migration"),
-    FreshCompiler3("3.0",                        ""), // assumes -source 3.0 is the default
-    FreshCompiler3("3.1-migr",                   "-source 3.1-migration"),
-    FreshCompiler3("3.1",                        "-source 3.1"),
-  )
-
+  val SC213         = FreshCompiler2("2.13",     Deps.scalac_2_13, "")
+  val SC213N        = FreshCompiler2("2.13-new", Deps.scalac_2_13, "-Xsource:3")
+  val SC3M          = FreshCompiler3("3.0-migr",                   "-source 3.0-migration")
+  val SC3           = FreshCompiler3("3.0",                        "-source 3.0")
+  val SC31M         = FreshCompiler3("3.1-migr",                   "-source 3.1-migration")
+  val SC31          = FreshCompiler3("3.1",                        "-source 3.1")
+  val mkCompilers   = List(SC213, SC213N, SC3M, SC3, SC31M, SC31)
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: Switch.tests ::: EtaX.tests
   val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((tf1, tf2) => TestFile(tf1.name, tf1.contents ++ tf2.contents))
@@ -43,6 +41,22 @@ object Main {
   def idxStr(idx: Int) = if (idx < 10) s"0$idx" else s"$idx"
 
   def main(args: Array[String]): Unit = {
+    import scala.meta._
+    val clss = 0.until(4000).map(n => q"class ${Type.Name(s"C$n")}": Stat).toList
+
+    val pool    = Executors.newFixedThreadPool(4)
+    val futures = clss.grouped(100).toList.map(clss => pool.submit[List[Msg]] { () =>
+      doCompile2(SC3.mkCompiler(), "foo.scala", source"package foo; ..$clss".syntax + "\n")
+    })
+    pool.shutdown()
+
+    if (!pool.awaitTermination(10, MINUTES))
+      throw new Exception("Thread pool timeout elapsed before all tests were complete!")
+
+    futures.foreach(_.get(0, NANOSECONDS))
+  }
+
+  def run(args: Array[String]): Unit = {
     val testFiles = args.toList match {
       case Nil  => tests.sortBy(_.name).tap(tests => println(s"Files: ${tests.map(_.name).mkString("[", ", ", "]")}"))
       case args =>
@@ -78,25 +92,29 @@ object Main {
 
   def compile1(testFile: TestFile): TestResult = {
     val compilers = mkCompilers.map(_.mkCompiler())
-    if (testFile.contents.stats.sizeIs > 1) doLines(testFile, compilers)
-    else                                     doUnit(testFile, compilers)
-  }
-
-  def doUnit(testFile: TestFile, compilers: List[Compiler]): TestResult = {
-    compareMsgs(testFile, writeAndCompile(compilers, testFile.name, toSource(testFile.contents)))
-  }
-
-  def doLines(testFile: TestFile, compilers: List[Compiler]) = {
-    val msgss = testFile.contents.stats
-      .map(stat => testFile.contents.copy(stats = List(stat)))
-      .zipWithIndex.map { case (contents, idx) =>
-        writeAndCompile(compilers, testFile.name + idxStr(idx), toSource(contents, Some(idx)))
-      }.reduce(_.zip(_).map { case (a, b) => a ::: b })
+    val msgss     =
+      if (testFile.contents.stats.sizeIs > 1) doLines(testFile, compilers)
+      else                                     doUnit(testFile, compilers)
     compareMsgs(testFile, msgss)
   }
 
-  def writeAndCompile(compilers: List[Compiler], name: String, content: String) =
-    compilers.map(_.compile1(new SrcFile(name, content))).map(_.msgs.asScala.toList)
+  def doUnit(testFile: TestFile, compilers: List[Compiler]) = {
+    val contents = testFile.contents
+    doCompile1(compilers, testFile.name, toSource(contents))
+  }
+
+  def doLines(testFile: TestFile, compilers: List[Compiler]) = {
+    val contentss = testFile.contents.stats.map(stat => testFile.contents.copy(stats = List(stat)))
+    contentss.zipWithIndex.map { case (contents, idx) =>
+      doCompile1(compilers, testFile.name + idxStr(idx), toSource(contents, Some(idx)))
+    }.reduce(_.zip(_).map { case (a, b) => a ::: b })
+  }
+
+  def doCompile1(compilers: List[Compiler], name: String, content: String) =
+    compilers.map(doCompile2(_, name, content))
+
+  def doCompile2(compiler: Compiler, name: String, content: String) =
+    compiler.compile1(new SrcFile(name, content)).msgs.asScala.toList
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
     val sourceDefn = q"object Test { ..${contents.defns ::: contents.stats.flatten} }"
