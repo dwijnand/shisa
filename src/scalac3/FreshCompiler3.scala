@@ -22,11 +22,10 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
     ctx.setSetting(ctx.settings.color, "never")
     ctx.setSetting(ctx.settings.classpath, scalaJars.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
-    ctx.setSetting(ctx.settings.migration, true)
     ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory("FreshCompiler3 output", /* maybeContainer = */ None))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(CommandLineParser.tokenize(cmd), /* processAll = */ true).sstate)
-    Positioned.updateDebugPos
+    Positioned.init
     val compiler = new dotc.Compiler
 
     def compile1(src: SrcFile) = {

@@ -1,5 +1,5 @@
-val scalaV2 = "2.13.3"
-val scalaV3 = "0.26.0"
+val scalaV2 = "2.13.4"
+val scalaV3 = "3.0.0-M1"
 
 inThisBuild(Def.settings(
      organization := "com.dwijnand",
@@ -35,7 +35,7 @@ val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
 
 val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
          scalaVersion := scalaV3,
-  libraryDependencies += scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
+  libraryDependencies += scalaOrganization.value %% "scala3-compiler" % scalaVersion.value,
 )
 
 val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
@@ -46,8 +46,8 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
   libraryDependencies ++= List(
     "org.typelevel"   %% "cats-core"         % "2.0.0",
     "io.get-coursier" %% "coursier"          % "2.0.2",
-    "ch.epfl.scala"   %  "scalafix-cli"      % "0.9.21"        cross CrossVersion.full,
-    "org.scalameta"   %  "semanticdb-scalac" % "4.3.24"        cross CrossVersion.full,
+  //"ch.epfl.scala"   %  "scalafix-cli"      % "0.9.21"        cross CrossVersion.full,
+    "org.scalameta"   %  "semanticdb-scalac" % "4.4.0"         cross CrossVersion.full,
   )
 ).enablePlugins(BuildInfoPlugin)
 
