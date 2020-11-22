@@ -41,22 +41,6 @@ object Main {
   def idxStr(idx: Int) = if (idx < 10) s"0$idx" else s"$idx"
 
   def main(args: Array[String]): Unit = {
-    import scala.meta._
-    val clss = 0.until(4000).map(n => q"class ${Type.Name(s"C$n")}": Stat).toList
-
-    val pool    = Executors.newFixedThreadPool(4)
-    val futures = clss.grouped(100).toList.map(clss => pool.submit[List[Msg]] { () =>
-      doCompile2(SC3.mkCompiler(), "foo.scala", source"package foo; ..$clss".syntax + "\n")
-    })
-    pool.shutdown()
-
-    if (!pool.awaitTermination(10, MINUTES))
-      throw new Exception("Thread pool timeout elapsed before all tests were complete!")
-
-    futures.foreach(_.get(0, NANOSECONDS))
-  }
-
-  def run(args: Array[String]): Unit = {
     val testFiles = args.toList match {
       case Nil  => tests.sortBy(_.name).tap(tests => println(s"Files: ${tests.map(_.name).mkString("[", ", ", "]")}"))
       case args =>
