@@ -18,6 +18,8 @@ object Types {
     }
   }
 
+  val noMsgs = multi3((_, _) => Nil)
+
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
 

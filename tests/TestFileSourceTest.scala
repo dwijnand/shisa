@@ -16,12 +16,12 @@ class TestFileSourceTest extends FunSuite {
       |  val obj: Object = ""
       |  val str: String = ""
       |  any.##
-      |  any.##()
       |  ref.##
-      |  ref.##()
       |  obj.##
-      |  obj.##()
       |  str.##
+      |  any.##()
+      |  ref.##()
+      |  obj.##()
       |  str.##()
       |}
       |""".stripMargin
@@ -80,16 +80,12 @@ class TestFileSourceTest extends FunSuite {
       |  obj.hashCode()
       |  str.hashCode
       |  str.hashCode()
-      |  new CR().run
-      |  new CR().run()
       |  new CR().toString
       |  new CR().toString()
       |  new CS().toString
       |  new CS().toString()
       |  new CJ().toString
       |  new CJ().toString()
-      |  CCR().run
-      |  CCR().run()
       |  CCR().toString
       |  CCR().toString()
       |  CCS().toString
@@ -108,6 +104,10 @@ class TestFileSourceTest extends FunSuite {
       |  VCCS("").toString()
       |  VCCJ("").toString
       |  VCCJ("").toString()
+      |  new CR().run
+      |  new CR().run()
+      |  CCR().run
+      |  CCR().run()
       |}
       |""".stripMargin
 

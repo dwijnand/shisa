@@ -1,7 +1,7 @@
 package shisa
 package testdata
 
-import scala.meta._
+import scala.meta._, classifiers.{ Classifiable, Classifier }
 
 import Severity.{ Info, Warn, Error }
 
@@ -23,26 +23,29 @@ object Call {
     }
   }
 
-  def appendOnce[T, U](xs: List[T], x: T)(implicit classifier: classifiers.Classifier[T, U]) = {
-    if (xs.exists(classifier(_))) xs else xs :+ x
-  }
+  implicit class ListOps[T](private val xs: List[T]) extends AnyVal {
+    def has[U](implicit classifier: Classifier[T, U]): Boolean    = xs.exists(classifier(_))
+    def hasNot[U](implicit classifier: Classifier[T, U]): Boolean = xs.forall(!classifier(_))
 
-  def prependOnce[T, U](x: T, xs: List[T])(implicit classifier: classifiers.Classifier[T, U]) = {
-    if (xs.exists(classifier(_))) xs else x :: xs
+    def appendOnce[U](x: T)(implicit classifier: Classifier[T, U])  = if (xs.has[U]) xs else xs :+ x
+    def prependOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else x :: xs
   }
 
   implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
     def notValParam = param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))
-    def  toValParam = param.copy(mods = appendOnce(param.mods, Mod.ValParam()))
+    def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
   }
 
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
-    def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = prependOnce(init, cls.templ.inits)))
+    def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
 
     def toCaseClass = cls.copy(
-      mods = appendOnce(cls.mods, Mod.Case()),
-      ctor = cls.ctor.copy(paramss = if (cls.ctor.paramss.isEmpty) List(Nil) else cls.ctor.paramss.map(_.map(_.notValParam))),
+      mods = cls.mods.appendOnce(Mod.Case()),
+      ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
+        case Nil     => List(Nil)
+        case paramss => paramss.map(_.map(_.notValParam))
+      }),
     )
 
     def toValueClass = cls.addInit(init"AnyVal").copy(
@@ -61,76 +64,71 @@ object Call {
   object ClassVariant { case object Case extends ClassVariant; case object Value extends ClassVariant; case object Runnable extends ClassVariant }
   object Override     { case object No   extends Override;     case object Java extends Override;      case object Scala    extends Override     }
 
-  final case class Cls(variants: List[ClassVariant]) {
-    val name: Type.Name = variants.foldRight(t"CR") {
-      case (ClassVariant.Case,     name) => name.copy("C" + name.value)
-      case (ClassVariant.Value,    name) => name.copy("V" + name.value)
-      case (ClassVariant.Runnable, name) => name
+  final case class Cls(variants: List[ClassVariant], suffix: String = "R") {
+    import ClassVariant._
+
+    val name: Type.Name = variants.foldRight(Type.Name(s"C$suffix")) {
+      case (Case,     name) => name.copy("C" + name.value)
+      case (Value,    name) => name.copy("V" + name.value)
+      case (Runnable, name) => name
+    }
+    val tname: Term.Name = Term.Name(name.value)
+
+    val defn: Defn.Class = variants.foldLeft(q"class $name") {
+      case (cls, Case)     => cls.toCaseClass
+      case (cls, Value)    => cls.toValueClass
+      case (cls, Runnable) => cls.withRunnable
     }
 
-    val defn: Defn.Class = {
-      if (variants.isEmpty) q"class $name".withRunnable
-      else {
-        variants.foldLeft(q"class $name") {
-          case (cls, ClassVariant.Case)     => cls.toCaseClass
-          case (cls, ClassVariant.Value)    => cls.toValueClass
-          case (cls, ClassVariant.Runnable) => cls.withRunnable
-        }
-      }
+    val inst: Term = variants match {
+      case vs if !vs.contains(Value) && !vs.contains(Case) => q"new $name()"
+      case vs if !vs.contains(Value) &&  vs.contains(Case) => q"$tname()"
+      case vs if  vs.contains(Value) && !vs.contains(Case) => q"new $name($ns)"
+      case vs if  vs.contains(Value) &&  vs.contains(Case) => q"$tname($ns)"
     }
 
-    val defnS = defn.copy(name = defn.name.chSuff('S')).addStat(q"override def toString   = $ns")
-    val defnJ = defn.copy(name = defn.name.chSuff('J')).addStat(q"override def toString() = $ns")
-    val defns = List(defn, defnS, defnJ)
+    lazy val copyS = copy(suffix = "S")
+    lazy val copyJ = copy(suffix = "J")
+    lazy val defnS = copyS.defn.addStat(q"override def toString   = $ns")
+    lazy val defnJ = copyJ.defn.addStat(q"override def toString() = $ns")
+    lazy val defns = List(defn, defnS, defnJ)
   }
 
-  val any   = Val(q"any", t"Any")
-  val ref   = Val(q"ref", t"AnyRef")
-  val obj   = Val(q"obj", t"Object")
-  val str   = Val(q"str", t"String")
-  val vals  = List(any, ref, obj, str)
-  val vnmes = vals.map(_.name)
-
+  val any  = Val(q"any", t"Any")
+  val ref  = Val(q"ref", t"AnyRef")
+  val obj  = Val(q"obj", t"Object")
+  val str  = Val(q"str", t"String")
+  val vals = List(any, ref, obj, str)
   val   CR = Cls(List(ClassVariant.Runnable))
   val  CCR = Cls(List(ClassVariant.Runnable, ClassVariant.Case))
   val  VCR = Cls(List(ClassVariant.Value))
   val VCCR = Cls(List(ClassVariant.Value, ClassVariant.Case))
+  val clss = List(CR, CCR, VCR, VCCR).flatMap(cls => List(cls, cls.copyS, cls.copyJ))
 
   final case class Val(name: Term.Name, tpe: Type.Name) {
     val defn = Defn.Val(Nil, List(Pat.Var(name)), Option(tpe), Lit.String(""))
   }
 
-  def duo(qual: Term, name: Term.Name) = List(List(q"$qual.$name", q"$qual.$name()"))
-
-  def doesNotTakeParams(subject: String) = s"$subject does not take parameters"
-
   object hashHash extends MkInMemoryTestFile {
-    val name     = "Call.##"
-    val err2     = err(doesNotTakeParams("Int"))
-    val err3     = err(doesNotTakeParams("method ## in class Any"))
-    val contents = vals.map { v =>
-      TestContents(List(v.defn), duo(v.name, q"##"), multi(err2, err3))
-    }.reduce(_ ++ _).toUnit
+    val name      = "Call.##"
+    val err2      = err(                   "Int does not take parameters")
+    val err3      = err("method ## in class Any does not take parameters")
+    val hashHashS = vals.map(v => TestContents(List(v.defn), List(List(q"${v.name}.##")), noMsgs))
+    val hashHashJ = vals.map(v => TestContents(List(v.defn), List(List(q"${v.name}.##()")), multi(err2, err3)))
+    val contents  = (hashHashS ::: hashHashJ).reduce(_ ++ _).toUnit
   }
 
   object pos extends MkInMemoryTestFile {
     val name  = "Call.pos"
     val defns = CR.defns ::: CCR.defns ::: VCR.defns ::: VCCR.defns ::: vals.map(_.defn)
-
-    def alt(t: Term, suff: Char) = t match {
-      case q"new ${n @ Type.Name(_)}(...$argss)" => q"new ${n.chSuff(suff)}(...$argss)"
-      case q"${n @ Term.Name(_)}(..$args)"       => q"${n.chSuff(suff)}(..$args)"
-    }
-
-    val toStr              = q"toString"
-    def toStrings(r: Term) = duo(r, toStr) ::: duo(alt(r, 'S'), toStr) ::: duo(alt(r, 'J'), toStr)
+    def duo(qual: Term, name: Term.Name) = List(List(q"$qual.$name", q"$qual.$name()"))
 
     val stats =
-      vnmes.flatMap(duo(_, q"toString")) :::
-      vnmes.flatMap(duo(_, q"getClass")) :::
-      vnmes.flatMap(duo(_, q"hashCode")) :::
-      List(q"new CR()", q"CCR()").flatMap(r => duo(r, q"run") ::: toStrings(r)) :::
-      List(q"new VCR($ns)", q"VCCR($ns)").flatMap(r => toStrings(r))
+      vals.flatMap          { v   => duo(v.name,   q"toString") } :::
+      vals.flatMap          { v   => duo(v.name,   q"getClass") } :::
+      vals.flatMap          { v   => duo(v.name,   q"hashCode") } :::
+      clss.flatMap          { cls => duo(cls.inst, q"toString") } :::
+      List(CR, CCR).flatMap { cls => duo(cls.inst, q"run")      }
 
     def contents = TestContents(defns, stats, List(Nil, Nil, Nil, Nil, Nil, Nil, Nil))
   }
