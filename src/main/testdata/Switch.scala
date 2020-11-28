@@ -4,8 +4,6 @@ package testdata
 import scala.meta._
 
 object Switch {
-  import Call._
-
   def tests = List(call_meth_p, call_prop_m) ::: switchTests
 
   def switchTests = List(

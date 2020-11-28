@@ -1,5 +1,7 @@
 package shisa
 
+import scala.meta._, classifiers.{ Classifiable, Classifier }
+
 package object testdata {
   val Warn  = Severity.Warn
   val Error = Severity.Error
@@ -23,9 +25,8 @@ package object testdata {
   def  msg(sev: Severity, str: String) = new Msg(sev, str)
   def warn(str: String)                = msg(Warn,  str)
   def  err(str: String)                = msg(Error, str)
-
-  def anyWarn = warn("*")
-  def anyErr  =  err("*")
+  def anyWarn                          = warn("*")
+  def anyErr                           =  err("*")
 
   def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
   def autoApp2(meth: String) =
@@ -33,6 +34,54 @@ package object testdata {
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
        |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
   def autoApp3(meth: String) = s"method $meth must be called with () argument"
+
+  implicit class ListOps[T](private val xs: List[T]) extends AnyVal {
+    def has[U](implicit classifier: Classifier[T, U]): Boolean    = xs.exists(classifier(_))
+    def hasNot[U](implicit classifier: Classifier[T, U]): Boolean = xs.forall(!classifier(_))
+
+    def appendOnce[U](x: T)(implicit classifier: Classifier[T, U])  = if (xs.has[U]) xs else xs :+ x
+    def prependOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else x :: xs
+  }
+
+  implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
+    def notValParam = param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))
+    def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
+  }
+
+  val initAnyVal = init"AnyVal"
+
+  implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
+    def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
+    def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
+
+    def toCaseClass = cls.copy(
+      mods = cls.mods.appendOnce(Mod.Case()),
+      ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
+        case Nil     => List(Nil)
+        case paramss => paramss.map(_.map(_.notValParam))
+      }),
+    )
+
+    def toValueClass = cls.addInit(initAnyVal).copy(
+      ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
+        case Nil           => List(List(param"val x: String"))
+        case List(List(p)) => List(List(p.toValParam))
+        case paramss       => sys.error(s"Can't toValueClass ${cls.name} b/c of paramss: $paramss")
+      }),
+    )
+
+    def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
+
+    def  name: Type.Name = cls.name
+    def tname: Term.Name = Term.Name(name.value)
+
+    def inst: Term = cls match {
+      case _ if !cls.mods.has[Mod.Case] && !cls.templ.inits.contains(initAnyVal) => q"new $name()"
+      case _ if  cls.mods.has[Mod.Case] && !cls.templ.inits.contains(initAnyVal) => q"$tname()"
+      case _ if !cls.mods.has[Mod.Case] &&  cls.templ.inits.contains(initAnyVal) => q"new $name($ns)"
+      case _ if  cls.mods.has[Mod.Case] &&  cls.templ.inits.contains(initAnyVal) => q"$tname($ns)"
+    }
+  }
 }
 
 import testdata._
