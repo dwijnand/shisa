@@ -5,31 +5,8 @@ import scala.Function.const
 
 import scala.meta._
 
-import Severity.{ Error, Warn }
-
-object ErrorMsgs {
-  import Types._
-
-  def  msg(sev: Severity, str: String) = new Msg(sev, str)
-  def warn(str: String)                = msg(Warn,  str)
-  def  err(str: String)                = msg(Error, str)
-
-  def anyWarn = warn("*")
-  def anyErr  =  err("*")
-
-  def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
-  def autoApp2(meth: String) =
-    s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
-       |or remove the empty argument list from its definition (Java-defined methods are exempt).
-       |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
-  def autoApp3(meth: String) = s"method $meth must be called with () argument"
-}
-
 object EtaX {
-  import ErrorMsgs._, Types._
-
   def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
-
 
   def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
   def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"

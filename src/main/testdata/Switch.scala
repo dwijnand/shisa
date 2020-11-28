@@ -3,38 +3,8 @@ package testdata
 
 import scala.meta._
 
-import Severity.{ Warn, Error }
-
-object Types {
-  val ns = "" // empty string ("no string")
-
-  sealed trait SV;   case object S2  extends  SV; case object S3  extends  SV
-  sealed trait BSV;  case object S2X extends BSV; case object S30 extends BSV; case object S31 extends BSV
-  sealed trait WorE; case object W  extends WorE; case object E  extends WorE
-
-  object WorE {
-    implicit class Ops(private val wore: WorE) extends AnyVal {
-      def toSev: Severity = wore match { case W => Warn case E => Error }
-    }
-  }
-
-  val noMsgs = multi3((_, _) => Nil)
-
-  def multi(msg2: Msg, msg3: Msg) =
-    List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
-
-  def multi3(msgs: (SV, WorE) => List[Msg]) =
-    List(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E), msgs(S3, E), msgs(S3, E))
-
-  def multi4(msgs2: WorE => List[Msg], msgs30: WorE => List[Msg], msgs31: WorE => List[Msg]) =
-    List(msgs2(W), msgs2(E), msgs30(W), msgs30(E), msgs31(W), msgs31(E))
-
-  def multi5(msgs: (BSV, WorE) => List[Msg]) =
-    List(msgs(S2X, W), msgs(S2X, E), msgs(S30, W), msgs(S30, E), msgs(S31, W), msgs(S31, E))
-}
-
 object Switch {
-  import Call._, ErrorMsgs._, Types._
+  import Call._
 
   def tests = List(call_meth_p, call_prop_m) ::: switchTests
 

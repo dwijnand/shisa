@@ -3,17 +3,7 @@ package testdata
 
 import scala.meta._, classifiers.{ Classifiable, Classifier }
 
-import Severity.{ Info, Warn, Error }
-
-trait MkInMemoryTestFile {
-  def name: String
-  def contents: TestContents
-  final def testFile: TestFile = TestFile(name, contents)
-}
-
 object Call {
-  import ErrorMsgs._, Types._
-
   def tests = List(hashHash, pos).map(_.testFile)
 
   implicit class NameOps[N <: Name](private val name: N) extends AnyVal {
