@@ -37,7 +37,7 @@ package object testdata {
   def autoApp3(meth: String) = s"method $meth must be called with () argument"
 
   implicit class ListOps[T](private val xs: List[T]) extends AnyVal {
-    def has[U](implicit classifier: Classifier[T, U]): Boolean    = xs.exists(classifier(_))
+    def has[U]   (implicit classifier: Classifier[T, U]): Boolean = xs.exists( classifier(_))
     def hasNot[U](implicit classifier: Classifier[T, U]): Boolean = xs.forall(!classifier(_))
 
     def appendOnce[U](x: T)(implicit classifier: Classifier[T, U])  = if (xs.has[U]) xs else xs :+ x
@@ -49,7 +49,7 @@ package object testdata {
     def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
   }
 
-  val initAnyVal = init"AnyVal"
+  private val initAnyVal = init"AnyVal"
 
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
@@ -73,15 +73,11 @@ package object testdata {
 
     def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
 
+    def isCaseClass  = cls.mods.has[Mod.Case]
+    def isValueClass = cls.templ.inits.exists { case Init(Type.Name("AnyVal"), Name(""), Nil) => true case _ => false }
+
     def  name: Type.Name = cls.name
     def tname: Term.Name = Term.Name(name.value)
-
-    def inst: Term = cls match {
-      case _ if !cls.mods.has[Mod.Case] && !cls.templ.inits.contains(initAnyVal) => q"new $name()"
-      case _ if  cls.mods.has[Mod.Case] && !cls.templ.inits.contains(initAnyVal) => q"$tname()"
-      case _ if !cls.mods.has[Mod.Case] &&  cls.templ.inits.contains(initAnyVal) => q"new $name($ns)"
-      case _ if  cls.mods.has[Mod.Case] &&  cls.templ.inits.contains(initAnyVal) => q"$tname($ns)"
-    }
   }
 }
 

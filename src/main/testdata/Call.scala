@@ -7,25 +7,30 @@ object Call {
   def tests = List(hashHash, pos).map(_.testFile)
 
   sealed trait ClassVariant
-  object ClassVariant { case object Case extends ClassVariant; case object Value extends ClassVariant; case object Runnable extends ClassVariant }
+  case object     CaseClass extends ClassVariant
+  case object    ValueClass extends ClassVariant
+  case object RunnableClass extends ClassVariant
 
   final case class Cls(variants: List[ClassVariant], suffix: String = "R") {
-    import ClassVariant._
-
     val name: Type.Name = variants.foldRight(Type.Name(s"C$suffix")) {
-      case (Case,     name) => name.copy("C" + name.value)
-      case (Value,    name) => name.copy("V" + name.value)
-      case (Runnable, name) => name
+      case (    CaseClass, name) => name.copy("C" + name.value)
+      case (   ValueClass, name) => name.copy("V" + name.value)
+      case (RunnableClass, name) => name
     }
-    val tname: Term.Name = Term.Name(name.value)
+    val termName: Term.Name = Term.Name(name.value)
 
     val defn: Defn.Class = variants.foldLeft(q"class $name") {
-      case (cls, Case)     => cls.toCaseClass
-      case (cls, Value)    => cls.toValueClass
-      case (cls, Runnable) => cls.withRunnable
+      case (cls,     CaseClass) => cls.toCaseClass
+      case (cls,    ValueClass) => cls.toValueClass
+      case (cls, RunnableClass) => cls.withRunnable
     }
 
-    val inst: Term = defn.inst
+    val inst: Term = defn match {
+      case _ if !defn.isCaseClass && !defn.isValueClass => q"new $name()"
+      case _ if  defn.isCaseClass && !defn.isValueClass => q"$termName()"
+      case _ if !defn.isCaseClass &&  defn.isValueClass => q"new $name($ns)"
+      case _ if  defn.isCaseClass &&  defn.isValueClass => q"$termName($ns)"
+    }
 
     lazy val copyS = copy(suffix = "S")
     lazy val copyJ = copy(suffix = "J")
@@ -39,10 +44,10 @@ object Call {
   val obj  = Val(q"obj", t"Object")
   val str  = Val(q"str", t"String")
   val vals = List(any, ref, obj, str)
-  val   CR = Cls(List(ClassVariant.Runnable))
-  val  CCR = Cls(List(ClassVariant.Runnable, ClassVariant.Case))
-  val  VCR = Cls(List(ClassVariant.Value))
-  val VCCR = Cls(List(ClassVariant.Value, ClassVariant.Case))
+  val   CR = Cls(List(RunnableClass))
+  val  CCR = Cls(List(RunnableClass, CaseClass))
+  val  VCR = Cls(List(   ValueClass))
+  val VCCR = Cls(List(   ValueClass, CaseClass))
   val cls1 = List(CR, CCR, VCR, VCCR)
   val clss = cls1.flatMap(cls => List(cls, cls.copyS, cls.copyJ))
 
