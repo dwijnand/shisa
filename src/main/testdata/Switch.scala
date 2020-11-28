@@ -17,6 +17,8 @@ object Switch {
     switchFile(Prop2Meth, Prop, t"Foo_P2M_P_VC", t"Bar_P2M_P_VC", q"p2m_p_vc", q"qux_p2m_p_vc", true),
   )
 
+  import SwitchErrors._
+
   def CallMethP(meth: Term.Name, value: Lit) = {
     val msgs = multi3 {
       case (S2,    _) => List(msg(Warn,       autoApp2(meth.value)))
@@ -58,22 +60,6 @@ object Switch {
     }
   }
 
-  val methStr = "(): String"
-  val propStr = "=> String"
-
-  def override2_meth2prop = "method without a parameter list overrides a method with a single empty one"
-  def override2_prop2meth(wore: WorE, nme: String) = wore match {
-    case W => s"method with a single empty parameter list overrides method without any parameter list"
-    case E => s"method with a single empty parameter list overrides method without any parameter list\ndef d: String (defined in trait $nme)"
-  }
-
-  def override3_meth2prop(wore: WorE, nme: String) = override3(wore, nme, methStr, propStr)
-  def override3_prop2meth(wore: WorE, nme: String) = override3(wore, nme, propStr, methStr)
-  def override3(wore: WorE, nme: String, pt: String, tp: String) = wore match {
-    case W => s"error overriding method d in trait $nme of type $pt;\n  method d of type $tp no longer has compatible type"
-    case E => s"error overriding method d in trait $nme of type $pt;\n  method d of type $tp has incompatible type"
-  }
-
   def overrideM(sv: SV, switch: MethPropSwitch, wore: WorE, traitName: String) = (sv, switch) match {
     case (S2, Meth2Prop) => msg(wore.toSev, override2_meth2prop)
     case (S3, Meth2Prop) => msg(wore.toSev, override3_meth2prop(wore, traitName))
@@ -101,5 +87,23 @@ object Switch {
     val traitDefn = switch.traitDefn(traitName, meth)
     val msgs = multi3(switchMsgs(switch, call, _, _, traitDefn.name.value, meth))
     TestFile(name, TestContents(List(traitDefn, clsDefn, switch.valDefn(valName, clsName)), List(List(switch.toStat(call, valName, meth))), msgs))
+  }
+}
+
+object SwitchErrors {
+  val methStr = "(): String"
+  val propStr = "=> String"
+
+  def override2_meth2prop = "method without a parameter list overrides a method with a single empty one"
+  def override2_prop2meth(wore: WorE, nme: String) = wore match {
+    case W => s"method with a single empty parameter list overrides method without any parameter list"
+    case E => s"method with a single empty parameter list overrides method without any parameter list\ndef d: String (defined in trait $nme)"
+  }
+
+  def override3_meth2prop(wore: WorE, nme: String) = override3(wore, nme, methStr, propStr)
+  def override3_prop2meth(wore: WorE, nme: String) = override3(wore, nme, propStr, methStr)
+  def override3(wore: WorE, nme: String, pt: String, tp: String) = wore match {
+    case W => s"error overriding method d in trait $nme of type $pt;\n  method d of type $tp no longer has compatible type"
+    case E => s"error overriding method d in trait $nme of type $pt;\n  method d of type $tp has incompatible type"
   }
 }

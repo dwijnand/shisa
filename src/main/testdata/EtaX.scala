@@ -8,35 +8,7 @@ import scala.meta._
 object EtaX {
   def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
-  def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
-  def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
-
-  def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
-  def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
-
-  def missingArgs(meth: String, cls: String) =
-    s"""missing argument list for method $meth in object $cls
-       |Unapplied methods are only converted to functions when a function type is expected.
-       |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
-
-  def stillEta(meth: String, traitName: String) =
-    s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
-
-  def mustFollow(tpe: String) = s"_ must follow method; cannot follow $tpe"
-  def onlyFuncs(tpe: String)  = s"Only function types can be followed by _ but the current expression has type $tpe"
-
-  def methodsWithoutParams(wore: WorE) = wore match {
-    case W => methodsWithoutParamsW
-    case E => methodsWithoutParamsNew
-  }
-
-  def methodsWithoutParamsW   =
-    "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
-  def methodsWithoutParamsNew =
-    "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
-
-  def missingArg2(meth: String, cls: String, param: String) = s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param."
-  def missingArg3(meth: String, param: String)              = s"missing argument for parameter $param of method $meth"
+  import EtaXErrors._
 
   object meth extends MkInMemoryTestFile {
     val name = "EtaX.meth"
@@ -207,7 +179,36 @@ object EtaX {
     }
     TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }
+}
 
-  def msgs(mkMsg: Severity => Msg) : Severity => List[Msg] = sev => List(mkMsg(sev))
-  def noMsgs                       : Severity => List[Msg] = _   => Nil
+object EtaXErrors {
+  def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
+  def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
+
+  def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
+  def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
+
+  def missingArgs(meth: String, cls: String) =
+    s"""missing argument list for method $meth in object $cls
+       |Unapplied methods are only converted to functions when a function type is expected.
+       |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin
+
+  def stillEta(meth: String, traitName: String) =
+    s"method $meth is eta-expanded even though $traitName does not have the @FunctionalInterface annotation."
+
+  def mustFollow(tpe: String) = s"_ must follow method; cannot follow $tpe"
+  def onlyFuncs(tpe: String)  = s"Only function types can be followed by _ but the current expression has type $tpe"
+
+  def methodsWithoutParams(wore: WorE) = wore match {
+    case W => methodsWithoutParamsW
+    case E => methodsWithoutParamsNew
+  }
+
+  def methodsWithoutParamsW   =
+    "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead"
+  def methodsWithoutParamsNew =
+    "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead"
+
+  def missingArg2(meth: String, cls: String, param: String) = s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param."
+  def missingArg3(meth: String, param: String)              = s"missing argument for parameter $param of method $meth"
 }

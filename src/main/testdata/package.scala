@@ -6,9 +6,16 @@ package object testdata {
   val Warn  = Severity.Warn
   val Error = Severity.Error
 
-  val ns = "" // empty string ("no string")
+  val ns: String = "" // empty string ("no string")
 
-  val noMsgs = multi3((_, _) => Nil)
+  val noMsgs                           = multi3((_, _) => Nil)
+  def noMsgs(sev: Severity)            = Nil
+  def msgs(mkMsg: Severity => Msg)     = (sev: Severity) => List(mkMsg(sev))
+  def  msg(sev: Severity, str: String) = new Msg(sev, str)
+  def warn(str: String)                = msg(Warn,  str)
+  def  err(str: String)                = msg(Error, str)
+  def anyWarn                          = warn("*")
+  def anyErr                           =  err("*")
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
@@ -21,12 +28,6 @@ package object testdata {
 
   def multi5(msgs: (BSV, WorE) => List[Msg]) =
     List(msgs(S2X, W), msgs(S2X, E), msgs(S30, W), msgs(S30, E), msgs(S31, W), msgs(S31, E))
-
-  def  msg(sev: Severity, str: String) = new Msg(sev, str)
-  def warn(str: String)                = msg(Warn,  str)
-  def  err(str: String)                = msg(Error, str)
-  def anyWarn                          = warn("*")
-  def anyErr                           =  err("*")
 
   def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
   def autoApp2(meth: String) =
