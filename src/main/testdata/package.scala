@@ -9,13 +9,11 @@ package object testdata {
   val ns: String = "" // empty string ("no string")
 
   val noMsgs                           = multi3((_, _) => Nil)
-  def noMsgs(sev: Severity)            = Nil
   def msgs(mkMsg: Severity => Msg)     = (sev: Severity) => List(mkMsg(sev))
   def  msg(sev: Severity, str: String) = new Msg(sev, str)
   def warn(str: String)                = msg(Warn,  str)
   def  err(str: String)                = msg(Error, str)
-  def anyWarn                          = warn("*")
-  def anyErr                           =  err("*")
+  def anyErr                           = err("*")
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
@@ -49,8 +47,6 @@ package object testdata {
     def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
   }
 
-  private val initAnyVal = init"AnyVal"
-
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
     def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
@@ -63,7 +59,7 @@ package object testdata {
       }),
     )
 
-    def toValueClass = cls.addInit(initAnyVal).copy(
+    def toValueClass = cls.addInit(init"AnyVal").copy(
       ctor = cls.ctor.copy(paramss = cls.ctor.paramss match {
         case Nil           => List(List(param"val x: String"))
         case List(List(p)) => List(List(p.toValParam))
