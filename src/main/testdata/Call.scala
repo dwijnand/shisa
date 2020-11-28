@@ -4,7 +4,7 @@ package testdata
 import scala.meta._
 
 object Call {
-  def tests = List(hashHash, pos).map(_.testFile)
+  def tests: List[TestFile] = List(hashHash, pos).map(_.testFile)
 
   sealed trait ClsOpt
   case object CaseCls extends ClsOpt; case object ValCls extends ClsOpt; case object RunCls extends ClsOpt
@@ -24,7 +24,7 @@ object Call {
     }
 
     val inst: Term = {
-      val args = if (defn.isValueClass) List(ns) else Nil
+      val args = if (defn.isValueClass) List(Lit.String("")) else Nil
       if (defn.isCaseClass) q"$termName(..$args)" else q"new $name(..$args)"
     }
 

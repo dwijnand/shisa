@@ -15,10 +15,6 @@ class TestFileSourceTest extends FunSuite {
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
       |  val str: String = ""
-      |  any.##
-      |  ref.##
-      |  obj.##
-      |  str.##
       |  any.##()
       |  ref.##()
       |  obj.##()
@@ -56,6 +52,10 @@ class TestFileSourceTest extends FunSuite {
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
       |  val str: String = ""
+      |  any.##
+      |  ref.##
+      |  obj.##
+      |  str.##
       |  any.toString
       |  any.toString()
       |  ref.toString

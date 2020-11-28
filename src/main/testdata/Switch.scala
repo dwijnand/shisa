@@ -4,7 +4,7 @@ package testdata
 import scala.meta._
 
 object Switch {
-  def tests = call_meth_p :: call_prop_m ::: switchTests
+  def tests: List[TestFile] = call_meth_p :: call_prop_m :: switchTests
 
   val call_meth_p = CallMethP(q"foo", q"1")
   val call_prop_m = CallPropM(q"bar", q"1")

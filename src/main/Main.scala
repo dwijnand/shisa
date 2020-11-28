@@ -6,6 +6,7 @@ import java.io.File
 import java.net.URLClassLoader
 import java.util.concurrent.Executors
 
+import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.chaining._
@@ -34,7 +35,7 @@ object Main {
   val mkCompilers   = List(SC213, SC213N, SC3M, SC3, SC31M, SC31)
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: Switch.tests ::: EtaX.tests
-  val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((tf1, tf2) => TestFile(tf1.name, tf1.contents ++ tf2.contents))
+  val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, t1 ++ t2))
   val MissingExp    = new Msg(Error, "missing exp msg")
   val MissingObt    = new Msg(Error, "missing obt msg")
 
@@ -94,11 +95,13 @@ object Main {
     }.reduce(_.zip(_).map { case (a, b) => a ::: b })
   }
 
-  def doCompile1(compilers: List[Compiler], name: String, content: String) =
+  def doCompile1(compilers: List[Compiler], name: String, content: String) = {
     compilers.map(doCompile2(_, name, content))
+  }
 
-  def doCompile2(compiler: Compiler, name: String, content: String) =
+  def doCompile2(compiler: Compiler, name: String, content: String) = {
     compiler.compile1(new SrcFile(name, content)).msgs.asScala.toList
+  }
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
     val sourceDefn = q"object Test { ..${contents.defns ::: contents.stats.flatten} }"
@@ -110,7 +113,8 @@ object Main {
   }
 
   def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {
-    val TestFile(name, TestContents(_, _, expMsgss)) = testFile
+    val name     = testFile.name
+    val expMsgss = testFile.contents.msgs
     val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
       expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
@@ -140,7 +144,27 @@ object Main {
   def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" && exp.severity != obt.severity
 }
 
-final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) {
+object Test {
+  val None = TestContents(Nil, Nil, noMsgs)
+}
+
+sealed trait Test {
+  /* @tailrec */ def ++(that: Test): TestContents = (this, that) match {
+    case (t1: TestContents, t2: TestContents) => t1 ++ t2
+    case (t1, TestFile(_, t2))                => t1 ++ t2
+    case (TestFile(_, t1), t2)                => t1 ++ t2
+    case (t1: TestList, t2)                   => t1.flatten ++ t2
+    case (t1, t2: TestList)                   => t1 ++ t2.flatten
+  }
+
+  def contents: TestContents = this ++ Test.None
+}
+
+final case class TestList(tests: List[Test]) extends Test {
+  def flatten = tests.foldLeft(Test.None)(_ ++ _)
+}
+
+final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) extends Test {
   def ++(that: TestContents) = TestContents(
     (defns ::: that.defns).distinct,
     stats ::: that.stats,
@@ -150,7 +174,7 @@ final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: 
   def toUnit = TestContents(defns, List(stats.flatten), msgs)
 }
 
-final case class TestFile(name: String, contents: TestContents)
+final case class TestFile(name: String, test: Test) extends Test
 
 sealed trait TestResult { def name: String }
 final case class TestSuccess(name: String)                               extends TestResult

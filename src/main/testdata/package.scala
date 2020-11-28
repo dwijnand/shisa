@@ -9,6 +9,7 @@ package object testdata {
   val ns: String = "" // empty string ("no string")
 
   val noMsgs                           = multi3((_, _) => Nil)
+  def noMsgs(sev: Severity)            = Nil
   def msgs(mkMsg: Severity => Msg)     = (sev: Severity) => List(mkMsg(sev))
   def  msg(sev: Severity, str: String) = new Msg(sev, str)
   def warn(str: String)                = msg(Warn,  str)

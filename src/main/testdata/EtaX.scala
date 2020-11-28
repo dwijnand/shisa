@@ -6,7 +6,7 @@ import scala.Function.const
 import scala.meta._
 
 object EtaX {
-  def tests = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
+  def tests: List[TestFile] = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
   import EtaXErrors._
 
