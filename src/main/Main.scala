@@ -77,9 +77,8 @@ object Main {
 
   def compile1(testFile: TestFile): TestResult = {
     val compilers = mkCompilers.map(_.mkCompiler())
-    val msgss     =
-      if (testFile.contents.stats.sizeIs > 1) doLines(testFile, compilers)
-      else                                     doUnit(testFile, compilers)
+    val multiLine = testFile.contents.stats.sizeIs > 1
+    val msgss     = if (multiLine) doLines(testFile, compilers) else doUnit(testFile, compilers)
     compareMsgs(testFile, msgss)
   }
 
@@ -118,7 +117,7 @@ object Main {
     val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
       expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
-        case (exp, obt) if exp != obt && wildMatch(exp, obt) => showObt(obt) + showExp(exp)
+        case (exp, obt) if msgMismatch(exp, obt) => showObt(obt) + showExp(exp)
       }.mkString match {
         case ""    => TestSuccess(name)
         case lines =>
@@ -141,7 +140,10 @@ object Main {
   def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg)      = s"${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
-  def wildMatch(exp: Msg, obt: Msg) = exp.text == "*" && exp.severity != obt.severity
+  def msgMismatch(exp: Msg, obt: Msg) = {
+    if (exp.text == "*") exp.severity != obt.severity
+    else exp != obt
+  }
 }
 
 object Test {
