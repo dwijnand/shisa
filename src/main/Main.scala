@@ -2,8 +2,6 @@ package shisa
 
 import scala.language.implicitConversions
 
-import java.io.File
-import java.net.URLClassLoader
 import java.util.concurrent.Executors
 
 import scala.annotation.tailrec
@@ -18,20 +16,13 @@ import shisa.testdata._
 import Severity.{ Info, Error, Warn }
 
 object Main {
-  val dotcCp = BuildInfo.scalac3Dir +: Deps.scalac_3_00
-  val dotcCl = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
-  val freshCompiler3Cls  = dotcCl.loadClass("shisa.FreshCompiler3")
-  val freshCompiler3Ctor = freshCompiler3Cls.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
-
-  def FreshCompiler3(id: String, cmd: String): MkCompiler =
-    freshCompiler3Ctor.newInstance(id, Deps.scalac_3_00.toArray, cmd).asInstanceOf[MkCompiler]
-
-  val SC213         = FreshCompiler2("2.13",     Deps.scalac_2_13, "")
-  val SC213N        = FreshCompiler2("2.13-new", Deps.scalac_2_13, "-Xsource:3")
-  val SC3M          = FreshCompiler3("3.0-migr",                   "-source 3.0-migration")
-  val SC3           = FreshCompiler3("3.0",                        "-source 3.0")
-  val SC31M         = FreshCompiler3("3.1-migr",                   "-source 3.1-migration")
-  val SC31          = FreshCompiler3("3.1",                        "-source 3.1")
+  import Deps._
+  val SC213         = FreshCompiler2("2.13",     scalac_2_13, "")
+  val SC213N        = FreshCompiler2("2.13-new", scalac_2_13, "-Xsource:3")
+  val SC3M          = FreshCompiler3("3.0-migr",              "-source 3.0-migration")
+  val SC3           = FreshCompiler3("3.0",                   "-source 3.0")
+  val SC31M         = FreshCompiler3("3.1-migr",              "-source 3.1-migration")
+  val SC31          = FreshCompiler3("3.1",                   "-source 3.1")
   val mkCompilers   = List(SC213, SC213N, SC3M, SC3, SC31M, SC31)
   val compilerIds   = mkCompilers.map(_.id)
   val tests         = Call.tests ::: Switch.tests ::: EtaX.tests
@@ -53,7 +44,22 @@ object Main {
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = testFiles.map(testFile => pool.submit[TestResult](() => {
       println(s"* ${testFile.name}")
-      compile1(testFile)
+      def doTest(name: String, test: Test): TestResult = test match {
+        case contents: TestContents => compile1(name, contents)
+        case TestFile(name2, test)  => doTest(s"$name/$name2", test)
+        case TestList(tests)        =>
+          tests.zipWithIndex.map { case (test, num) =>
+            doTest(s"$name.$num", test)
+          }.collect {
+            case tf: TestFailure   => tf
+            case tfs: TestFailures => tfs.toFailure
+          } match {
+            case Nil      => TestSuccess(name)
+            case List(tf) => tf
+            case tfs      => TestFailures(name, tfs)
+          }
+      }
+      doTest(testFile.name, testFile.test)
     }))
 
     pool.shutdown()
@@ -75,22 +81,21 @@ object Main {
     }
   }
 
-  def compile1(testFile: TestFile): TestResult = {
+  def compile1(name: String, contents: TestContents): TestResult = {
     val compilers = mkCompilers.map(_.mkCompiler())
-    val multiLine = testFile.contents.stats.sizeIs > 1
-    val msgss     = if (multiLine) doLines(testFile, compilers) else doUnit(testFile, compilers)
-    compareMsgs(testFile, msgss)
+    val multiLine = contents.stats.sizeIs > 1
+    val msgss     = if (multiLine) doLines(name, contents, compilers) else doUnit(name, contents, compilers)
+    compareMsgs(name, contents, msgss)
   }
 
-  def doUnit(testFile: TestFile, compilers: List[Compiler]) = {
-    val contents = testFile.contents
-    doCompile1(compilers, testFile.name, toSource(contents))
+  def doUnit(name: String, contents: TestContents, compilers: List[Compiler]) = {
+    doCompile1(compilers, name, toSource(contents))
   }
 
-  def doLines(testFile: TestFile, compilers: List[Compiler]) = {
-    val contentss = testFile.contents.stats.map(stat => testFile.contents.copy(stats = List(stat)))
+  def doLines(name: String, contents: TestContents, compilers: List[Compiler]) = {
+    val contentss = contents.stats.map(stat => contents.copy(stats = List(stat)))
     contentss.zipWithIndex.map { case (contents, idx) =>
-      doCompile1(compilers, testFile.name + idxStr(idx), toSource(contents, Some(idx)))
+      doCompile1(compilers, name + idxStr(idx), toSource(contents, Some(idx)))
     }.reduce(_.zip(_).map { case (a, b) => a ::: b })
   }
 
@@ -111,9 +116,8 @@ object Main {
     source.syntax + "\n"
   }
 
-  def compareMsgs(testFile: TestFile, obtMsgss: List[List[Msg]]): TestResult = {
-    val name     = testFile.name
-    val expMsgss = testFile.contents.msgs
+  def compareMsgs(name: String, contents: TestContents, obtMsgss: List[List[Msg]]): TestResult = {
+    val expMsgss = contents.msgs
     val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
       expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
