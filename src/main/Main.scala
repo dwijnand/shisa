@@ -100,11 +100,7 @@ object Main {
   }
 
   def doCompile1(compilers: List[Compiler], name: String, content: String) = {
-    compilers.map(doCompile2(_, name, content))
-  }
-
-  def doCompile2(compiler: Compiler, name: String, content: String) = {
-    compiler.compile1(new SrcFile(name, content)).msgs.asScala.toList
+    compilers.map(_.compile1(new SrcFile(name, content)).msgs.asScala.toList)
   }
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
@@ -170,6 +166,8 @@ final case class TestList(tests: List[Test]) extends Test {
   def flatten = tests.foldLeft(Test.None)(_ ++ _)
 }
 
+object TestContents
+
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) extends Test {
   def ++(that: TestContents) = TestContents(
     (defns ::: that.defns).distinct,
@@ -188,3 +186,22 @@ final case class TestFailure(name: String, msg: String)                  extends
 final case class TestFailures(name: String, failures: List[TestFailure]) extends TestResult {
   def toFailure: TestFailure = TestFailure(name, failures.map(tf => s"\n  ${tf.msg}").mkString)
 }
+
+object Msgss {
+  val None = ListMsgss(noMsgs)
+}
+sealed trait Msgss {
+  def msgss: List[List[Msg]]
+}
+
+final case class ListMsgss(msgss: List[List[Msg]]) extends Msgss
+
+//3 levels of tests:
+//* template tests (top level classes/objects, Defns)
+//* method tests (in classes/objects, Defns)
+//* expression tests (in a method, in a class/object, Terms)
+
+//shrinking/minimising/simplifying:
+//* empty pkg -> named pkg
+//* in constructor -> in method
+//* object -> class

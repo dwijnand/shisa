@@ -27,8 +27,8 @@ object Switch {
 
   def CallMethP(meth: Term.Name, value: Lit) = {
     val msgs = multi3 {
-      case (S2,    _) => List(msg(Warn,       autoApp2(meth.value)))
-      case (S3, wore) => List(msg(wore.toSev, autoApp3(meth.value)))
+      case (S2,   _) => List(msg(W,   autoApp2(meth.value)))
+      case (S3, sev) => List(msg(sev, autoApp3(meth.value)))
     }
     val contents = TestContents(List(q"def $meth() = $value"), List(List(meth)), msgs)
     TestFile("Call.meth_p", contents)
@@ -87,36 +87,36 @@ object SwitchErrors {
   val propStr = "=> String"
 
   def override2_meth2prop = "method without a parameter list overrides a method with a single empty one"
-  def override2_prop2meth(wore: WorE, nme: String, meth: Term.Name) = wore match {
+  def override2_prop2meth(sev: Sev, nme: String, meth: Term.Name) = sev match {
     case W => s"method with a single empty parameter list overrides method without any parameter list"
     case E => s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: String (defined in trait $nme)"
   }
 
-  def override3_meth2prop(wore: WorE, nme: String, meth: Term.Name) = override3(wore, nme, methStr, propStr, meth)
-  def override3_prop2meth(wore: WorE, nme: String, meth: Term.Name) = override3(wore, nme, propStr, methStr, meth)
-  def override3(wore: WorE, nme: String, pt: String, tp: String, meth: Term.Name) = wore match {
+  def override3_meth2prop(sev: Sev, nme: String, meth: Term.Name) = override3(sev, nme, methStr, propStr, meth)
+  def override3_prop2meth(sev: Sev, nme: String, meth: Term.Name) = override3(sev, nme, propStr, methStr, meth)
+  def override3(sev: Sev, nme: String, pt: String, tp: String, meth: Term.Name) = sev match {
     case W => s"error overriding method $meth in trait $nme of type $pt;\n  method $meth of type $tp no longer has compatible type"
     case E => s"error overriding method $meth in trait $nme of type $pt;\n  method $meth of type $tp has incompatible type"
   }
 
-  def overrideM(sv: SV, switch: MethPropSwitch, wore: WorE, traitName: String, meth: Term.Name) = (sv, switch) match {
-    case (S2, Meth2Prop) => msg(wore.toSev, override2_meth2prop)
-    case (S3, Meth2Prop) => msg(wore.toSev, override3_meth2prop(wore, traitName, meth))
-    case (S2, Prop2Meth) => msg(wore.toSev, override2_prop2meth(wore, traitName, meth))
-    case (S3, Prop2Meth) => msg(wore.toSev, override3_prop2meth(wore, traitName, meth))
+  def overrideM(sv: SV, switch: MethPropSwitch, sev: Sev, traitName: String, meth: Term.Name) = (sv, switch) match {
+    case (S2, Meth2Prop) => msg(sev, override2_meth2prop)
+    case (S3, Meth2Prop) => msg(sev, override3_meth2prop(sev, traitName, meth))
+    case (S2, Prop2Meth) => msg(sev, override2_prop2meth(sev, traitName, meth))
+    case (S3, Prop2Meth) => msg(sev, override3_prop2meth(sev, traitName, meth))
   }
 
-  def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, wore: WorE, traitName: String, meth: Term.Name) = {
-    val overrideMsg = overrideM(sv, switch, wore, traitName, meth)
-    (switch, call, sv, wore) match {
+  def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, sev: Sev, traitName: String, meth: Term.Name) = {
+    val overrideMsg = overrideM(sv, switch, sev, traitName, meth)
+    (switch, call, sv, sev) match {
       case (_,         Meth, _, _)  => List(overrideMsg)
 
       case (Meth2Prop, Prop, S2, _) => List(overrideMsg, warn(autoApp2(meth.value)))
       case (Meth2Prop, Prop, S3, _) => List(overrideMsg)
 
-      case (Prop2Meth, Prop, S2, _) => List(overrideMsg, msg(Warn,  autoApp2(meth.value)))
-      case (Prop2Meth, Prop, S3, W) => List(overrideMsg, msg(Warn,  autoApp3(meth.value)))
-      case (Prop2Meth, Prop, S3, E) => List(             msg(Error, autoApp3(meth.value)))
+      case (Prop2Meth, Prop, S2, _) => List(overrideMsg, msg(W, autoApp2(meth.value)))
+      case (Prop2Meth, Prop, S3, W) => List(overrideMsg, msg(W, autoApp3(meth.value)))
+      case (Prop2Meth, Prop, S3, E) => List(             msg(E, autoApp3(meth.value)))
     }
   }
 }
