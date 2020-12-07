@@ -205,3 +205,5 @@ final case class ListMsgss(msgss: List[List[Msg]]) extends Msgss
 //* empty pkg -> named pkg
 //* in constructor -> in method
 //* object -> class
+//* trait  -> abstract class
+//* implemented method -> abstract method
