@@ -2,14 +2,6 @@ package shisa
 
 import scala.meta._, classifiers.{ Classifiable, Classifier }
 
-sealed trait SV;  case object S2 extends SV;  case object S3 extends SV
-sealed trait Sev; case object W  extends Sev; case object E  extends Sev
-
-trait MkInMemoryTestFile {
-  def name: String
-  def contents: TestContents
-  final def testFile: TestFile = TestFile(name, contents)
-}
 object `package` {
   val ns: String = "" // empty string ("no string")
 

@@ -5,8 +5,6 @@ import scala.meta._
 object Switch {
   def tests: List[TestFile] = call_meth_p :: call_prop_m :: switchTests
 
-  import SwitchTypes._, SwitchErrors._
-
   val call_meth_p = CallMethP(q"foo", q"1")
   val call_prop_m = CallPropM(q"bar", q"1")
   def switchTests = List(
@@ -51,9 +49,8 @@ object Switch {
     val contents = TestContents(List(traitDefn, clsDefn, switch.valDefn(valName, clsName)), List(List(switch.toStat(call, valName, meth))), msgs)
     TestFile(name, contents)
   }
-}
 
-object SwitchTypes {
+  // Types
   sealed trait MethPropSwitch; case object Meth2Prop extends MethPropSwitch; case object Prop2Meth extends MethPropSwitch
   sealed trait MethOrProp;     case object Meth      extends MethOrProp;     case object Prop      extends MethOrProp
 
@@ -77,11 +74,8 @@ object SwitchTypes {
       }
     }
   }
-}
 
-object SwitchErrors {
-  import SwitchTypes._
-
+  // Errors
   val methStr = "(): String"
   val propStr = "=> String"
 
@@ -106,16 +100,16 @@ object SwitchErrors {
   }
 
   def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, sev: Sev, traitName: String, meth: Term.Name) = {
-    val overrideMsg = overrideM(sv, switch, sev, traitName, meth)
-    (switch, call, sv, sev) match {
-      case (_,         Meth, _, _)  => List(overrideMsg)
+      val overrideMsg = overrideM(sv, switch, sev, traitName, meth)
+      (switch, call, sv, sev) match {
+        case (_,         Meth, _, _)  => List(overrideMsg)
 
-      case (Meth2Prop, Prop, S2, _) => List(overrideMsg, warn(autoApp2(meth.value)))
-      case (Meth2Prop, Prop, S3, _) => List(overrideMsg)
+        case (Meth2Prop, Prop, S2, _) => List(overrideMsg, warn(autoApp2(meth.value)))
+        case (Meth2Prop, Prop, S3, _) => List(overrideMsg)
 
-      case (Prop2Meth, Prop, S2, _) => List(overrideMsg, msg(W, autoApp2(meth.value)))
-      case (Prop2Meth, Prop, S3, W) => List(overrideMsg, msg(W, autoApp3(meth.value)))
-      case (Prop2Meth, Prop, S3, E) => List(             msg(E, autoApp3(meth.value)))
+        case (Prop2Meth, Prop, S2, _) => List(overrideMsg, msg(W, autoApp2(meth.value)))
+        case (Prop2Meth, Prop, S3, W) => List(overrideMsg, msg(W, autoApp3(meth.value)))
+        case (Prop2Meth, Prop, S3, E) => List(             msg(E, autoApp3(meth.value)))
+      }
     }
-  }
 }

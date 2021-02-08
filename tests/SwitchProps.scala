@@ -5,8 +5,8 @@ import hedgehog._
 import hedgehog.core.Info
 import hedgehog.runner.{ Prop => _, _ }
 
+import shisa.Main._
 import shisa.Switch._
-import shisa.SwitchTypes._
 import shisa.tests.ScalaMetaGens._
 
 object SwitchProps extends Properties {

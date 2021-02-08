@@ -7,8 +7,6 @@ import scala.meta._
 object EtaX {
   def tests: List[TestFile] = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
 
-  import EtaXErrors._
-
   object meth extends MkInMemoryTestFile {
     val name = "EtaX.meth"
     val Sam0S = q"                     trait Sam0S { def apply(): Any }"
@@ -176,9 +174,8 @@ object EtaX {
     }
     TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }
-}
 
-object EtaXErrors {
+  // Errors
   def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
   def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
 
