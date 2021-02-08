@@ -15,7 +15,7 @@ object SwitchProps extends Properties {
   )
 
   def switchProp: Property = for {
-       switch <- Gen.element1(Meth2Prop, Prop2Meth).forAll
+       switch <- Gen.element1(M2P, P2M).forAll
                     //.cover(1, "Meth2Prop", { case Meth2Prop => true case Prop2Meth => false })
                     //.cover(1, "Prop2Meth", { case Prop2Meth => true case Meth2Prop => false })
          call <- Gen.element1(Meth, Prop).forAll
