@@ -5,9 +5,9 @@ import scala.Function.const
 import scala.meta._
 
 object EtaX {
-  def tests: List[TestFile] = boom :: meth2.testFile :: cloneEta :: List(methF0, prop, meth1, meth).map(_.testFile)
+  def tests: List[TestFile] = List(boom, meth2.testFile, cloneEta, methF0.testFile, prop.testFile, meth1.testFile, meth.testFile)
 
-  object meth extends MkInMemoryTestFile {
+  object meth {
     val name = "EtaX.meth"
     val Sam0S = q"                     trait Sam0S { def apply(): Any }"
     val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
@@ -53,9 +53,10 @@ object EtaX {
 
     val msgs     = List(msgs2, msgs2, msgs30I(W), msgs30I(E), msgs31I(W), msgs31I(E))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
+    def testFile = TestFile(name, contents)
   }
 
-  object meth1 extends MkInMemoryTestFile {
+  object meth1 {
     val name  = "EtaX.meth1"
     val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
     val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
@@ -73,9 +74,10 @@ object EtaX {
 
     val msgs     = List(msgs2, Nil, msgs3, msgs3, msgs31I(W), msgs31I(E))
     val contents = TestContents(defns, stats.map(List(_)), msgs)
+    def testFile = TestFile(name, contents)
   }
 
-  object prop extends MkInMemoryTestFile {
+  object prop {
     val name  = "EtaX.prop"
     val defns = List(q"def prop = $ns")
     val stats = List(
@@ -123,9 +125,10 @@ object EtaX {
     )
 
     val contents = TestContents(defns, stats.map(List(_)), multi4(msgs2, msgs30, msgs31))
+    def testFile = TestFile(name, contents)
   }
 
-  object methF0 extends MkInMemoryTestFile {
+  object methF0 {
     val name      = "EtaX.methF0"
     val defns     = List(q"def methF0() = () => $ns")
     val msgs1_2   = warn(  autoApp2("methF0"))
@@ -144,6 +147,7 @@ object EtaX {
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) = {
       TestContents(defns, List(List(stat)), multi4(const(msgs2), msgs30, msgs31))
     }
+    def testFile = TestFile(name, contents)
   }
 
   val cloneEta = {
@@ -151,7 +155,7 @@ object EtaX {
     TestFile("EtaX.clone", TestContents(Nil, List(List(stat)), List(Nil, Nil, Nil, Nil, Nil, Nil)))
   }
 
-  object meth2 extends MkInMemoryTestFile {
+  object meth2 {
     val name  = "EtaX.meth2"
     val defns = List(q"def meth2()() = $ns")
     val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(msg(_, etaFunction))) // eta-expansion, but lint warning
@@ -163,6 +167,7 @@ object EtaX {
     def testCase(stat: Stat, msgs: Sev => List[Msg]) = {
       TestContents(defns, List(List(stat)), multi4(_ => Nil, _ => Nil, msgs))
     }
+    def testFile = TestFile(name, contents)
   }
 
   val boom = {

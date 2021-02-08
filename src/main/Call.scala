@@ -3,7 +3,7 @@ package shisa
 import scala.meta._
 
 object Call {
-  def tests: List[TestFile] = List(hashHash, pos).map(_.testFile)
+  def tests: List[TestFile] = List(hashHash.testFile, pos.testFile)
 
   sealed trait ClsOpt
   case object CaseCls extends ClsOpt; case object ValCls extends ClsOpt; case object RunCls extends ClsOpt
@@ -50,15 +50,16 @@ object Call {
     val defn = Defn.Val(Nil, List(Pat.Var(name)), Option(tpe), Lit.String(""))
   }
 
-  object hashHash extends MkInMemoryTestFile {
+  object hashHash {
     val name     = "Call.##"
     val err2     = err(                   "Int does not take parameters")
     val err3     = err("method ## in class Any does not take parameters")
     val mkCnts   = (v: Val) => TestContents(List(v.defn), List(List(q"${v.name}.##()")), multi(err2, err3))
-    val contents = vals.map(mkCnts).reduce(_ ++ _).toUnit
+    val contents = toUnit(vals.map(mkCnts).reduce(_ ++ _))
+    def testFile = TestFile(name, contents)
   }
 
-  object pos extends MkInMemoryTestFile {
+  object pos {
     val name  = "Call.pos"
     val defns = cls1.flatMap(_.defns) ::: vals.map(_.defn)
     val stats =
@@ -68,6 +69,9 @@ object Call {
       vals.map          { v   => List(q"${v.name}.hashCode",   q"${v.name}.hashCode()")   } :::
       clss.map          { cls => List(q"${cls.inst}.toString", q"${cls.inst}.toString()") } :::
       List(CR, CCR).map { cls => List(q"${cls.inst}.run",      q"${cls.inst}.run()")      }
-    def contents = TestContents(defns, stats, noMsgs).toUnit
+    def contents = toUnit(TestContents(defns, stats, noMsgs))
+    def testFile = TestFile(name, contents)
   }
+
+  def toUnit(t: TestContents) = TestContents(t.defns, List(t.stats.flatten), t.msgs)
 }
