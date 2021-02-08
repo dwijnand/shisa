@@ -98,3 +98,5 @@ def uncapitalize(s: String) = {
 }
 
 def classesDir(r: Reference, c: ConfigKey) = (r / c / classDirectory).toTask.dependsOn(r / c / compile)
+
+Global / excludeLintKeys ++= Set(javaSource, resourceDirectory, scalaSource)
