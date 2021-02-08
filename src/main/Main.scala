@@ -12,7 +12,6 @@ import scala.Console.{ GREEN, RED, RESET }
 
 import scala.meta._
 
-import shisa.testdata._
 import Severity.{ Info, Error, Warn }
 
 object Main {
@@ -29,8 +28,6 @@ object Main {
   val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, t1 ++ t2))
   val MissingExp    = new Msg(Error, "missing exp msg")
   val MissingObt    = new Msg(Error, "missing obt msg")
-
-  def idxStr(idx: Int) = if (idx < 10) s"0$idx" else s"$idx"
 
   def main(args: Array[String]): Unit = {
     val testFiles = args.toList match {
@@ -140,6 +137,7 @@ object Main {
   def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg)      = s"${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
   def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
+  def idxStr(idx: Int)       = if (idx < 10) s"0$idx" else s"$idx"
   def msgMismatch(exp: Msg, obt: Msg) = {
     if (exp.text == "*") exp.severity != obt.severity
     else exp != obt

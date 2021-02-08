@@ -1,5 +1,4 @@
 package shisa
-package testdata
 
 import scala.Function.const
 

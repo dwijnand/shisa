@@ -1,8 +1,6 @@
 package shisa
 package tests
 
-import shisa.testdata._
-
 import munit._
 
 class TestFileSourceTest extends FunSuite {

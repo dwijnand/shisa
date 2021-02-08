@@ -10,7 +10,7 @@ trait MkInMemoryTestFile {
   def contents: TestContents
   final def testFile: TestFile = TestFile(name, contents)
 }
-package object testdata {
+object `package` {
   val ns: String = "" // empty string ("no string")
 
   val noMsgs                     = List(Nil, Nil, Nil, Nil, Nil, Nil)
