@@ -1,6 +1,6 @@
 package shisa
 
-import scala.meta._, classifiers.{ Classifiable, Classifier }
+import scala.meta._, classifiers.{ Classifiable, Classifier }, contrib._
 
 object `package` {
   val ns = Lit.String("") // empty string ("no string")
@@ -29,19 +29,10 @@ object `package` {
   def autoApp3(meth: String) = s"method $meth must be called with () argument"
 
   implicit class ListOps[T](private val xs: List[T]) extends AnyVal {
-    def has[U]   (implicit classifier: Classifier[T, U]): Boolean = xs.exists( classifier(_))
-    def hasNot[U](implicit classifier: Classifier[T, U]): Boolean = xs.forall(!classifier(_))
+    def has[U](implicit classifier: Classifier[T, U]): Boolean = xs.exists( classifier(_))
 
-    def appendOnce[U](x: T)(implicit classifier: Classifier[T, U])  = if (xs.has[U]) xs else xs :+ x
+    def  appendOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else xs :+ x
     def prependOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else x :: xs
-  }
-
-  implicit class TermNameOps(private val name: Term.Name) extends AnyVal {
-    def toTypeName: Type.Name = Type.Name(name.value)
-  }
-
-  implicit class TypeNameOps(private val name: Type.Name) extends AnyVal {
-    def toTermName: Term.Name = Term.Name(name.value)
   }
 
   implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
@@ -50,7 +41,6 @@ object `package` {
   }
 
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
-    def addStat(stat: Stat) = cls.copy(templ = cls.templ.copy(stats = cls.templ.stats :+ stat))
     def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
 
     def toCaseClass = cls.copy(
@@ -69,12 +59,9 @@ object `package` {
       }),
     )
 
-    def withRunnable = addInit(init"Runnable").addStat(q"def run() = ()")
+    def withRunnable = addInit(init"Runnable").withStats(List(q"def run() = ()"))
 
-    def isCaseClass  = cls.mods.has[Mod.Case]
+    def isCaseClass  = cls.hasMod(Mod.Case())
     def isValueClass = cls.templ.inits.exists { case Init(Type.Name("AnyVal"), Name(""), Nil) => true case _ => false }
-
-    def  name: Type.Name = cls.name
-    def tname: Term.Name = Term.Name(name.value)
   }
 }

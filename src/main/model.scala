@@ -16,7 +16,7 @@ sealed trait Test {
       case (t1: TestList, t2)                   => combine(flatten(t1), t2)
       case (t1, t2: TestList)                   => combine(t1, flatten(t2))
       case (t1: TestContents, t2: TestContents) => TestContents(
-        (t1.defns ::: t2.defns).distinct,
+        (t1.defns ::: t2.defns).distinctBy(_.structure),
         t1.stats ::: t2.stats,
         t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs },
       )
