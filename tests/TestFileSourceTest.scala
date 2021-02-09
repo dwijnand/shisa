@@ -110,7 +110,6 @@ class TestFileSourceTest extends FunSuite {
       |""".stripMargin
 
   def compareToSource(tf: TestFile, expected: String) = {
-    for (obtained <- tf.toContents.map(Main.toSource(_)))
-      assertEquals(obtained, expected)
+    assertEquals(Main.toSource(tf.toContents), expected)
   }
 }

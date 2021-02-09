@@ -8,6 +8,12 @@ sealed trait SV
 case object S2 extends SV
 case object S3 extends SV
 
+object Test {
+  val None = TestContents(Nil, Nil, noMsgs)
+
+  def toContents(tests: List[Test]) = tests.foldLeft(Test.None)(_ ++ _)
+}
+
 sealed trait Test {
   final def ++(that: Test): TestContents = {
     @tailrec def combine(t1: Test, t2: Test): TestContents = (t1, t2) match {
@@ -21,14 +27,19 @@ sealed trait Test {
         t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs },
       )
     }
-    def flatten(ts: TestList) = ts.tests.foldLeft(TestContents(Nil, Nil, noMsgs))(_ ++ _)
+    def flatten(ts: TestList) = ts.tests.foldLeft(Test.None)(_ ++ _)
     combine(this, that)
   }
 
-  final def toContents: List[TestContents] = this match {
-    case x @ TestContents(_, _, _) => List(x)
-    case TestList(tests)           => tests.flatMap(_.toContents)
+  @tailrec final def toContents: TestContents = this match {
+    case x @ TestContents(_, _, _) => x
+    case TestList(tests)           => Test.toContents(tests)
     case TestFile(_, test)         => test.toContents
+  }
+
+  final def toUnit: TestContents = {
+    val TestContents(defns, stats, msgs) = toContents
+    TestContents(defns, List(stats.flatten), msgs)
   }
 }
 

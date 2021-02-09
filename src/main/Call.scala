@@ -3,7 +3,7 @@ package shisa
 import scala.meta._, contrib._
 
 object Call {
-  def tests: List[TestFile] = List(hashHash, pos)
+  def tests: List[TestFile] = List(neg, pos)
 
   // Types
   sealed trait ClsOpt
@@ -47,25 +47,18 @@ object Call {
   val hashHashErr3 = err("method ## in class Any does not take parameters")
   val hashHashErrs = multi(hashHashErr2, hashHashErr3)
 
-  val hashHash = {
-    val mkStat = (v: Val) => nil(v.name, nme.hashHash)
-    val mkOne  = (v: Val) => TestContents(List(v.defn), List(List(mkStat(v))), hashHashErrs)
-    val tests  = vals.map(mkOne).reduce(_ ++ _)
-    TestFile("Call.##", TestContents(tests.defns, List(tests.stats.flatten), tests.msgs))
-  }
+  val negTests  = for (v <- vals; stat  = nil(v.name, nme.hashHash )) yield mk(v.defn, stat, hashHashErrs)
+  val posTests1 = for (v <- vals; stat  = nul(v.name, nme.hashHash )) yield mk(v.defn, stat, noMsgs)
+  val posTests2 = for (v <- vals; stat <- two(v.name, nme.toString_)) yield mk(v.defn, stat, noMsgs)
+  val posTests3 = for (v <- vals; stat <- two(v.name, nme.getClass_)) yield mk(v.defn, stat, noMsgs)
+  val posTests4 = for (v <- vals; stat <- two(v.name, nme.hashCode_)) yield mk(v.defn, stat, noMsgs)
+  val posTests5 = for (c <- clsV; stat <- two(c.inst, nme.toString_)) yield mk(     c, stat, noMsgs)
+  val posTests6 = for (c <- clsR; stat <- two(c.inst, nme.run      )) yield mk(     c, stat, noMsgs)
+  val posTests  = posTests1 ::: posTests2 ::: posTests3 ::: posTests4 ::: posTests5 ::: posTests6
 
-  val pos = {
-    val defns = clsV ::: vals.map(_.defn)
-    val stats =
-      vals.map     { v => nul(v.name, nme.hashHash)  } :::
-      vals.flatMap { v => two(v.name, nme.toString_) } :::
-      vals.flatMap { v => two(v.name, nme.getClass_) } :::
-      vals.flatMap { v => two(v.name, nme.hashCode_) } :::
-      clsV.flatMap { c => two(c.inst, nme.toString_) } :::
-      clsR.flatMap { c => two(c.inst, nme.run)       } :::
-      Nil
-    val mkOne  = (v: Val) => TestContents(List(v.defn), Nil, noMsgs)
-    val tests  = vals.map(mkOne).reduce(_ ++ _)
-    TestFile("Call.pos", TestContents(defns, List(stats), tests.msgs))
-  }
+  val neg = mkFile("Call.neg", negTests)
+  val pos = mkFile("Call.pos", posTests)
+
+  def mk(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
+  def mkFile(name: String, ts: List[TestContents])      = TestFile(name, Test.toContents(ts).toUnit)
 }
