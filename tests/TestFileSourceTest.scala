@@ -4,8 +4,8 @@ package tests
 import munit._
 
 class TestFileSourceTest extends FunSuite {
-  test("Call_## toSource")(compareToSource(Call.hashHash.contents, Call_hashhash_expected))
-  test("Call_pos toSource")(compareToSource(Call.pos.contents, Call_pos_expected))
+  test("Call_## toSource")(compareToSource(Call.hashHash, Call_hashhash_expected))
+  test("Call_pos toSource")(compareToSource(Call.pos, Call_pos_expected))
 
   def Call_hashhash_expected =
     """object Test {
@@ -109,8 +109,8 @@ class TestFileSourceTest extends FunSuite {
       |}
       |""".stripMargin
 
-  def compareToSource(contents: TestContents, expected: String) = {
-    val obtained = Main.toSource(contents)
-    assertEquals(obtained, expected)
+  def compareToSource(tf: TestFile, expected: String) = {
+    for (obtained <- tf.toContents.map(Main.toSource(_)))
+      assertEquals(obtained, expected)
   }
 }

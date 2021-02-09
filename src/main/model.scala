@@ -25,6 +25,12 @@ sealed trait Test {
     def flatten(ts: TestList) = ts.tests.foldLeft(TestContents(Nil, Nil, noMsgs))(_ ++ _)
     combine(this, that)
   }
+
+  final def toContents: List[TestContents] = this match {
+    case x @ TestContents(_, _, _) => List(x)
+    case TestList(tests)           => tests.flatMap(_.toContents)
+    case TestFile(_, test)         => test.toContents
+  }
 }
 
 final case class TestList(tests: List[Test])                                                     extends Test
