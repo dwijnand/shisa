@@ -36,3 +36,18 @@ sealed trait Test {
 final case class TestList(tests: List[Test])                                                     extends Test
 final case class TestFile(name: String, test: Test)                                              extends Test
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) extends Test
+
+object nme {
+  val getClass_ = q"getClass"
+  val hashCode_ = q"hashCode"
+  val hashHash  = q"##"
+  val run       = q"run"
+  val toString_ = q"toString"
+}
+
+object tpnme {
+  val Any    = t"Any"
+  val AnyRef = t"AnyRef"
+  val Object = t"Object"
+  val String = t"String"
+}

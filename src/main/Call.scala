@@ -80,20 +80,4 @@ object Call {
     val tests  = vals.map(mkOne).reduce(_ ++ _)
     TestFile("Call.pos", TestContents(defns, List(stats.flatten), tests.msgs))
   }
-
-  // Names
-  object nme {
-    val getClass_ = q"getClass"
-    val hashCode_ = q"hashCode"
-    val hashHash  = q"##"
-    val run       = q"run"
-    val toString_ = q"toString"
-  }
-
-  object tpnme {
-    val Any    = t"Any"
-    val AnyRef = t"AnyRef"
-    val Object = t"Object"
-    val String = t"String"
-  }
 }
