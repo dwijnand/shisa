@@ -37,6 +37,14 @@ object `package` {
     def prependOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else x :: xs
   }
 
+  implicit class TermNameOps(private val name: Term.Name) extends AnyVal {
+    def toTypeName: Type.Name = Type.Name(name.value)
+  }
+
+  implicit class TypeNameOps(private val name: Type.Name) extends AnyVal {
+    def toTermName: Term.Name = Term.Name(name.value)
+  }
+
   implicit class TermParamOps(private val param: Term.Param) extends AnyVal {
     def notValParam = param.copy(mods = param.mods.filter(_.isNot[Mod.ValParam]))
     def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
