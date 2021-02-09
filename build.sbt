@@ -6,6 +6,9 @@ inThisBuild(Def.settings(
           version := "0.1.0-SNAPSHOT",
         resolvers += "scala-integration" at "https://scala-ci.typesafe.com/artifactory/scala-integration/",
      scalaVersion := scalaV2,
+   scalacOptions ++= List("-deprecation", "-feature", "-unchecked", "-Xlint"),
+    scalacOptions += "-language:_",
+    scalacOptions += "-Wunused:-imports",
     sourcesInBase := false,
   sourceDirectory := baseDirectory.value / "src",
            target := baseDirectory.value / "target",
@@ -23,11 +26,7 @@ Compile / runMain      := (shisaMain / Compile / runMain).evaluated
    Test / testOnly     := (shisaTests / Test / testOnly).evaluated
    Test / testQuick    := (shisaTests / Test / testQuick).evaluated
 
-val shisaScalacI = proj(project).settings(
-  autoScalaLibrary := false,
-      compileOrder := CompileOrder.JavaThenScala,
-        crossPaths := false,
-)
+val shisaScalacI = proj(project)
 
 val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
   libraryDependencies += scalaOrganization.value  % "scala-compiler" % scalaVersion.value,
@@ -35,6 +34,8 @@ val shisaScalac2 = proj(project).dependsOn(shisaScalacI).settings(
 
 val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
          scalaVersion := scalaV3,
+        scalacOptions -= "-Xlint",
+        scalacOptions -= "-Wunused:-imports",
   libraryDependencies += scalaOrganization.value %% "scala3-compiler" % scalaVersion.value,
 )
 

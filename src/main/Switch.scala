@@ -24,8 +24,8 @@ object Switch {
 
   def CallMethP(meth: Term.Name, value: Lit) = {
     val msgs = multi3 {
-      case (S2,   _) => List(msg(W,   autoApp2(meth.value)))
-      case (S3, sev) => List(msg(sev, autoApp3(meth.value)))
+      case (S2,   _) => List(Msg(W,   autoApp2(meth.value)))
+      case (S3, sev) => List(Msg(sev, autoApp3(meth.value)))
     }
     TestFile("Call.meth_p", TestContents(List(q"def $meth() = $value"), List(List(q"$meth")), msgs))
   }
@@ -93,10 +93,10 @@ object Switch {
   }
 
   def overrideM(sv: SV, switch: MethPropSwitch, sev: Sev, traitName: String, meth: Term.Name) = (sv, switch) match {
-    case (S2, M2P)       => msg(sev, override2_meth2prop)
-    case (S3, M2P) => msg(sev, override3_meth2prop(sev, traitName, meth))
-    case (S2, P2M) => msg(sev, override2_prop2meth(sev, traitName, meth))
-    case (S3, P2M) => msg(sev, override3_prop2meth(sev, traitName, meth))
+    case (S2, M2P)       => Msg(sev, override2_meth2prop)
+    case (S3, M2P) => Msg(sev, override3_meth2prop(sev, traitName, meth))
+    case (S2, P2M) => Msg(sev, override2_prop2meth(sev, traitName, meth))
+    case (S3, P2M) => Msg(sev, override3_prop2meth(sev, traitName, meth))
   }
 
   def switchMsgs(switch: MethPropSwitch, call: MethOrProp, sv: SV, sev: Sev, traitName: String, meth: Term.Name) = {
@@ -107,9 +107,9 @@ object Switch {
       case (M2P, Prop, S2, _) => List(overrideMsg, warn(autoApp2(meth.value)))
       case (M2P, Prop, S3, _) => List(overrideMsg)
 
-      case (P2M, Prop, S2, _) => List(overrideMsg, msg(W, autoApp2(meth.value)))
-      case (P2M, Prop, S3, W) => List(overrideMsg, msg(W, autoApp3(meth.value)))
-      case (P2M, Prop, S3, E) => List(             msg(E, autoApp3(meth.value)))
+      case (P2M, Prop, S2, _) => List(overrideMsg, Msg(W, autoApp2(meth.value)))
+      case (P2M, Prop, S3, W) => List(overrideMsg, Msg(W, autoApp3(meth.value)))
+      case (P2M, Prop, S3, E) => List(             Msg(E, autoApp3(meth.value)))
     }
   }
 }

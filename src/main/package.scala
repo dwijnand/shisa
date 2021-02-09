@@ -3,15 +3,14 @@ package shisa
 import scala.meta._, classifiers.{ Classifiable, Classifier }
 
 object `package` {
-  val ns: String = "" // empty string ("no string")
+  val ns = Lit.String("") // empty string ("no string")
 
-  val noMsgs                     = List(Nil, Nil, Nil, Nil, Nil, Nil)
-  def mkNoMsgs(sev: Sev)         = Nil
-  def msgs(mkMsg: Sev => Msg)    = (sev: Sev) => List(mkMsg(sev))
-  def warn(str: String)          = msg(W,  str)
-  def  err(str: String)          = msg(E, str)
-  def anyErr                     = err("*")
-  def msg(sev: Sev, str: String) = new Msg(sevToSeverity(sev), str)
+  val noMsgs                  = List(Nil, Nil, Nil, Nil, Nil, Nil)
+  def mkNoMsgs(sev: Sev)      = Nil
+  def msgs(mkMsg: Sev => Msg) = (sev: Sev) => List(mkMsg(sev))
+  def warn(str: String)       = Msg(W, str)
+  def  err(str: String)       = Msg(E, str)
+  def anyErr                  = err("*")
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
@@ -77,10 +76,5 @@ object `package` {
 
     def  name: Type.Name = cls.name
     def tname: Term.Name = Term.Name(name.value)
-  }
-
-  def sevToSeverity(sev: Sev) = sev match {
-    case W => Severity.Warn
-    case E => Severity.Error
   }
 }

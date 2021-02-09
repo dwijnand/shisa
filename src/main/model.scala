@@ -1,13 +1,12 @@
 package shisa
 
-import scala.language.implicitConversions
-
 import scala.annotation.tailrec
 
 import scala.meta._
 
-sealed trait SV;  case object S2 extends SV;  case object S3 extends SV
-sealed trait Sev; case object W  extends Sev; case object E  extends Sev
+sealed trait SV
+case object S2 extends SV
+case object S3 extends SV
 
 sealed trait Test {
   final def ++(that: Test): TestContents = {

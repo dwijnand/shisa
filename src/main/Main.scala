@@ -6,13 +6,10 @@ import java.util.concurrent.Executors
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 import scala.util.chaining._
 import scala.Console.{ GREEN, RED, RESET }
 
 import scala.meta._
-
-import Severity.{ Info, Error, Warn }
 
 //3 levels of tests:
 //* template tests (top level classes/objects, Defns)
@@ -89,7 +86,7 @@ object Main {
   }
 
   def compile1(name: String, contents: TestContents): TestResult = {
-    val compilers = mkCompilers.map(_.mkCompiler())
+    val compilers = mkCompilers.map(_.mkCompiler)
     val msgss = if (contents.stats.sizeIs > 1) {
       val contentss = contents.stats.map(stat => contents.copy(stats = List(stat)))
       contentss.zipWithIndex.map { case (contents, idx) =>
@@ -102,14 +99,15 @@ object Main {
   }
 
   def doCompile1(compilers: List[Compiler], name: String, content: String) = {
-    compilers.map(_.compile1(new SrcFile(name, content)).msgs.asScala.toList)
+    compilers.map(_.compile1(SrcFile(name, content)))
   }
 
   def toSource(contents: TestContents, pkgIdx: Option[Int] = None): String = {
-    val sourceDefn = q"object Test { ..${contents.defns ::: contents.stats.flatten} }"
-    val source     = pkgIdx.map(idx => Term.Name(s"p${idxStr(idx)}")) match {
-      case None          => source"$sourceDefn"
-      case Some(pkgName) => source"package $pkgName; $sourceDefn"
+    val stats  = contents.defns ::: contents.stats.flatten
+    val defns  = List(q"object Test { ..$stats }")
+    val source = pkgIdx.map(idx => Term.Name(s"p${idxStr(idx)}")) match {
+      case None          => Source(defns)
+      case Some(pkgName) => Source(List(Pkg(pkgName, defns)))
     }
     source.syntax + "\n"
   }
@@ -134,19 +132,19 @@ object Main {
     }
   }
 
-  implicit def orderingMsg: Ordering[Msg]      = Ordering.by((msg: Msg) => (msg.severity, msg.text))
-  implicit def orderingSev: Ordering[Severity] = Ordering.by { case Error => 1 case Warn => 2 case Info => 3 }
+  implicit def orderingMsg: Ordering[Msg] = Ordering.by((msg: Msg) => (msg.sev, msg.text))
+  implicit def orderingSev: Ordering[Sev] = Ordering.by { case E => 1 case W => 2 }
 
-  val LineStart              = "(?m)^".r
-  val MissingExp             = new Msg(Error, "missing exp msg")
-  val MissingObt             = new Msg(Error, "missing obt msg")
-  def showObt(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
-  def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
-  def showMsg(msg: Msg)      = s"${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
-  def showSev(sev: Severity) = sev match { case Error => "  error" case Warn => "warning" case Info => "   info" }
-  def idxStr(idx: Int)       = if (idx < 10) s"0$idx" else s"$idx"
+  val LineStart         = "(?m)^".r
+  val MissingExp        = Msg(E, "missing exp msg")
+  val MissingObt        = Msg(E, "missing obt msg")
+  def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
+  def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
+  def showMsg(msg: Msg) = s"${showSev(msg.sev)}: ${msg.text.replaceAll("\n", "\\\\n")}"
+  def showSev(sev: Sev) = sev match { case E => "  error" case W => "warn" }
+  def idxStr(idx: Int)  = if (idx < 10) s"0$idx" else s"$idx"
   def msgMismatch(exp: Msg, obt: Msg) = {
-    if (exp.text == "*") exp.severity != obt.severity
+    if (exp.text == "*") exp.sev != obt.sev
     else exp != obt
   }
 

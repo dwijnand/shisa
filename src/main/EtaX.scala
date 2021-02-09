@@ -29,25 +29,25 @@ object EtaX {
        err(mustFollow("String")),
     )
     def msgs3Pair(sev: Sev, exp: String) = List(
-      msg(sev, autoApp3("meth")),
+      Msg(sev, autoApp3("meth")),
     ) ::: (if (sev == E) Nil else List(
       err(typeMismatch3("String", exp)),
     ))
     def msgs30I(sev: Sev) = {
       msgs3Pair(sev,       "p01.Test.Sam0S") :::
       msgs3Pair(sev,       "p02.Test.Sam0J") ::: List(
-      msg(      sev, autoApp3("meth")),
-      msg(      sev, onlyFuncs("String")),
+      Msg(      sev, autoApp3("meth")),
+      Msg(      sev, onlyFuncs("String")),
     )
     }
     def msgs31I(sev: Sev) = List(
       err(     autoApp3("meth")),
       err(     autoApp3("meth")),
       err(     autoApp3("meth")),
-      msg(sev, etaFunction),
-      msg(sev, etaFunction),
-      msg(sev, etaFunction),
-      msg(sev, onlyFuncs("String")),
+      Msg(sev, etaFunction),
+      Msg(sev, etaFunction),
+      Msg(sev, etaFunction),
+      Msg(sev, onlyFuncs("String")),
     )
 
     val msgs = List(msgs2, msgs2, msgs30I(W), msgs30I(E), msgs31I(W), msgs31I(E))
@@ -67,7 +67,7 @@ object EtaX {
     )
     val msgs2             = List( err(missingArgs("meth1", "Test")))
     val msgs3             = List(warn(stillEta("meth1", "p01.Test.Sam1S")))
-    def msgs31I(sev: Sev) = List(warn(stillEta("meth1", "p01.Test.Sam1S")), msg(sev, etaFunction2))
+    def msgs31I(sev: Sev) = List(warn(stillEta("meth1", "p01.Test.Sam1S")), Msg(sev, etaFunction2))
 
     val msgs = List(msgs2, Nil, msgs3, msgs3, msgs31I(W), msgs31I(E))
     TestFile("EtaX.meth1", TestContents(defns, stats.map(List(_)), msgs))
@@ -89,19 +89,19 @@ object EtaX {
       err(     missingArg2("apply: (i: Int): Char", "StringOps", "i")),
       err(     missingArg2("apply: (i: Int): Char", "StringOps", "i")),
       err(     typeMismatch2("String", "() => Any")),
-      msg(sev, methodsWithoutParams(sev)),
-      msg(sev, methodsWithoutParams(sev)),
-      msg(sev, methodsWithoutParams(sev)),
+      Msg(sev, methodsWithoutParams(sev)),
+      Msg(sev, methodsWithoutParams(sev)),
+      Msg(sev, methodsWithoutParams(sev)),
     )
     def msgs30(sev: Sev) = List(
       err(     typeMismatch3("String", "() => Any")),
       err(     missingArg3("apply: (i: Int): Char", "i")),
-      msg(sev, onlyFuncs("String")),
-      msg(sev, onlyFuncs("String")),
-      msg(sev, onlyFuncs("<error unspecified error>")),
-      msg(sev, onlyFuncs("String")),
+      Msg(sev, onlyFuncs("String")),
+      Msg(sev, onlyFuncs("String")),
+      Msg(sev, onlyFuncs("<error unspecified error>")),
+      Msg(sev, onlyFuncs("String")),
     ) ::: (if (sev == E) List(
-      msg(sev, typeMismatch3("(t : String)", "() => Any")),
+      Msg(sev, typeMismatch3("(t : String)", "() => Any")),
     ) else List(
       err(            missingArg3("apply: (i: Int): Char", "i")),
     ))
@@ -112,10 +112,10 @@ object EtaX {
       err(     typeMismatch3("String", "() => Any")),
       err(     missingArg3("apply: (i: Int): Char", "i")),
     )) ::: List(
-      msg(sev, onlyFuncs("<error unspecified error>")),
-      msg(sev, onlyFuncs("String")),
-      msg(sev, onlyFuncs("String")),
-      msg(sev, onlyFuncs("String")),
+      Msg(sev, onlyFuncs("<error unspecified error>")),
+      Msg(sev, onlyFuncs("String")),
+      Msg(sev, onlyFuncs("String")),
+      Msg(sev, onlyFuncs("String")),
       err(     typeMismatch3("(t : String)", "() => Any")),
     )
 
@@ -128,15 +128,15 @@ object EtaX {
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
       TestContents(defns, List(List(stat)), multi4(const(msgs2), msgs30, msgs31))
     val msgs1_2   = warn(  autoApp2("methF0"))
-    val msgs1_30  = msg(_, autoApp3("methF0"))
+    val msgs1_30  = Msg(_, autoApp3("methF0"))
     val msgs1_31  = err(   autoApp3("methF0"))
     val msgs4_2   = err(   mustFollow("() => String"))
-    val msgs4_30  = msg(_, onlyFuncs("() => String"))
-    val msgs4_31  = msg(_, onlyFuncs("() => String"))
+    val msgs4_30  = Msg(_, onlyFuncs("() => String"))
+    val msgs4_31  = Msg(_, onlyFuncs("() => String"))
     val testCase0 = testCase(q"val t1a: () => Any = methF0",                Nil,           mkNoMsgs,       mkNoMsgs)                  // ok, eta-expansion
     val testCase1 = testCase(q"val t1b: () => Any = { val t = methF0; t }", List(msgs1_2), msgs(msgs1_30), msgs(const(msgs1_31)))     // `()`-insert b/c no expected type
-    val testCase2 = testCase(q"val t1c: () => Any = methF0 _",              Nil,           mkNoMsgs,       msgs(msg(_, etaFunction))) // ok, explicit eta-expansion requested
-    val testCase3 = testCase(q"val t1d: Any       = methF0 _",              Nil,           mkNoMsgs,       msgs(msg(_, etaFunction))) // ok, explicit eta-expansion requested
+    val testCase2 = testCase(q"val t1c: () => Any = methF0 _",              Nil,           mkNoMsgs,       msgs(Msg(_, etaFunction))) // ok, explicit eta-expansion requested
+    val testCase3 = testCase(q"val t1d: Any       = methF0 _",              Nil,           mkNoMsgs,       msgs(Msg(_, etaFunction))) // ok, explicit eta-expansion requested
     val testCase4 = testCase(q"val t1e: Any       = methF0() _",            List(msgs4_2), msgs(msgs4_30), msgs(msgs4_31))            // error: _ must follow method
     val contents  = List(testCase0, testCase1, testCase2, testCase3, testCase4).reduce(_ ++ _)
     TestFile("EtaX.methF0", contents)
@@ -151,10 +151,10 @@ object EtaX {
     val defns = List(q"def meth2()() = $ns")
     def testCase(stat: Stat, msgs: Sev => List[Msg]) =
       TestContents(defns, List(List(stat)), multi4(_ => Nil, _ => Nil, msgs))
-    val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(msg(_, etaFunction))) // eta-expansion, but lint warning
+    val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(Msg(_, etaFunction))) // eta-expansion, but lint warning
     val tc1   = testCase(q"val t4b: () => Any = meth2()",   mkNoMsgs)                  // ditto
-    val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(msg(_, etaFunction))) // ok
-    val tc3   = testCase(q"val t4d: () => Any = meth2() _", msgs(msg(_, etaFunction))) // ok
+    val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(Msg(_, etaFunction))) // ok
+    val tc3   = testCase(q"val t4d: () => Any = meth2() _", msgs(Msg(_, etaFunction))) // ok
     TestFile("EtaX.meth2", List(tc0, tc1, tc2, tc3).reduce(_ ++ _))
   }
 
@@ -163,7 +163,7 @@ object EtaX {
     val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
     val msgss = multi3 {
       case (S2, _)   => List(warn(     autoApp2("boom")))
-      case (S3, sev) => List( msg(sev, autoApp3("boom")))
+      case (S3, sev) => List( Msg(sev, autoApp3("boom")))
     }
     TestFile("EtaX.boom", TestContents(defns, List(List(stat)), msgss))
   }

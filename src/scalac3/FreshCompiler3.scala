@@ -2,8 +2,6 @@ package shisa
 
 import java.io.File
 
-import scala.jdk.CollectionConverters._
-
 import dotty.tools.dotc
 import dotc.{ Run, Compiler => _ }
 import dotc.ast.Positioned
@@ -13,16 +11,13 @@ import dotc.reporting._
 import dotc.util.SourceFile
 import dotty.tools.io.VirtualDirectory
 
-final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String) extends MkCompiler {
-  def mkCompiler(): Compiler = new Compiler {
-    val id  = FreshCompiler3.this.id
-    val cmd = FreshCompiler3.this.cmd
-
+final case class FreshCompiler3(id: String, scalaJars: Seq[File], cmd: String) extends MkCompiler { self =>
+  def mkCompiler: Compiler = new Compiler {
     implicit val ctx: FreshContext = new ContextBase().initialCtx.fresh
     ctx.setSetting(ctx.settings.color, "never")
     ctx.setSetting(ctx.settings.classpath, scalaJars.mkString(File.pathSeparator))
     ctx.setSetting(ctx.settings.explain, true)
-    ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory("FreshCompiler3 output", /* maybeContainer = */ None))
+    ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory("", /* maybeContainer = */ None))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
     ctx.setSettings(ctx.settings.processArguments(CommandLineParser.tokenize(cmd), /* processAll = */ true).sstate)
     Positioned.init
@@ -34,19 +29,17 @@ final case class FreshCompiler3(id: String, scalaJars: Array[File], cmd: String)
       run.compileSources(List(SourceFile.virtual(src.name, src.content)))
       assert(ctx.reporter.errorsReported || run.suspendedUnits.isEmpty, "Suspended units support now required")
       val dias: List[Diagnostic] = ctx.reporter.removeBufferedMessages
-      new Msgs(dias.map(getMsg(_)).asJava)
+      dias.map(dia => Msg(getSev(dia), dia.message))
     }
   }
 
-  def getMsg(dia: Diagnostic)(implicit ctx: Context) = new Msg(getSeverity(dia), dia.message)
-
-  def getSeverity(dia: Diagnostic) = dia match {
-    case _: Diagnostic.Error              => Severity.Error
-    case _: Diagnostic.FeatureWarning     => Severity.Warn
-    case _: Diagnostic.DeprecationWarning => Severity.Warn
-    case _: Diagnostic.UncheckedWarning   => Severity.Warn
-    case _: Diagnostic.MigrationWarning   => Severity.Warn
-    case _: Diagnostic.Warning            => Severity.Warn
-    case _: Diagnostic.Info               => Severity.Info
+  def getSev(dia: Diagnostic) = dia match {
+    case _: Diagnostic.Error              => E
+    case _: Diagnostic.FeatureWarning     => W
+    case _: Diagnostic.DeprecationWarning => W
+    case _: Diagnostic.UncheckedWarning   => W
+    case _: Diagnostic.MigrationWarning   => W
+    case _: Diagnostic.Warning            => W
+    case _: Diagnostic.Info               => throw new Exception("Unexpected info msg")
   }
 }
