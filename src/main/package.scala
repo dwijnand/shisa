@@ -40,6 +40,11 @@ object `package` {
     def  toValParam = param.copy(mods = param.mods.appendOnce(Mod.ValParam()))
   }
 
+  implicit class ExtensionAdders[A](a: A) {
+    def addStat(b: Stat)(implicit E: Extract[A, Stat], R: Replace[A, Stat]): A =
+      R.replace(a, E.extract(a) :+ b)
+  }
+
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
 
@@ -63,5 +68,10 @@ object `package` {
 
     def isCaseClass  = cls.hasMod(Mod.Case())
     def isValueClass = cls.templ.inits.exists { case Init(Type.Name("AnyVal"), Name(""), Nil) => true case _ => false }
+
+    def inst: Term = {
+      val args = if (isValueClass) List(Lit.String("")) else Nil
+      if (isCaseClass) q"${cls.name.asTerm}(..$args)" else q"new ${cls.name}(..$args)"
+    }
   }
 }

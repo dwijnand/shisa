@@ -18,20 +18,10 @@ object Call {
   }
 
   final case class Cls(variants: List[ClsOpt], suffix: String = "R") {
-    val name: Type.Name = variants.foldRight(Type.Name(s"C$suffix")) {
-      case (CaseCls, name) => name.copy("C" + name.value)
-      case ( ValCls, name) => name.copy("V" + name.value)
-      case ( RunCls, name) => name
-    }
-    val defn: Defn.Class = variants.foldLeft(q"class $name") {
-      case (cls, CaseCls) => cls.toCaseClass
-      case (cls,  ValCls) => cls.toValueClass
+    val defn: Defn.Class = variants.foldLeft(q"class ${Type.Name(s"C$suffix")}") {
+      case (cls, CaseCls) => cls.copy(name = cls.name.copy("C" + cls.name.value)).toCaseClass
+      case (cls,  ValCls) => cls.copy(name = cls.name.copy("V" + cls.name.value)).toValueClass
       case (cls,  RunCls) => cls.withRunnable
-    }
-
-    val inst: Term = {
-      val args = if (defn.isValueClass) List(Lit.String("")) else Nil
-      if (defn.isCaseClass) q"${name.asTerm}(..$args)" else q"new $name(..$args)"
     }
   }
 
@@ -45,10 +35,13 @@ object Call {
   val VCCR = Cls(List(ValCls, CaseCls))
 
   val vals = List(any, ref, obj, str)
-  val clsR = List(CR, CCR)
+  val clsR = List(CR, CCR).map(_.defn)
   val clss = List(CR, CCR, VCR, VCCR)
-  val clsT = clss.map(cls => (cls, cls.copy(suffix = "S"), cls.copy(suffix = "J")))
-  val clsU = clsT.flatMap { case (r, s, j) => List(r, s, j) }
+  val clsV = clss.flatMap { cls =>
+    val defnS = cls.copy(suffix = "S").defn.addStat(q"override def ${nme.toString_}   = $ns")
+    val defnJ = cls.copy(suffix = "J").defn.addStat(q"override def ${nme.toString_}() = $ns")
+    List(cls.defn, defnS, defnJ)
+  }
 
   val hashHashErr2 = err(                   "Int does not take parameters")
   val hashHashErr3 = err("method ## in class Any does not take parameters")
@@ -62,22 +55,17 @@ object Call {
   }
 
   val pos = {
-    val defn1 = clsT.flatMap { case (r, s, j) =>
-      def defnS = s.defn.withStats(s.defn.templ.stats :+ q"override def ${nme.toString_}   = $ns")
-      def defnJ = j.defn.withStats(j.defn.templ.stats :+ q"override def ${nme.toString_}() = $ns")
-      List(r.defn, defnS, defnJ)
-    }
-    val defns = defn1 ::: vals.map(_.defn)
+    val defns = clsV ::: vals.map(_.defn)
     val stats =
-      vals.map { v => List(nul(v.name, nme.hashHash)) } :::
-      vals.map { v => two(v.name, nme.toString_)      } :::
-      vals.map { v => two(v.name, nme.getClass_)      } :::
-      vals.map { v => two(v.name, nme.hashCode_)      } :::
-      clsU.map { c => two(c.inst, nme.toString_)      } :::
-      clsR.map { c => two(c.inst, nme.run)            } :::
+      vals.map     { v => nul(v.name, nme.hashHash)  } :::
+      vals.flatMap { v => two(v.name, nme.toString_) } :::
+      vals.flatMap { v => two(v.name, nme.getClass_) } :::
+      vals.flatMap { v => two(v.name, nme.hashCode_) } :::
+      clsV.flatMap { c => two(c.inst, nme.toString_) } :::
+      clsR.flatMap { c => two(c.inst, nme.run)       } :::
       Nil
     val mkOne  = (v: Val) => TestContents(List(v.defn), Nil, noMsgs)
     val tests  = vals.map(mkOne).reduce(_ ++ _)
-    TestFile("Call.pos", TestContents(defns, List(stats.flatten), tests.msgs))
+    TestFile("Call.pos", TestContents(defns, List(stats), tests.msgs))
   }
 }
