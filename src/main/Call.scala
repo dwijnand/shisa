@@ -3,11 +3,7 @@ package shisa
 import scala.meta._, contrib._
 
 object Call {
-  def tests: List[TestFile] = List(neg, pos)
-
-  // Types
-  sealed trait ClsOpt
-  case object CaseCls extends ClsOpt; case object ValCls extends ClsOpt; case object RunCls extends ClsOpt
+  def tests: List[TestFile] = toNegAndPos("Call", list)
 
   def nul(qual: Term, name: Term.Name) = Term.Select(qual, name)
   def nil(qual: Term, name: Term.Name) = Term.Apply(Term.Select(qual, name), Nil)
@@ -34,20 +30,21 @@ object Call {
   val hashHashErr3 = err("method ## in class Any does not take parameters")
   val hashHashErrs = multi(hashHashErr2, hashHashErr3)
 
-  val neg1 = for (x <- vals; stat  = nil(x.inst, nme.hashHash )) yield mk(x, stat, hashHashErrs)
-  val pos1 = for (x <- vals; stat  = nul(x.inst, nme.hashHash )) yield mk(x, stat, noMsgs)
-  val pos2 = for (x <- vals; stat <- two(x.inst, nme.toString_)) yield mk(x, stat, noMsgs)
-  val pos3 = for (x <- vals; stat <- two(x.inst, nme.getClass_)) yield mk(x, stat, noMsgs)
-  val pos4 = for (x <- vals; stat <- two(x.inst, nme.hashCode_)) yield mk(x, stat, noMsgs)
-  val pos5 = for (x <- clsV; stat <- two(x.inst, nme.toString_)) yield mk(x, stat, noMsgs)
-  val pos6 = for (x <- clsR; stat <- two(x.inst, nme.run      )) yield mk(x, stat, noMsgs)
-  val (neg, pos) = toNegAndPos("Call", neg1 ::: pos1 ::: pos2 ::: pos3 ::: pos4 ::: pos5 ::: pos6)
+  val list = List(
+    for (x <- vals; stat  = nil(x.inst, nme.hashHash )) yield mk(x, stat, hashHashErrs),
+    for (x <- vals; stat  = nul(x.inst, nme.hashHash )) yield mk(x, stat, noMsgs),
+    for (x <- vals; stat <- two(x.inst, nme.toString_)) yield mk(x, stat, noMsgs),
+    for (x <- vals; stat <- two(x.inst, nme.getClass_)) yield mk(x, stat, noMsgs),
+    for (x <- vals; stat <- two(x.inst, nme.hashCode_)) yield mk(x, stat, noMsgs),
+    for (x <- clsV; stat <- two(x.inst, nme.toString_)) yield mk(x, stat, noMsgs),
+    for (x <- clsR; stat <- two(x.inst, nme.run      )) yield mk(x, stat, noMsgs),
+  ).flatten
 
   def mk(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
   def mkFile(name: String, ts: List[TestContents])      = TestFile(name, Test.toContents(ts).toUnit)
 
   def toNegAndPos(name: String, tests: List[TestContents]) = {
     val (neg, pos) = tests.partition(_.msgs == noMsgs)
-    (mkFile(s"$name.neg", neg), mkFile(s"$name.pos", pos))
+    List(mkFile(s"$name.neg", neg), mkFile(s"$name.pos", pos))
   }
 }
