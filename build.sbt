@@ -44,10 +44,11 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
     classesDir(shisaScalac3, Compile).taskValue.named("scalac3Dir"),
   ),
   libraryDependencies ++= List(
-    "org.typelevel"   %% "cats-core"         % "2.0.0",
+    "org.typelevel"   %% "cats-core"         % "2.3.1",
     "io.get-coursier" %% "coursier"          % "2.0.2",
-  //"ch.epfl.scala"   %  "scalafix-cli"      % "0.9.21"        cross CrossVersion.full,
-    "org.scalameta"   %  "semanticdb-scalac" % "4.4.0"         cross CrossVersion.full,
+    "org.scalameta"   %% "scalameta"         % "4.4.8",
+    "ch.epfl.scala"   %% "scalafix-rules"    % "0.9.25",
+  //"ch.epfl.scala"   %  "scalafix-cli"      % "0.9.25" cross CrossVersion.full,
   )
 ).enablePlugins(BuildInfoPlugin)
 
