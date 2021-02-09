@@ -9,8 +9,8 @@ object Call {
   sealed trait ClsOpt
   case object CaseCls extends ClsOpt; case object ValCls extends ClsOpt; case object RunCls extends ClsOpt
 
-  def nul(qual: Term, name: Term.Name) = Term.Select(qual, name)
-  def nil(qual: Term, name: Term.Name) = Term.Apply(Term.Select(qual, name), Nil)
+  def nul(qual: Term, name: Term.Name) = q"$qual.$name"
+  def nil(qual: Term, name: Term.Name) = q"$qual.$name()"
   def two(qual: Term, name: Term.Name) = List(nul(qual, name), nil(qual, name))
 
   final case class Val(name: Term.Name, tpe: Type.Name) {
@@ -23,33 +23,28 @@ object Call {
       case ( ValCls, name) => name.copy("V" + name.value)
       case ( RunCls, name) => name
     }
-    val baseTmpl = Template(Nil, Nil, Self(Name(""), None), Nil)
-    val baseCls  = Defn.Class(Nil, name, Nil, Ctor.Primary(Nil, Name(""), Nil), baseTmpl)
-    val defn: Defn.Class = variants.foldLeft(baseCls) {
+    val defn: Defn.Class = variants.foldLeft(q"class $name") {
       case (cls, CaseCls) => cls.toCaseClass
       case (cls,  ValCls) => cls.toValueClass
       case (cls,  RunCls) => cls.withRunnable
     }
 
-    val inst: Term = variants match {
-      case List(ValCls, CaseCls) => Term.Apply(defn.name.toTermName, List(Lit.String("")))
-      case List(RunCls, CaseCls) => Term.Apply(defn.name.toTermName, Nil)
-      case List(RunCls)          => Term.New(Init(defn.name, Name(""), List(Nil)))
-      case List(ValCls)          => Term.New(Init(defn.name, Name(""), List(List(Lit.String("")))))
-      case _                     => sys.error(s"Unexpected variants: $variants")
+    val inst: Term = {
+      val args = if (defn.isValueClass) List(Lit.String("")) else Nil
+      if (defn.isCaseClass) q"${name.toTermName}(..$args)" else q"new $name(..$args)"
     }
 
     lazy val copyS = copy(suffix = "S")
     lazy val copyJ = copy(suffix = "J")
-    lazy val defnS = copyS.defn.addStat(Defn.Def(List(Mod.Override()), nme.toString_, Nil,      Nil , None, Lit.String("")))
-    lazy val defnJ = copyJ.defn.addStat(Defn.Def(List(Mod.Override()), nme.toString_, Nil, List(Nil), None, Lit.String("")))
+    lazy val defnS = copyS.defn.addStat(q"override def ${nme.toString_}   = $ns")
+    lazy val defnJ = copyJ.defn.addStat(q"override def ${nme.toString_}() = $ns")
     lazy val defns = List(defn, defnS, defnJ)
   }
 
-  val any  = Val(Term.Name("any"), tpnme.Any)
-  val ref  = Val(Term.Name("ref"), tpnme.AnyRef)
-  val obj  = Val(Term.Name("obj"), tpnme.Object)
-  val str  = Val(Term.Name("str"), tpnme.String)
+  val any  = Val(q"any", tpnme.Any)
+  val ref  = Val(q"ref", tpnme.AnyRef)
+  val obj  = Val(q"obj", tpnme.Object)
+  val str  = Val(q"str", tpnme.String)
   val   CR = Cls(List(RunCls))
   val  CCR = Cls(List(RunCls, CaseCls))
   val  VCR = Cls(List(ValCls))
@@ -88,17 +83,17 @@ object Call {
 
   // Names
   object nme {
-    val getClass_ = Term.Name("getClass")
-    val hashCode_ = Term.Name("hashCode")
-    val hashHash  = Term.Name("##")
-    val run       = Term.Name("run")
-    val toString_ = Term.Name("toString")
+    val getClass_ = q"getClass"
+    val hashCode_ = q"hashCode"
+    val hashHash  = q"##"
+    val run       = q"run"
+    val toString_ = q"toString"
   }
 
   object tpnme {
-    val Any    = Type.Name("Any")
-    val AnyRef = Type.Name("AnyRef")
-    val Object = Type.Name("Object")
-    val String = Type.Name("String")
+    val Any    = t"Any"
+    val AnyRef = t"AnyRef"
+    val Object = t"Object"
+    val String = t"String"
   }
 }
