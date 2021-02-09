@@ -21,14 +21,16 @@ sealed trait Test {
       case (TestFile(_, t1), t2)                => combine(t1, t2)
       case (t1: TestList, t2)                   => combine(flatten(t1), t2)
       case (t1, t2: TestList)                   => combine(t1, flatten(t2))
-      case (t1: TestContents, t2: TestContents) => TestContents(
-        (t1.defns ::: t2.defns).distinctBy(_.structure),
-        t1.stats ::: t2.stats,
-        t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs },
-      )
+      case (t1: TestContents, t2: TestContents) => combineContents(t1, t2)
     }
     def flatten(ts: TestList) = ts.tests.foldLeft(Test.None)(_ ++ _)
     combine(this, that)
+  }
+
+  private def combineContents(t1: TestContents, t2: TestContents) = {
+    def defns(defns1: List[Defn], defns2: List[Defn]) = (defns1 ::: defns2).distinctBy(_.structure)
+    def msgs(msgs1: List[List[Msg]], msgs2: List[List[Msg]]) = msgs1.zipAll(msgs2, Nil, Nil).map { case (as, bs) => as ::: bs }
+    TestContents(defns(t1.defns, t2.defns), t1.stats ::: t2.stats, msgs(t1.msgs, t2.msgs))
   }
 
   @tailrec final def toContents: TestContents = this match {

@@ -45,6 +45,13 @@ object `package` {
       R.replace(a, E.extract(a) :+ b)
   }
 
+  implicit class DefnValOps(private val valDefn: Defn.Val) extends AnyVal {
+    def inst = valDefn.pats match {
+      case Pat.Var(name) :: Nil => name
+      case pats                 => throw sys.error(s"Unexpected Defn.Val pats: ${pats.map(_.syntax)} ${pats.map(_.structure)}")
+    }
+  }
+
   implicit class DefnClassOps(private val cls: Defn.Class) extends AnyVal {
     def addInit(init: Init) = cls.copy(templ = cls.templ.copy(inits = cls.templ.inits.prependOnce(init)))
 
