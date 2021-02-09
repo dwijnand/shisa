@@ -1,5 +1,5 @@
 val scalaV2 = "2.13.4"
-val scalaV3 = "3.0.0-M2"
+val scalaV3 = "3.0.0-M3"
 
 inThisBuild(Def.settings(
      organization := "com.dwijnand",

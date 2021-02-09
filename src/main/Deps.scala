@@ -6,20 +6,20 @@ import java.net.URLClassLoader
 import coursier._
 
 object Deps {
-  lazy val scalac_2_13 = fetch(dep"org.scala-lang:scala-compiler:2.13.4")
-  lazy val scalac_3_00 = fetch(dep"org.scala-lang:scala3-compiler_3.0.0-M2:3.0.0-M2")
+  val scalaEaRepo            = mvn"https://scala-ci.typesafe.com/artifactory/scala-integration"
+  val scalaPrRepo            = mvn"https://scala-ci.typesafe.com/artifactory/scala-pr-validation-snapshots"
+  val scalac2Jars            = fetch(dep"org.scala-lang:scala-compiler:2.13.4")
+  val scalac3Jars            = fetch(dep"org.scala-lang:scala3-compiler_3.0.0-M3:3.0.0-M3")
+  def fetch(dep: Dependency) = Fetch().addRepositories(scalaEaRepo, scalaPrRepo).addDependencies(dep).run()
+  val shisaScalac3Classes    = new File(s"target/shisaScalac3/scala-3.0.0-M3/classes")
+  val scalac3Cp              = (shisaScalac3Classes +: scalac3Jars).map(_.toURI.toURL).toArray
+  val scalac3Cl              = new URLClassLoader(scalac3Cp, getClass.getClassLoader)
+  val freshCompiler3Class    = scalac3Cl.loadClass("shisa.FreshCompiler3")
+  val freshCompiler3Ctor     = freshCompiler3Class.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
 
-  val scalaEaRepo = mvn"https://scala-ci.typesafe.com/artifactory/scala-integration"
-  val scalaPrRepo = mvn"https://scala-ci.typesafe.com/artifactory/scala-pr-validation-snapshots"
+  def mkScalac2(id: String, cmd: String = ""): MkCompiler =
+    FreshCompiler2(id, scalac2Jars, cmd)
 
-  private def fetch(dep: Dependency, repos: Repository*) = Fetch().addDependencies(dep).addRepositories(repos: _*).run()
-
-  private val scalac3Dir         = new File("target/shisaScalac3/scala-3.0.0-M2/classes")
-  private val dotcCp             = scalac3Dir +: scalac_3_00
-  private val dotcCl             = new URLClassLoader(dotcCp.map(_.toURI.toURL).toArray, getClass.getClassLoader)
-  private val freshCompiler3Cls  = dotcCl.loadClass("shisa.FreshCompiler3")
-  private val freshCompiler3Ctor = freshCompiler3Cls.getConstructor(classOf[String], classOf[Array[File]], classOf[String])
-
-  def FreshCompiler3(id: String, cmd: String): MkCompiler =
-    freshCompiler3Ctor.newInstance(id, scalac_3_00.toArray, cmd).asInstanceOf[MkCompiler]
+  def mkScalac3(id: String, cmd: String = ""): MkCompiler =
+    freshCompiler3Ctor.newInstance(id, scalac3Jars.toArray, cmd).asInstanceOf[MkCompiler]
 }

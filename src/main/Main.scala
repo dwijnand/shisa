@@ -27,18 +27,15 @@ import Severity.{ Info, Error, Warn }
 //* implemented method -> abstract method
 object Main {
   import Deps._
-  val SC213         = FreshCompiler2("2.13",     scalac_2_13, "")
-  val SC213N        = FreshCompiler2("2.13-new", scalac_2_13, "-Xsource:3")
-  val SC3M          = FreshCompiler3("3.0-migr",              "-source 3.0-migration")
-  val SC3           = FreshCompiler3("3.0",                   "-source 3.0")
-  val SC31M         = FreshCompiler3("3.1-migr",              "-source 3.1-migration")
-  val SC31          = FreshCompiler3("3.1",                   "-source 3.1")
-  val mkCompilers   = List(SC213, SC213N, SC3M, SC3, SC31M, SC31)
-  val compilerIds   = mkCompilers.map(_.id)
-  val tests         = (Call.tests ::: Switch.tests ::: EtaX.tests).sortBy(_.name)
-  val testsMap      = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, t1 ++ t2))
-  val MissingExp    = new Msg(Error, "missing exp msg")
-  val MissingObt    = new Msg(Error, "missing obt msg")
+  val SC2         = mkScalac2("2.13")
+  val SC2N        = mkScalac2("2.13-new", "-Xsource:3")
+  val SC3M        = mkScalac3("3.0-migr", "-source 3.0-migration")
+  val SC3         = mkScalac3("3.0",      "-source 3.0")
+  val SC31M       = mkScalac3("3.1-migr", "-source 3.1-migration")
+  val SC31        = mkScalac3("3.1",      "-source 3.1")
+  val mkCompilers = List(SC2, SC2N, SC3M, SC3, SC31M, SC31)
+  val tests       = (Call.tests ::: Switch.tests ::: EtaX.tests).sortBy(_.name)
+  val testsMap    = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, t1 ++ t2))
 
   def main(args: Array[String]): Unit = {
     val testFiles = args.toList match {
@@ -119,7 +116,7 @@ object Main {
 
   def compareMsgs(name: String, contents: TestContents, obtMsgss: List[List[Msg]]): TestResult = {
     val expMsgss = contents.msgs
-    val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(compilerIds, (Nil, Nil), "<unknown-compiler>")
+    val msgssZipped = expMsgss.zipAll(obtMsgss, Nil, Nil).zipAll(mkCompilers.map(_.id), (Nil, Nil), "<unknown-compiler>")
     val testResults = for (((expMsgs, obtMsgs), compilerId) <- msgssZipped) yield {
       expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
         case (exp, obt) if msgMismatch(exp, obt) => showObt(obt) + showExp(exp)
@@ -141,6 +138,8 @@ object Main {
   implicit def orderingSev: Ordering[Severity] = Ordering.by { case Error => 1 case Warn => 2 case Info => 3 }
 
   val LineStart              = "(?m)^".r
+  val MissingExp             = new Msg(Error, "missing exp msg")
+  val MissingObt             = new Msg(Error, "missing obt msg")
   def showObt(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
   def showExp(msg: Msg)      = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg)      = s"${showSev(msg.severity)}: ${msg.text.replaceAll("\n", "\\\\n")}"
