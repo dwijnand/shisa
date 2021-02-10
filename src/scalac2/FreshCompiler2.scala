@@ -7,12 +7,16 @@ import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc, nsc._, reporters.StoreReporter
 
 final case class FreshCompiler2(id: String, scalaJars: Seq[File], cmd: String) extends MkCompiler { self =>
+  val settings = new Settings
+  settings.classpath.value = scalaJars.mkString(File.pathSeparator)
+  settings.deprecation.value = true
+  settings.outputDirs.setSingleOutput(new VirtualDirectory("", None))
+  settings.processArgumentString(cmd) match {
+    case (true, Nil)            =>
+    case (success, unprocessed) => sys.error(s"FreshCompiler2 id=$id success=$success unprocessed=$unprocessed")
+  }
+
   def mkCompiler: Compiler = new Compiler {
-    val settings = new Settings
-    settings.classpath.value = scalaJars.mkString(File.pathSeparator)
-    settings.deprecation.value = true
-    settings.outputDirs.setSingleOutput(new VirtualDirectory("", None))
-    settings.processArgumentString(cmd)
     val reporter = new StoreReporter(settings)
     val compiler = Global(settings, reporter)
 

@@ -21,35 +21,22 @@ object EtaX {
       q"val t3e: Any       = meth _                 // ok",
       q"val t3f: Any       = meth() _               // error: _ must follow method",
     )
-
-    val msgs2 = List(
-       err(typeMismatch2("String", "p01.Test.Sam0S")),
-       err(typeMismatch2("String", "p02.Test.Sam0J")),
-      warn(autoApp2("meth")),
-       err(mustFollow("String")),
+    val msgs2                          = List(
+      err(typeMismatch2("String", "p01.Test.Sam0S")), err(typeMismatch2("String", "p02.Test.Sam0J")),
+      warn(autoApp2("meth")), err(mustFollow("String")),
     )
-    def msgs3Pair(sev: Sev, exp: String) = List(
-      Msg(sev, autoApp3("meth")),
-    ) ::: (if (sev == E) Nil else List(
-      err(typeMismatch3("String", exp)),
-    ))
-    def msgs30I(sev: Sev) = {
-      msgs3Pair(sev,       "p01.Test.Sam0S") :::
-      msgs3Pair(sev,       "p02.Test.Sam0J") ::: List(
-      Msg(      sev, autoApp3("meth")),
-      Msg(      sev, onlyFuncs("String")),
+    def msgs3mk(sev: Sev, exp: String) = (
+      Msg(sev, autoApp3("meth")) :: (if (sev == E) Nil else List(err(typeMismatch3("String", exp))))
     )
-    }
-    def msgs31I(sev: Sev) = List(
-      err(     autoApp3("meth")),
-      err(     autoApp3("meth")),
-      err(     autoApp3("meth")),
-      Msg(sev, etaFunction),
-      Msg(sev, etaFunction),
-      Msg(sev, etaFunction),
+    def msgs30I(sev: Sev)              = (
+      msgs3mk(sev, "p01.Test.Sam0S") ::: msgs3mk(sev, "p02.Test.Sam0J") :::
+      List(Msg(sev, autoApp3("meth")), Msg(sev, onlyFuncs("String")))
+    )
+    def msgs31I(sev: Sev)              = List(
+      err(autoApp3("meth")), err(autoApp3("meth")), err(autoApp3("meth")),
+      Msg(sev, etaFunction), Msg(sev, etaFunction), Msg(sev, etaFunction),
       Msg(sev, onlyFuncs("String")),
     )
-
     val msgs = List(msgs2, msgs2, msgs30I(W), msgs30I(E), msgs31I(W), msgs31I(E))
     TestFile("EtaX.meth", TestContents(defns, stats.map(List(_)), msgs))
   }
@@ -68,8 +55,7 @@ object EtaX {
     val msgs2             = List( err(missingArgs("meth1", "Test")))
     val msgs3             = List(warn(stillEta("meth1", "p01.Test.Sam1S")))
     def msgs31I(sev: Sev) = List(warn(stillEta("meth1", "p01.Test.Sam1S")), Msg(sev, etaFunction2))
-
-    val msgs = List(msgs2, Nil, msgs3, msgs3, msgs31I(W), msgs31I(E))
+    val msgs              = List(msgs2, Nil, msgs3, msgs3, msgs31I(W), msgs31I(E))
     TestFile("EtaX.meth1", TestContents(defns, stats.map(List(_)), msgs))
   }
 
@@ -89,9 +75,7 @@ object EtaX {
       err(     missingArg2("apply: (i: Int): Char", "StringOps", "i")),
       err(     missingArg2("apply: (i: Int): Char", "StringOps", "i")),
       err(     typeMismatch2("String", "() => Any")),
-      Msg(sev, methodsWithoutParams(sev)),
-      Msg(sev, methodsWithoutParams(sev)),
-      Msg(sev, methodsWithoutParams(sev)),
+      Msg(sev, methodsWithoutParams(sev)), Msg(sev, methodsWithoutParams(sev)), Msg(sev, methodsWithoutParams(sev)),
     )
     def msgs30(sev: Sev) = List(
       err(     typeMismatch3("String", "() => Any")),
@@ -100,17 +84,16 @@ object EtaX {
       Msg(sev, onlyFuncs("String")),
       Msg(sev, onlyFuncs("<error unspecified error>")),
       Msg(sev, onlyFuncs("String")),
-    ) ::: (if (sev == E) List(
-      Msg(sev, typeMismatch3("(t : String)", "() => Any")),
-    ) else List(
-      err(            missingArg3("apply: (i: Int): Char", "i")),
-    ))
+    ) ::: (
+      if (sev == E) List(err(typeMismatch3("(t : String)", "() => Any")))
+      else          List(err(missingArg3("apply: (i: Int): Char", "i")))
+    )
     def msgs31(sev: Sev) = List(
       err(     typeMismatch3("String", "() => Any")),
-      err(     missingArg3("apply: (i: Int): Char", "i")),
+      err(       missingArg3("apply: (i: Int): Char", "i")),
     ) ::: (if (sev == E) Nil else List(
       err(     typeMismatch3("String", "() => Any")),
-      err(     missingArg3("apply: (i: Int): Char", "i")),
+      err(       missingArg3("apply: (i: Int): Char", "i")),
     )) ::: List(
       Msg(sev, onlyFuncs("<error unspecified error>")),
       Msg(sev, onlyFuncs("String")),
@@ -198,4 +181,7 @@ object EtaX {
 
   def missingArg2(meth: String, cls: String, param: String) = s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param."
   def missingArg3(meth: String, param: String)              = s"missing argument for parameter $param of method $meth"
+
+  def mkNoMsgs(sev: Sev)      = Nil
+  def msgs(mkMsg: Sev => Msg) = (sev: Sev) => List(mkMsg(sev))
 }

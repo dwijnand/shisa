@@ -5,7 +5,7 @@ import java.io.File
 import dotty.tools.dotc
 import dotc.{ Run, Compiler => _ }
 import dotc.ast.Positioned
-import dotc.config.CommandLineParser
+import dotc.config.CommandLineParser, dotc.config.Settings.ArgsSummary
 import dotc.core.Contexts._
 import dotc.reporting._
 import dotc.util.SourceFile
@@ -19,7 +19,11 @@ final case class FreshCompiler3(id: String, scalaJars: Seq[File], cmd: String) e
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory("", /* maybeContainer = */ None))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
-    ctx.setSettings(ctx.settings.processArguments(CommandLineParser.tokenize(cmd), /* processAll = */ true).sstate)
+    val settings = ctx.settings.processArguments(CommandLineParser.tokenize(cmd), /* processAll = */ true) match {
+      case ArgsSummary(settings, _, Nil, _)    => settings
+      case ArgsSummary(_, _, errors, warnings) => sys.error(s"FreshCompiler3 id=$id failed errors=$errors warnings=$warnings")
+    }
+    ctx.setSettings(settings)
     Positioned.init
     val compiler = new dotc.Compiler
 

@@ -1,16 +1,57 @@
 package shisa
 
+import scala.annotation.tailrec
+
 import scala.meta._, classifiers.{ Classifiable, Classifier }, contrib._
+
+sealed trait Test {
+  final def ++(that: Test): TestContents = combineTest(this, that)
+
+  @tailrec final def toContents: TestContents = this match {
+    case x @ TestContents(_, _, _) => x
+    case TestList(tests)           => shisa.toContents(tests)
+    case TestFile(_, test)         => test.toContents
+  }
+
+  final def toUnit: TestContents = {
+    val TestContents(defns, stats, msgs) = toContents
+    TestContents(defns, List(stats.flatten), msgs)
+  }
+}
+
+final case class TestList(tests: List[Test])                                                     extends Test
+final case class TestFile(name: String, test: Test)                                              extends Test
+final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) extends Test
 
 object `package` {
   val ns = Lit.String("") // empty string ("no string")
 
-  val noMsgs                  = List(Nil, Nil, Nil, Nil, Nil, Nil)
-  def mkNoMsgs(sev: Sev)      = Nil
-  def msgs(mkMsg: Sev => Msg) = (sev: Sev) => List(mkMsg(sev))
-  def warn(str: String)       = Msg(W, str)
-  def  err(str: String)       = Msg(E, str)
-  def anyErr                  = err("*")
+  val noMsgs            = List(Nil, Nil, Nil, Nil, Nil, Nil)
+  def warn(str: String) = Msg(W, str)
+  def  err(str: String) = Msg(E, str)
+  val NoTest            = TestContents(Nil, Nil, noMsgs)
+
+  @tailrec def combineTest(t1: Test, t2: Test): TestContents = (t1, t2) match {
+    case (t1, TestFile(_, t2))                => combineTest(t1, t2)
+    case (TestFile(_, t1), t2)                => combineTest(t1, t2)
+    case (t1: TestList, t2)                   => combineTest(toContents(t1.tests), t2)
+    case (t1, t2: TestList)                   => combineTest(t1, toContents(t2.tests))
+    case (t1: TestContents, t2: TestContents) => combineContents(t1, t2)
+  }
+
+  private def combineContents(t1: TestContents, t2: TestContents) = {
+    val defns = (t1.defns ::: t2.defns).distinctBy(_.structure)
+    val msgs  = t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs }
+    TestContents(defns, t1.stats ::: t2.stats, msgs)
+  }
+
+  def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
+  def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
+  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, toContents(ts).toUnit)
+  def toNegAndPos(name: String, tests: List[TestContents])  = {
+    val (neg, pos) = tests.partition(_.msgs == noMsgs)
+    List(mkFile(s"$name.neg", neg), mkFile(s"$name.pos", pos))
+  }
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
@@ -81,4 +122,22 @@ object `package` {
       if (isCaseClass) q"${cls.name.asTerm}(..$args)" else q"new ${cls.name}(..$args)"
     }
   }
+}
+
+sealed trait SV;         case object S2   extends SV;         case object S3   extends SV
+sealed trait MethOrProp; case object Meth extends MethOrProp; case object Prop extends MethOrProp
+
+object nme {
+  val getClass_ = q"getClass"
+  val hashCode_ = q"hashCode"
+  val hashHash  = q"##"
+  val run       = q"run"
+  val toString_ = q"toString"
+}
+
+object tpnme {
+  val Any    = t"Any"
+  val AnyRef = t"AnyRef"
+  val Object = t"Object"
+  val String = t"String"
 }
