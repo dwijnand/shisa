@@ -14,9 +14,9 @@ sealed trait Test {
   }
 }
 
-final case class TestList(tests: List[Test])                                                     extends Test
-final case class TestFile(name: String, test: Test)                                              extends Test
-final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) extends Test
+final case class TestList(tests: List[Test])                                               extends Test
+final case class TestFile(name: String, test: Test)                                        extends Test
+final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: List[List[Msg]]) extends Test
 
 object `package` {
   val noMsgs            = List(Nil, Nil, Nil, Nil, Nil, Nil)
@@ -32,16 +32,14 @@ object `package` {
     case (t1: TestContents, t2: TestContents) => combineContents(t1, t2)
   }
 
-  private def combineDefns(t1: TestContents, t2: TestContents)    = (t1.defns ::: t2.defns).distinctBy(_.structure)
-  private def combineStats(t1: TestContents, t2: TestContents)    = t1.stats ::: t2.stats
-  private def combineMsgss(t1: TestContents, t2: TestContents)    = t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs }
+  private def combineDefns(t1: TestContents, t2: TestContents) = (t1.defns ::: t2.defns).distinctBy(_.structure)
+  private def combineMsgss(t1: TestContents, t2: TestContents) = t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs }
 
-  private def combineContents1(t1: TestContents, t2: TestContents) = TestContents(combineDefns(t1, t2), combineStats(t1, t2),         combineMsgss(t1, t2))
-  private def combineContents2(t1: TestContents, t2: TestContents) = TestContents(combineDefns(t1, t2), combineStats(t1, t2).flatten, combineMsgss(t1, t2))
+  private def combineContents(t1: TestContents, t2: TestContents) = TestContents(combineDefns(t1, t2), t1.stats ::: t2.stats, combineMsgss(t1, t2))
 
   def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
-  def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
-  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents2))
+  def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(stat), msgs)
+  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents))
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))

@@ -59,6 +59,6 @@ object Switch {
       }
     }
 
-    TestFile(name, TestContents(List(tdefn, cdefn, vdefn), List(List(stat)), msgs))
+    TestFile(name, TestContents(List(tdefn, cdefn, vdefn), List(stat), msgs))
   }
 }

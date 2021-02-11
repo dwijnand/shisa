@@ -83,7 +83,7 @@ object Main {
     compareMsgs(name, test.msgs, msgs)
   }
 
-  def toObject(test: TestContents): Defn.Object = q"object Test { ..${test.defns ::: test.stats.flatten} }"
+  def toObject(test: TestContents): Defn.Object = q"object Test { ..${test.defns ::: test.stats} }"
 
   def compareMsgs(name: String, expMsgs: List[List[Msg]], obtMsgs: List[List[Msg]]): List[TestFailure] = {
     val msgsZipped  = expMsgs.zipAll(obtMsgs, Nil, Nil).zipAll(mkCompilers.map(_.id), (Nil, Nil), "<unknown-compiler>")
