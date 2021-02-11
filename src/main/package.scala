@@ -48,10 +48,6 @@ object `package` {
   def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
   def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
   def mkFile(name: String, ts: List[TestContents])          = TestFile(name, toContents(ts).toUnit)
-  def toNegAndPos(name: String, tests: List[TestContents])  = {
-    val (neg, pos) = tests.partition(_.msgs == noMsgs)
-    List(mkFile(s"$name.neg", neg), mkFile(s"$name.pos", pos))
-  }
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
