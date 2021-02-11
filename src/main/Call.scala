@@ -22,7 +22,9 @@ import scala.meta._, contrib._
 // * value class
 // * case class
 // * method name/result tpe (hashCode, toString, getClass)
-// todo:
+// todo matter?
+// * defined as enriched method
+// todo don't matter:
 // * separate/joint compilation
 // * java-defined
 // * generalise enclosing: method, nesting, constructors
