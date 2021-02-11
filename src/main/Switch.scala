@@ -22,14 +22,15 @@ object Switch {
     val name  = s"${pref}_$suff"
     val meth  = Term.Name(name.toLowerCase)
     val tp    = tpnme.String
-    val mdecl = switch match { case M2P  => q"def $meth(): $tp" case P2M => q"def $meth: $tp" }
-    val mdefn = switch match { case M2P  => q"def $meth = $ns"  case P2M => q"def $meth() = $ns" }
+    val value = Lit.String("")
+    val mdecl = switch match { case M2P  => q"def $meth(): $tp"   case P2M => q"def $meth: $tp" }
+    val mdefn = switch match { case M2P  => q"def $meth = $value" case P2M => q"def $meth() = $value" }
     val tname = Type.Name(s"Foo_$name")
     val cname = Type.Name(s"Bar_$name")
     val vname = Term.Name(s"qux_$meth")
     val tdefn = q"trait $tname extends Any { $mdecl }"
     val cdefn = q"class $cname(val x: String) extends $tname() { $mdefn }"
-    val vdefn = q"val ${vname.asPat} = new $cname($ns)"
+    val vdefn = q"val ${vname.asPat} = new $cname(${Lit.String("")})"
     val stat  = call   match { case Meth => q"$vname.$meth()" case Prop => q"$vname.$meth" }
     val encl  = s"trait $tname"
 

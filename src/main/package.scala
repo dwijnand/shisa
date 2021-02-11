@@ -24,8 +24,6 @@ final case class TestFile(name: String, test: Test)                             
 final case class TestContents(defns: List[Defn], stats: List[List[Stat]], msgs: List[List[Msg]]) extends Test
 
 object `package` {
-  val ns = Lit.String("") // empty string ("no string")
-
   val noMsgs            = List(Nil, Nil, Nil, Nil, Nil, Nil)
   def warn(str: String) = Msg(W, str)
   def  err(str: String) = Msg(E, str)
@@ -47,7 +45,7 @@ object `package` {
 
   def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
   def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
-  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, toContents(ts).toUnit)
+  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents).toUnit)
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))

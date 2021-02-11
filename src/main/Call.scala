@@ -38,8 +38,8 @@ object Call {
   val cls1 = List(q"class  CR".withRunnable, q"class  CCR".withRunnable.toCaseClass)
   val cls2 = List(q"class VCR".toValueClass, q"class VCCR".toValueClass.toCaseClass)
   val clsV = (cls1 ::: cls2).flatMap { cls =>
-    val s = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "S")).addStat(q"override def ${nme.toString_}   = $ns")
-    val j = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "J")).addStat(q"override def ${nme.toString_}() = $ns")
+    val s = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "S")).addStat(q"override def ${nme.toString_}   = ${Lit.String("")}")
+    val j = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "J")).addStat(q"override def ${nme.toString_}() = ${Lit.String("")}")
     List(cls, s, j)
   }
   import tpnme._

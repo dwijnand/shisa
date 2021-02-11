@@ -10,7 +10,7 @@ object EtaX {
   val meth = {
     val Sam0S = q"                     trait Sam0S { def apply(): Any }"
     val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
-    val defns = List(Sam0S, Sam0J, q"def meth() = $ns")
+    val defns = List(Sam0S, Sam0J, s"def meth() = ${Lit.String("")}")
     val stats = List(
       q"val t3a: () => Any = meth                   // eta-expansion, but lint warning",
       q"val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam",
@@ -44,7 +44,7 @@ object EtaX {
   val meth1 = {
     val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
     val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
-    val defns = List(Sam1S, Sam1J, q"def meth1(x: Any) = $ns")
+    val defns = List(Sam1S, Sam1J, s"def meth1(x: Any) = ${Lit.String("")}")
     val stats = List(
       q"val t5a: Any => Any = meth1                   // ok",
       q"val t5b: Sam1S      = meth1                   // ok, but warning",
@@ -60,7 +60,7 @@ object EtaX {
   }
 
   val prop = {
-    val defns = List(q"def prop = $ns")
+    val defns = List(s"def prop = ${Lit.String("")}")
     val stats = List(
       q"val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods",
       q"val t2b: Any       = { val t = prop   ; t } // ok: apply",
@@ -107,7 +107,7 @@ object EtaX {
   }
 
   val methF0 = {
-    val defns     = List(q"def methF0() = () => $ns")
+    val defns     = List(s"def methF0() = () => ${Lit.String("")}")
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
       TestContents(defns, List(List(stat)), multi4(const(msgs2), msgs30, msgs31))
     val msgs1_2   = warn(  autoApp2("methF0"))
@@ -131,7 +131,7 @@ object EtaX {
   }
 
   val meth2 = {
-    val defns = List(q"def meth2()() = $ns")
+    val defns = List(s"def meth2()() = ${Lit.String("")}")
     def testCase(stat: Stat, msgs: Sev => List[Msg]) =
       TestContents(defns, List(List(stat)), multi4(_ => Nil, _ => Nil, msgs))
     val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(Msg(_, etaFunction))) // eta-expansion, but lint warning
