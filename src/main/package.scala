@@ -12,11 +12,6 @@ sealed trait Test {
     case TestList(tests)           => shisa.toContents(tests)
     case TestFile(_, test)         => test.toContents
   }
-
-  final def toUnit: TestContents = {
-    val TestContents(defns, stats, msgs) = toContents
-    TestContents(defns, List(stats.flatten), msgs)
-  }
 }
 
 final case class TestList(tests: List[Test])                                                     extends Test
@@ -37,15 +32,16 @@ object `package` {
     case (t1: TestContents, t2: TestContents) => combineContents(t1, t2)
   }
 
-  private def combineContents(t1: TestContents, t2: TestContents) = {
-    val defns = (t1.defns ::: t2.defns).distinctBy(_.structure)
-    val msgs  = t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs }
-    TestContents(defns, t1.stats ::: t2.stats, msgs)
-  }
+  private def combineDefns(t1: TestContents, t2: TestContents)    = (t1.defns ::: t2.defns).distinctBy(_.structure)
+  private def combineStats(t1: TestContents, t2: TestContents)    = t1.stats ::: t2.stats
+  private def combineMsgss(t1: TestContents, t2: TestContents)    = t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs }
+
+  private def combineContents1(t1: TestContents, t2: TestContents) = TestContents(combineDefns(t1, t2), combineStats(t1, t2),         combineMsgss(t1, t2))
+  private def combineContents2(t1: TestContents, t2: TestContents) = TestContents(combineDefns(t1, t2), combineStats(t1, t2).flatten, combineMsgss(t1, t2))
 
   def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
   def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(List(stat)), msgs)
-  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents).toUnit)
+  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents2))
 
   def multi(msg2: Msg, msg3: Msg) =
     List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
