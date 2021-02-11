@@ -4,10 +4,11 @@ package tests
 import munit._
 
 class TestFileSourceTest extends FunSuite {
-  test("Call_## toSource")(compareToSource(Call.hashHash, Call_hashhash_expected))
-  test("Call_pos toSource")(compareToSource(Call.pos, Call_pos_expected))
+  test("Call_negValTests toSource")(compareToSource(Call.negValTests, Call_negValTests_expected))
+  test("Call_posValTests toSource")(compareToSource(Call.posValTests, Call_posValTests_expected))
+  test("Call_clsTests    toSource")(compareToSource(Call.clsTests,    Call_clsTests_expected))
 
-  def Call_hashhash_expected =
+  def Call_negValTests_expected =
     """object Test {
       |  val any: Any = ""
       |  val ref: AnyRef = ""
@@ -20,32 +21,8 @@ class TestFileSourceTest extends FunSuite {
       |}
       |""".stripMargin
 
-  def Call_pos_expected =
+  def Call_posValTests_expected =
     """object Test {
-      |  class CR extends Runnable { def run() = () }
-      |  class CS extends Runnable {
-      |    def run() = ()
-      |    override def toString = ""
-      |  }
-      |  class CJ extends Runnable {
-      |    def run() = ()
-      |    override def toString() = ""
-      |  }
-      |  case class CCR() extends Runnable { def run() = () }
-      |  case class CCS() extends Runnable {
-      |    def run() = ()
-      |    override def toString = ""
-      |  }
-      |  case class CCJ() extends Runnable {
-      |    def run() = ()
-      |    override def toString() = ""
-      |  }
-      |  class VCR(val x: String) extends AnyVal
-      |  class VCS(val x: String) extends AnyVal { override def toString = "" }
-      |  class VCJ(val x: String) extends AnyVal { override def toString() = "" }
-      |  case class VCCR(x: String) extends AnyVal
-      |  case class VCCS(x: String) extends AnyVal { override def toString = "" }
-      |  case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
       |  val any: Any = ""
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
@@ -78,6 +55,35 @@ class TestFileSourceTest extends FunSuite {
       |  obj.hashCode()
       |  str.hashCode
       |  str.hashCode()
+      |}
+      |""".stripMargin
+
+  def Call_clsTests_expected =
+    """object Test {
+      |  class CR extends Runnable { def run() = () }
+      |  class CS extends Runnable {
+      |    def run() = ()
+      |    override def toString = ""
+      |  }
+      |  class CJ extends Runnable {
+      |    def run() = ()
+      |    override def toString() = ""
+      |  }
+      |  case class CCR() extends Runnable { def run() = () }
+      |  case class CCS() extends Runnable {
+      |    def run() = ()
+      |    override def toString = ""
+      |  }
+      |  case class CCJ() extends Runnable {
+      |    def run() = ()
+      |    override def toString() = ""
+      |  }
+      |  class VCR(val x: String) extends AnyVal
+      |  class VCS(val x: String) extends AnyVal { override def toString = "" }
+      |  class VCJ(val x: String) extends AnyVal { override def toString() = "" }
+      |  case class VCCR(x: String) extends AnyVal
+      |  case class VCCS(x: String) extends AnyVal { override def toString = "" }
+      |  case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
       |  new CR().toString
       |  new CR().toString()
       |  new CS().toString
@@ -110,6 +116,6 @@ class TestFileSourceTest extends FunSuite {
       |""".stripMargin
 
   def compareToSource(tf: TestFile, expected: String) = {
-    assertEquals(Main.toSource1(tf.toContents), expected)
+    assertEquals(Main.toObject(tf.toContents).syntax + "\n", expected)
   }
 }

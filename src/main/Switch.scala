@@ -33,13 +33,13 @@ object Switch {
     val stat  = call   match { case Meth => q"$vname.$meth()" case Prop => q"$vname.$meth" }
     val encl  = s"trait $tname"
 
-    def overrideMsg(sv: SV, sev: Sev) = (sv, sev) match {
+    def overrideMsg(sv: SV, sev: Sev) = (switch, sv, sev) match {
       case (M2P, S2, _) => Msg(sev, s"method without a parameter list overrides a method with a single empty one")
       case (M2P, S3, W) => Msg(sev, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp no longer has compatible type")
       case (M2P, S3, E) => Msg(sev, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp has incompatible type")
 
       case (P2M, S2, W) => Msg(sev, s"method with a single empty parameter list overrides method without any parameter list")
-      case (P2M, S2, E) => Msg(sev, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $enc)")
+      case (P2M, S2, E) => Msg(sev, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)")
       case (P2M, S3, W) => Msg(sev, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp no longer has compatible type")
       case (P2M, S3, E) => Msg(sev, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp has incompatible type")
     }

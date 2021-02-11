@@ -70,26 +70,20 @@ object Main {
   }
 
   def runTest1(compilers: List[Compiler], name: String, test: TestContents): List[TestFailure] = {
-    val testsSep = test.stats.map(stats => test.copy(stats = List(stats)))
-    val tests    = if (testsSep.sizeIs > 1) testsSep.zipWithIndex else List(test -> -1)
-    val msgs     = tests.map { case (test, idx) => compileN(compilers, name, test, idxStr(idx)) }
-    compareMsgs(name, test.msgs, msgs.reduce(_.zip(_).map { case (a, b) => a ::: b }))
+    val srcFiles = if (test.stats.sizeIs > 1) {
+      test.stats.zipWithIndex.map { case (stats, idx) =>
+        val obj    = toObject(test.copy(stats = List(stats)))
+        val suffix = if (idx < 0) "" else if (idx < 10) s"0$idx" else s"$idx"
+        val stat   = if (suffix == "") obj else Pkg(Term.Name(s"p$suffix"), List(obj))
+        SrcFile(name + suffix, stat.syntax + "\n")
+      }
+    } else List(SrcFile(name, toObject(test).syntax + "\n"))
+    val msgsss = srcFiles.map(srcFile => compilers.map(_.compile1(srcFile)))
+    val msgs   = msgsss.reduce(_.zip(_).map { case (a, b) => a ::: b })
+    compareMsgs(name, test.msgs, msgs)
   }
 
-  def compileN(compilers: List[Compiler], name: String, test: TestContents, suffix: String) = {
-    val name2   = name + suffix
-    val content = toSource(test, suffix)
-    compilers.map(_.compile1(SrcFile(name2, content)))
-  }
-
-  def toSource(test: TestContents, suffix: String = ""): String = {
-    val defn = toDefn(test)
-    val stat = if (suffix == "") defn else Pkg(Term.Name(s"p$suffix"), List(defn))
-    Source(List(stat)).syntax + "\n"
-  }
-
-  def toDefn(test: TestContents): Stat      = q"object Test { ..${test.defns ::: test.stats.flatten} }"
-  def toSource1(test: TestContents): String = Source(List(toDefn(test))).syntax + "\n"
+  def toObject(test: TestContents): Defn.Object = q"object Test { ..${test.defns ::: test.stats.flatten} }"
 
   def compareMsgs(name: String, expMsgs: List[List[Msg]], obtMsgs: List[List[Msg]]): List[TestFailure] = {
     val msgsZipped  = expMsgs.zipAll(obtMsgs, Nil, Nil).zipAll(mkCompilers.map(_.id), (Nil, Nil), "<unknown-compiler>")
@@ -97,7 +91,7 @@ object Main {
       ((expMsgs, obtMsgs), compilerId) <- msgsZipped
       lines = {
         expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
-          case (exp, obt) if msgMismatch(exp, obt) => showObt(obt) + showExp(exp)
+          case (exp, obt) if exp != obt => showObt(obt) + showExp(exp)
         }.mkString
       } if lines.nonEmpty
     } yield {
@@ -115,9 +109,7 @@ object Main {
   def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
   def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
   def showMsg(msg: Msg) = s"${showSev(msg.sev)}: ${msg.text.replaceAll("\n", "\\\\n")}"
-  def showSev(sev: Sev) = sev match { case E => "  error" case W => "warn" }
-  def idxStr(idx: Int)  = if (idx < 0) "" else if (idx < 10) s"0$idx" else s"$idx"
-  def msgMismatch(exp: Msg, obt: Msg) = if (exp.text == "*") exp.sev != obt.sev else exp != obt
+  def showSev(sev: Sev) = sev match { case E => "  error" case W => "warning" }
 
   implicit def orderingMsg: Ordering[Msg] = Ordering.by((msg: Msg) => (msg.sev, msg.text))
   implicit def orderingSev: Ordering[Sev] = Ordering.by { case E => 1 case W => 2 }

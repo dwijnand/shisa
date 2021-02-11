@@ -34,11 +34,10 @@ object Call {
   def propM(meth: Term.Name) = TestFile("Call.prop_m", mkTest(q"def $meth   = 2", q"$meth()", propMMsgs(meth)))
 
   val cls1 = List(q"class  CR".withRunnable, q"class  CCR".withRunnable.toCaseClass)
-  val cls2 = List(q"class VCR".toValueClass, q"class VCCR".toValueClass.toValueClass)
-  val clss = cls1 ::: cls2
-  val clsV = clss.flatMap { cls =>
-    val s = cls.copy(name = Type.Name(cls.name.value + "S")).addStat(q"override def ${nme.toString_}   = $ns")
-    val j = cls.copy(name = Type.Name(cls.name.value + "J")).addStat(q"override def ${nme.toString_}() = $ns")
+  val cls2 = List(q"class VCR".toValueClass, q"class VCCR".toValueClass.toCaseClass)
+  val clsV = (cls1 ::: cls2).flatMap { cls =>
+    val s = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "S")).addStat(q"override def ${nme.toString_}   = $ns")
+    val j = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "J")).addStat(q"override def ${nme.toString_}() = $ns")
     List(cls, s, j)
   }
   import tpnme._
@@ -61,7 +60,7 @@ object Call {
   ).flatten)
 
   val clsTests = mkFile("Call.cls", List(
-    for (x <- clss; stat <- two(x.inst, nme.toString_)) yield mkTest(x, stat, noMsgs),
+    for (x <- clsV; stat <- two(x.inst, nme.toString_)) yield mkTest(x, stat, noMsgs),
     for (x <- cls1; stat <- two(x.inst, nme.run      )) yield mkTest(x, stat, noMsgs),
   ).flatten)
 
