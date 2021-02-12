@@ -20,7 +20,6 @@ final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: List[L
 
 object `package` {
   val noMsgs            = List(Nil, Nil, Nil, Nil, Nil, Nil)
-  def warn(str: String) = Msg(W, str)
   def  err(str: String) = Msg(E, str)
   val NoTest            = TestContents(Nil, Nil, noMsgs)
 
@@ -41,18 +40,20 @@ object `package` {
   def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(stat), msgs)
   def mkFile(name: String, ts: List[TestContents])          = TestFile(name, toContents(ts))
 
-  def multi2(msgs: (SV, Sev) => List[Msg]) =
-    List(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E), msgs(S3, E), msgs(S3, E))
+  def msgs2or3(m2: Sev => Msg, m3: Sev => Msg) = List(List(m2(W)), List(m2(E)), List(m3(W)), List(m3(E)), List(m3(W)), List(m3(E)))
 
-  def multi3(msgs2: Sev => List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
-    List(msgs2(W), msgs2(E), msgs30(W), msgs30(E), msgs31(W), msgs31(E))
+  def msgsFor2R(m:        Msg) = List(List(m), Nil, Nil, Nil, Nil, Nil)
+  def msgsFor3 (m:        Msg) = List(Nil, Nil, List(m), List(m), List(m), List(m))
+  def msgsFor31(f: Sev => Msg) = List(Nil, Nil, Nil, Nil, List(f(W)), List(f(E)))
 
-  def autoApp(meth: Term.Name) = multi2((sv, sev) => List(mkAutoApp(meth)(sv, sev)))
-
-  def mkAutoApp(meth: Term.Name)(sv: SV, sev: Sev) = (sv, sev) match {
-    case (S2,   _) => Msg(  W, autoApp2(meth.value))
-    case (S3, sev) => Msg(sev, autoApp3(meth.value))
-  }
+  def autoApp(meth: Term.Name) = List(
+    List(Msg(W, autoApp2(meth.value))),
+    List(Msg(W, autoApp2(meth.value))),
+    List(Msg(W, autoApp3(meth.value))),
+    List(Msg(E, autoApp3(meth.value))),
+    List(Msg(E, autoApp3(meth.value))),
+    List(Msg(E, autoApp3(meth.value))),
+  )
 
   def autoApp2(meth: String) =
     s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,

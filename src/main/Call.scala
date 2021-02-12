@@ -65,8 +65,8 @@ object Call {
     for (x <- cls1; stat <- two(x.inst, nme.run      )) yield mkTest(x, stat, noMsgs),
   ).flatten)
 
-  def noParams(enc: String, meth: Term.Name, tp: Type.Name) = multi2 {
-    case (S2, _) => List(err(                 s"$tp does not take parameters"))
-    case (S3, _) => List(err(s"method $meth in $enc does not take parameters"))
+  def noParams(enc: String, meth: Term.Name, tp: Type.Name) = {
+    val subj = s"method $meth in $enc"
+    msgs2or3(_ => err(s"$tp does not take parameters"), _ => err(s"$subj does not take parameters"))
   }
 }
