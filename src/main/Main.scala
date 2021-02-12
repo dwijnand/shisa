@@ -85,8 +85,8 @@ object Main {
 
   def toObject(test: TestContents): Defn.Object = q"object Test { ..${test.defns ::: test.stats} }"
 
-  def compareMsgs(name: String, expMsgs: List[List[Msg]], obtMsgs: List[List[Msg]]): List[TestFailure] = {
-    val msgsZipped  = expMsgs.zipAll(obtMsgs, Nil, Nil).zipAll(mkCompilers.map(_.id), (Nil, Nil), "<unknown-compiler>")
+  def compareMsgs(name: String, expMsgs: Msgs, obtMsgs: List[List[Msg]]): List[TestFailure] = {
+    val msgsZipped = expMsgs.toList.zipAll(obtMsgs, Nil, Nil).zipAll(mkCompilers.map(_.id), (Nil, Nil), "<unknown-compiler>")
     for {
       ((expMsgs, obtMsgs), compilerId) <- msgsZipped
       lines = {

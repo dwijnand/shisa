@@ -14,12 +14,22 @@ sealed trait Test {
   }
 }
 
-final case class TestList(tests: List[Test])                                               extends Test
-final case class TestFile(name: String, test: Test)                                        extends Test
-final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: List[List[Msg]]) extends Test
+final case class TestList(tests: List[Test])                                    extends Test
+final case class TestFile(name: String, test: Test)                             extends Test
+final case class TestContents(defns: List[Defn], stats: List[Stat], msgs: Msgs) extends Test
+
+final case class Msgs(
+    m2rg: List[Msg], m2nw: List[Msg],
+    m30m: List[Msg], m30r: List[Msg], m31m: List[Msg], m31r: List[Msg],
+) {
+  def :::(msgs: Msgs) = Msgs(m2rg ::: msgs.m2rg, m2nw ::: msgs.m2nw,
+    m30m ::: msgs.m30m, m30r ::: msgs.m30r, m31m ::: msgs.m31m, m31r ::: msgs.m31r)
+
+  def toList = List(m2rg, m2nw, m30m, m30r, m31m, m31r)
+}
 
 object `package` {
-  val noMsgs            = List(Nil, Nil, Nil, Nil, Nil, Nil)
+  val noMsgs            = Msgs(Nil, Nil, Nil, Nil, Nil, Nil)
   def  err(str: String) = Msg(E, str)
   val NoTest            = TestContents(Nil, Nil, noMsgs)
 
@@ -32,21 +42,21 @@ object `package` {
   }
 
   private def combineDefns(t1: TestContents, t2: TestContents) = (t1.defns ::: t2.defns).distinctBy(_.structure)
-  private def combineMsgss(t1: TestContents, t2: TestContents) = t1.msgs.zipAll(t2.msgs, Nil, Nil).map { case (as, bs) => as ::: bs }
+  private def combineMsgss(t1: TestContents, t2: TestContents) = t1.msgs ::: t2.msgs
 
   private def combineContents(t1: TestContents, t2: TestContents) = TestContents(combineDefns(t1, t2), t1.stats ::: t2.stats, combineMsgss(t1, t2))
 
-  def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
-  def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(stat), msgs)
-  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, toContents(ts))
+  def toContents(tests: List[Test]): TestContents  = tests.foldLeft(NoTest)(combineTest)
+  def mkTest(defn: Defn, stat: Stat, msgs: Msgs)   = TestContents(List(defn), List(stat), msgs)
+  def mkFile(name: String, ts: List[TestContents]) = TestFile(name, toContents(ts))
 
-  def msgs2or3(m2: Sev => Msg, m3: Sev => Msg) = List(List(m2(W)), List(m2(E)), List(m3(W)), List(m3(E)), List(m3(W)), List(m3(E)))
+  def msgs2or3(m2: Sev => Msg, m3: Sev => Msg) = Msgs(List(m2(W)), List(m2(E)), List(m3(W)), List(m3(E)), List(m3(W)), List(m3(E)))
 
-  def msgsFor2R(m:        Msg) = List(List(m), Nil, Nil, Nil, Nil, Nil)
-  def msgsFor3 (m:        Msg) = List(Nil, Nil, List(m), List(m), List(m), List(m))
-  def msgsFor31(f: Sev => Msg) = List(Nil, Nil, Nil, Nil, List(f(W)), List(f(E)))
+  def msgsFor2R(m:        Msg) = Msgs(List(m), Nil, Nil, Nil, Nil, Nil)
+  def msgsFor3 (m:        Msg) = Msgs(Nil, Nil, List(m), List(m), List(m), List(m))
+  def msgsFor31(f: Sev => Msg) = Msgs(Nil, Nil, Nil, Nil, List(f(W)), List(f(E)))
 
-  def autoApp(meth: Term.Name) = List(
+  def autoApp(meth: Term.Name) = Msgs(
     List(Msg(W, autoApp2(meth.value))),
     List(Msg(W, autoApp2(meth.value))),
     List(Msg(W, autoApp3(meth.value))),

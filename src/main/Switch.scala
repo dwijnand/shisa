@@ -36,19 +36,20 @@ object Switch {
     val encl  = s"trait $tname"
 
     def overrideMsg(sv: SV, sev: Sev) = (switch, sv, sev) match {
-      case (M2P, S2, _) => Msg(sev, s"method without a parameter list overrides a method with a single empty one")
-      case (M2P, S3, W) => Msg(W, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp no longer has compatible type")
-      case (M2P, S3, E) => Msg(E, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp has incompatible type")
-
+      case (M2P, S2, W) => Msg(W, s"method without a parameter list overrides a method with a single empty one")
+      case (M2P, S2, E) => Msg(E, s"method without a parameter list overrides a method with a single empty one")
       case (P2M, S2, W) => Msg(W, s"method with a single empty parameter list overrides method without any parameter list")
       case (P2M, S2, E) => Msg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)")
+
+      case (M2P, S3, W) => Msg(W, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp no longer has compatible type")
+      case (M2P, S3, E) => Msg(E, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp has incompatible type")
       case (P2M, S3, W) => Msg(W, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp no longer has compatible type")
       case (P2M, S3, E) => Msg(E, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp has incompatible type")
     }
 
     val msgs = {
       def go(f: (SV, Sev) => List[Msg]) =
-        List(f(S2, W), f(S2, E), f(S3, W), f(S3, E), f(S3, E), f(S3, E))
+        Msgs(f(S2, W), f(S2, E), f(S3, W), f(S3, E), f(S3, E), f(S3, E))
       go((sv, sev) => (call, sv, switch, sev) match {
         case (Meth,  _,   _, _) => List(overrideMsg(sv, sev))
         case (   _, S2,   _, _) => List(overrideMsg(sv, sev), Msg(  W, autoApp2(meth.value)))

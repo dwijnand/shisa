@@ -41,7 +41,7 @@ object EtaX {
   // * error adds context in 2?
   // * only funcs error trumps missing args, but not type mismatch
 
-  def sam0Msgs(samDefn: Defn.Trait) = List(
+  def sam0Msgs(samDefn: Defn.Trait) = Msgs(
     List(typeMismatch2("String", s"Test.${samDefn.name}")),
     List(typeMismatch2("String", s"Test.${samDefn.name}")),
     List(Msg(W, autoApp3("meth")), typeMismatch3("String", s"Test.${samDefn.name}")),
@@ -55,7 +55,7 @@ object EtaX {
   val msgsProp6             = msgs2or3(methodsWithoutParams, onlyFuncs(_, "String"))
   def mustFuncs(tp: String) = msgs2or3(_ => mustFollow(tp),  onlyFuncs(_, tp))
 
-  val msgsProp4 = List(
+  val msgsProp4 = Msgs(
     List(methodsWithoutParams(W)),
     List(methodsWithoutParams(E)),
     List(onlyFuncs(W, "String")),
@@ -64,7 +64,7 @@ object EtaX {
     List(onlyFuncs(E, "String")),
   )
 
-  val msgsProp5 = List(
+  val msgsProp5 = Msgs(
     List(methodsWithoutParams(W)),
     List(methodsWithoutParams(E)),
     List(onlyFuncs(W, "String")),
@@ -73,7 +73,7 @@ object EtaX {
     List(onlyFuncs(E, "String"), typeMismatch3_B),
   )
 
-  val msgsProp7 = List(
+  val msgsProp7 = Msgs(
     List(missingArg2_A),
     List(missingArg2_A),
     List(onlyFuncs(W, "<error unspecified error>"), missingArg3_B),
@@ -129,9 +129,9 @@ object EtaX {
   val boom      = mkF("boom",  mkTest(q"class A { def boom(): Unit = () }", q"new A().boom", autoApp(q"boom")))
   val cloneEta  = mkF("clone", TestContents(Nil, List(q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"), noMsgs))
 
-  def mkF(name: String, t: Test)                                     = TestFile(s"EtaX.$name", t)
-  def mkSam0(stat: Stat, samDefn: Defn.Trait)                        = TestContents(List(samDefn, meth ), List(stat), sam0Msgs(samDefn))
-  def mkSam1(stat: Stat, samDefn: Defn.Trait, msgs: List[List[Msg]]) = TestContents(List(samDefn, meth1), List(stat), msgs)
+  def mkF(name: String, t: Test)                          = TestFile(s"EtaX.$name", t)
+  def mkSam0(stat: Stat, samDefn: Defn.Trait)             = TestContents(List(samDefn, meth ), List(stat), sam0Msgs(samDefn))
+  def mkSam1(stat: Stat, samDefn: Defn.Trait, msgs: Msgs) = TestContents(List(samDefn, meth1), List(stat), msgs)
 
   def typeMismatch2(tp: String, pt: String) = err(s"type mismatch;\n found   : $tp\n required: $pt")
   def typeMismatch3(tp: String, pt: String) = err(s"Found:    $tp\nRequired: $pt")
