@@ -10,7 +10,10 @@ object EtaX {
     //methF0T,
     methF0_1, methF0_2, methF0_3, methF0_4, methF0_5,
     prop1, prop2, prop3, prop4, prop5, prop6, prop7,
-    meth1T, methSam1S, methSam1J, methT, methSam0S, methSam0J,
+    meth1T, methSam1S, methSam1J,
+    methT,
+    //meth01, meth02, meth03, meth04, meth05, meth06,
+    methSam0S, methSam0J,
   )
 
   val ns     = Lit.String("")
@@ -25,7 +28,7 @@ object EtaX {
 
   def msgsFor31(f: Sev => Msg) = multi3(_ => Nil, _ => Nil, sev => List(f(sev)))
 
-  val msgs_fns      = multi2 { case (S2, _) => List(err(mustFollow("String")))         case (_, sev) => List(Msg(sev, onlyFuncs("String"))) }
+  val msgs_fns      = multi3(_ => List(err(mustFollow("String"))), sev => List(Msg(sev, onlyFuncs("String"))), sev => List(Msg(sev, onlyFuncs("String"))))
   val msgs_missArgs = multi2 { case (S2, W) => List(err(missingArgs("meth1", "Test"))) case _        => Nil                                 }
 
   val meth01 = mkTest(meth,  q"val t3a: () => Any  = meth                   ", noMsgs)
