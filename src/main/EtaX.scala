@@ -5,106 +5,110 @@ import scala.Function.const
 import scala.meta._, contrib._
 
 object EtaX {
-  def tests: List[TestFile] = List(boom, meth2, cloneEta, methF0, prop, meth1, methT, methSamS, methSamJ)
+  def tests: List[TestFile] = List(boom, meth2, cloneEta, methF0,
+    prop1,
+    prop2,
+    prop3,
+    prop4,
+    prop5,
+    prop6,
+    prop7,
+    meth1T, methSam1S, methSam1J, methT, methSam0S, methSam0J,
+  )
 
-  val meth        = q"def meth() = ${Lit.String("")}"
-  val msgs_31_eta = multi3(_ => Nil, _ => Nil, sev => List(Msg(sev, etaFunction)))
-  val meth01      = mkTest(meth, q"val t3a: () => Any = meth                  ", noMsgs)
-  val meth04      = mkTest(meth, q"val t3b: Any       = { val t = meth; t }   ", autoApp(q"meth"))
-  val meth05      = mkTest(meth, q"val t3c: () => Any = meth _                ", msgs_31_eta)
-  val meth06      = mkTest(meth, q"val t3d: () => Any = { val t = meth _ ; t }", msgs_31_eta)
-  val meth07      = mkTest(meth, q"val t3e: Any       = meth _                ", msgs_31_eta)
-  val meth08      = {
-    val msgs3 = (sev: Sev) => List(Msg(sev, onlyFuncs("String")))
-    val msgs  = multi3(_ => List(Msg(E, mustFollow("String"))), msgs3, msgs3)
-    mkTest(meth, q"val t3f: Any = meth() _", msgs)
-  }
-  val methT       = mkFile("EtaX.meth", List(meth01, meth04, meth05, meth06, meth07, meth08))
+  val meth  = q"def meth()        = ${Lit.String("")}"
+  val meth1 = q"def meth1(x: Any) = ${Lit.String("")}"
+  val Sam0S = q"                     trait Sam0S { def apply(): Any }"
+  val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
+  val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
+  val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
 
-  def mkSam(stat: Stat, samDefn: Defn.Trait) = {
-    val pt = s"Test.${samDefn.name}"
-    val msgs = multi2 {
-      case (S2,   _) => List(err(typeMismatch2("String", pt)))
-      case (S3, sev) => mkAutoApp(q"meth")(S3, sev) match {
-        case autoAppMsg @ Msg(E, _) => List(autoAppMsg)
-        case autoAppMsg             => List(autoAppMsg, err(typeMismatch3("String", pt)))
-      }
+  def msgsFor31(f: Sev => Msg) = multi3(_ => Nil, _ => Nil, sev => List(f(sev)))
+
+  val msgs_fns      = multi2 { case (S2, _) => List(err(mustFollow("String")))         case (_, sev) => List(Msg(sev, onlyFuncs("String"))) }
+  val msgs_missArgs = multi2 { case (S2, W) => List(err(missingArgs("meth1", "Test"))) case _        => Nil                                 }
+
+  val meth01 = mkTest(meth,  q"val t3a: () => Any  = meth                   ", noMsgs)
+  val meth02 = mkTest(meth,  q"val t3b: Any        = { val t = meth; t }    ", autoApp(q"meth"))
+  val meth03 = mkTest(meth,  q"val t3c: () => Any  = meth _                 ", msgsFor31(Msg(_, etaFunction)))
+  val meth04 = mkTest(meth,  q"val t3d: () => Any  = { val t = meth _ ; t } ", msgsFor31(Msg(_, etaFunction)))
+  val meth05 = mkTest(meth,  q"val t3e: Any        = meth _                 ", msgsFor31(Msg(_, etaFunction)))
+  val meth06 = mkTest(meth,  q"val t3f: Any        = meth() _               ", msgs_fns)
+  val meth11 = mkTest(meth1, q"val t5a: Any => Any = meth1                  ", noMsgs)
+  val meth12 = mkTest(meth1, q"val t5d: Any => Any = { val t = meth1   ; t }", msgs_missArgs)
+  val meth13 = mkTest(meth1, q"val t5e: Any => Any = { val t = meth1 _ ; t }", msgsFor31(Msg(_, etaFunction2)))
+
+  val methT  = mkFile("EtaX.meth",  List(meth01, meth02, meth03, meth04, meth05, meth06))
+  val meth1T = mkFile("EtaX.meth1", List(meth11, meth12, meth13))
+
+  def msgs_sam0(pt: String) = multi2 {
+    case (S2,   _) => List(err(typeMismatch2("String", pt)))
+    case (S3, sev) => mkAutoApp(q"meth")(S3, sev) match {
+      case autoAppMsg @ Msg(E, _) => List(autoAppMsg)
+      case autoAppMsg             => List(autoAppMsg, err(typeMismatch3("String", pt)))
     }
-    TestContents(List(samDefn, meth), List(stat), msgs)
   }
+  def mkSam0(stat: Stat, samDefn: Defn.Trait)                        = TestContents(List(samDefn, meth ), List(stat), msgs_sam0(s"Test.${samDefn.name}"))
+  def mkSam1(stat: Stat, samDefn: Defn.Trait, msgs: List[List[Msg]]) = TestContents(List(samDefn, meth1), List(stat), msgs)
+  val msg3SamEta = List(warn(stillEta("meth1", "Test.Sam1S")))
 
-  val Sam0S    = q"                     trait Sam0S { def apply(): Any }"
-  val Sam0J    = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
-  val methSamS = TestFile("EtaX.methSamS", mkSam(q"val t3Sam0S: Sam0S = meth", Sam0S))
-  val methSamJ = TestFile("EtaX.methSamJ", mkSam(q"val t3Sam0J: Sam0J = meth", Sam0J))
+  val methSam0S = TestFile("EtaX.methSam0S", mkSam0(q"val t3Sam0S: Sam0S = meth", Sam0S))
+  val methSam0J = TestFile("EtaX.methSam0J", mkSam0(q"val t3Sam0J: Sam0J = meth", Sam0J))
+  val methSam1S = TestFile("EtaX.methSam1S", mkSam1(q"val t5b: Sam1S     = meth1", Sam1S, multi3(_ => Nil, _ => msg3SamEta, _ => msg3SamEta)))
+  val methSam1J = TestFile("EtaX.methSam1J", mkSam1(q"val t5c: Sam1J     = meth1", Sam1J, noMsgs))
 
-  val meth1 = {
-    val Sam1S   = q"                     trait Sam1S { def apply(x: Any): Any }"
-    val Sam1J   = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
-    val meth1   = q"def meth1(x: Any) = ${Lit.String("")}"
-    val defns   = List(Sam1S, Sam1J, meth1)
-    val stat1   = q"val t5a: Any => Any = meth1                   // ok"
-    val stat2   = q"val t5b: Sam1S      = meth1                   // ok, but warning"
-    val stat3   = q"val t5c: Sam1J      = meth1                   // ok"
-    val stat4   = q"val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0"
-    val stat5   = q"val t5e: Any => Any = { val t = meth1 _ ; t } // ok"
-    val stats   = List(stat1, stat2, stat3, stat4, stat5)
-    val msg2_4  =  err(missingArgs("meth1", "Test"))
-    val msg3_2  = warn(stillEta("meth1", "p01.Test.Sam1S"))
-    val msgEta2 = (sev: Sev) => Msg(sev, etaFunction2)
-    val msgs2   = List(msg2_4)
-    val msgs3   = List(msg3_2)
-    val msgs31M = (sev: Sev) => List(msg3_2, msgEta2(sev))
-    val msgs    = List(msgs2, Nil, msgs3, msgs3, msgs31M(W), msgs31M(E))
-    TestFile("EtaX.meth1", TestContents(defns, stats, msgs))
-  }
+  val prop  = q"def prop = ${Lit.String("")}"
+  val defns = List(prop)
 
-  val prop = {
-    val defns = List(q"def prop = ${Lit.String("")}")
-    val stats = List(
-      q"val t2a: () => Any = prop                   // error: no eta-expansion of nullary methods",
-      q"val t2b: Any       = { val t = prop   ; t } // ok: apply",
-      q"val t2c: () => Any = prop()                 // error: bar doesn't take arguments, so expanded to bar.apply(), which misses an argument",
-      q"val t2d: () => Any = prop _                 // ok",
-      q"val t2e: () => Any = { val t = prop _ ; t } // ?/ok",
-      q"val t2f: Any       = prop _                 // ok",
-      q"val t2g: Any       = prop() _               // error: not enough arguments for method apply",
-    )
+  def msgsD(m2: Msg, m3: Msg)               = multi3(  _ => List(m2),        _ => List(m3),        _ => List(m3))
+  def msgsE(m2: Sev => Msg, m3: Sev => Msg) = multi3(sev => List(m2(sev)), sev => List(m3(sev)), sev => List(m3(sev)))
 
-    def msgs2(sev: Sev)  = List(
-      err(     missingArg2("apply: (i: Int): Char", "StringOps", "i")),
-      err(     missingArg2("apply: (i: Int): Char", "StringOps", "i")),
-      err(     typeMismatch2("String", "() => Any")),
-      Msg(sev, methodsWithoutParams(sev)), Msg(sev, methodsWithoutParams(sev)), Msg(sev, methodsWithoutParams(sev)),
-    )
-    def msgs30(sev: Sev) = List(
-      err(     typeMismatch3("String", "() => Any")),
-      err(     missingArg3("apply: (i: Int): Char", "i")),
-      Msg(sev, onlyFuncs("String")),
-      Msg(sev, onlyFuncs("String")),
-      Msg(sev, onlyFuncs("<error unspecified error>")),
-      Msg(sev, onlyFuncs("String")),
-    ) ::: (
-      if (sev == E) List(err(typeMismatch3("(t : String)", "() => Any")))
-      else          List(err(missingArg3("apply: (i: Int): Char", "i")))
-    )
-    def msgs31(sev: Sev) = List(
-      err(     typeMismatch3("String", "() => Any")),
-      err(       missingArg3("apply: (i: Int): Char", "i")),
-    ) ::: (if (sev == E) Nil else List(
-      err(     typeMismatch3("String", "() => Any")),
-      err(       missingArg3("apply: (i: Int): Char", "i")),
-    )) ::: List(
-      Msg(sev, onlyFuncs("<error unspecified error>")),
-      Msg(sev, onlyFuncs("String")),
-      Msg(sev, onlyFuncs("String")),
-      Msg(sev, onlyFuncs("String")),
-      err(     typeMismatch3("(t : String)", "() => Any")),
-    )
+  val msgsProp1 = msgsD(err(typeMismatch2("String", "() => Any")), err(typeMismatch3("String", "() => Any")))
+  val msgsProp3 = msgsD(err(missingArg2("apply: (i: Int): Char", "StringOps", "i")), err(missingArg3("apply: (i: Int): Char", "i")))
 
-    val msgs  = multi3(msgs2, msgs30, msgs31)
-    TestFile("EtaX.prop", TestContents(defns, stats, msgs))
-  }
+  val msgsProp4 = multi3(
+    sev => List(Msg(sev, methodsWithoutParams(sev))),
+    sev => List(Msg(sev, onlyFuncs("String"))),
+    {
+      case W => List(Msg(W, onlyFuncs("String")), err(typeMismatch3("String", "() => Any")))
+      case E => List(Msg(E, onlyFuncs("String")))
+    }
+  )
+
+  val msgsProp5 = multi3(
+    sev => List(Msg(sev, methodsWithoutParams(sev))),
+    {
+      case W => List(Msg(W, onlyFuncs("String")))
+      case E => List(Msg(E, onlyFuncs("String")), err(typeMismatch3("(t : String)", "() => Any")))
+    },
+    sev => List(Msg(sev, onlyFuncs("String")), err(typeMismatch3("(t : String)", "() => Any"))),
+  )
+
+  val msgsProp6 = multi3(
+    sev => List(Msg(sev, methodsWithoutParams(sev))),
+    sev => List(Msg(sev, onlyFuncs("String"))),
+    sev => List(Msg(sev, onlyFuncs("String"))),
+  )
+
+  val msgsProp7 = multi3(
+    _ => List(err(missingArg2("apply: (i: Int): Char", "StringOps", "i"))),
+    {
+      case W => List(Msg(W, onlyFuncs("<error unspecified error>")), err(missingArg3("apply: (i: Int): Char", "i")))
+      case E => List(Msg(E, onlyFuncs("<error unspecified error>")))
+    },
+    {
+      case W => List(Msg(W, onlyFuncs("<error unspecified error>")), err(missingArg3("apply: (i: Int): Char", "i")))
+      case E => List(Msg(E, onlyFuncs("<error unspecified error>")))
+    },
+  )
+
+  val prop1 = TestFile("EtaX.prop1", mkTest(prop, q"val t2a: () => Any = prop                  ", msgsProp1))
+  val prop2 = TestFile("EtaX.prop2", mkTest(prop, q"val t2b: Any       = { val t = prop   ; t }", noMsgs))
+  val prop3 = TestFile("EtaX.prop3", mkTest(prop, q"val t2c: () => Any = prop()                ", msgsProp3))
+  val prop4 = TestFile("EtaX.prop4", mkTest(prop, q"val t2d: () => Any = prop _                ", msgsProp4))
+  val prop5 = TestFile("EtaX.prop5", mkTest(prop, q"val t2e: () => Any = { val t = prop _ ; t }", msgsProp5))
+  val prop6 = TestFile("EtaX.prop6", mkTest(prop, q"val t2f: Any       = prop _                ", msgsProp6))
+  val prop7 = TestFile("EtaX.prop7", mkTest(prop, q"val t2g: Any       = prop() _              ", msgsProp7))
 
   val methF0 = {
     val defns     = List(q"def methF0() = () => ${Lit.String("")}")
