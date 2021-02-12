@@ -37,7 +37,7 @@ object Main {
     case Nil  =>
       println(s"Files: ${tests.map(_.name).mkString("[", ", ", "]")}")
       runTests(tests)
-    case args => args.partitionMap(name => testsMap.get(name).toRight(Left(name))) match {
+    case args => args.partitionMap(name => testsMap.get(name).toRight(name)) match {
       case (Nil, tests) => runTests(tests)
       case (missing, _) => sys.error(s"Missing test files: ${missing.mkString("[", ", ", "]")}")
     }

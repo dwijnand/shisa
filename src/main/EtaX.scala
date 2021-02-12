@@ -2,60 +2,60 @@ package shisa
 
 import scala.Function.const
 
-import scala.meta._
+import scala.meta._, contrib._
 
 object EtaX {
-  def tests: List[TestFile] = List(boom, meth2, cloneEta, methF0, prop, meth1, meth)
+  def tests: List[TestFile] = List(boom, meth2, cloneEta, methF0, prop, meth1, methT, methSamS, methSamJ)
 
-  val meth = {
-    val Sam0S = q"                     trait Sam0S { def apply(): Any }"
-    val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
-    val defns = List(Sam0S, Sam0J, q"def meth() = ${Lit.String("")}")
-    val stats = List(
-      q"val t3a: () => Any = meth                   // eta-expansion, but lint warning",
-      q"val t3Sam0S: Sam0S = meth                   // -Xlint:eta-zero + -Xlint:eta-sam",
-      q"val t3Sam0J: Sam0J = meth                   // -Xlint:eta-zero",
-      q"val t3b: Any       = { val t = meth   ; t } // apply, ()-insertion",
-      q"val t3c: () => Any = meth _                 // ok",
-      q"val t3d: () => Any = { val t = meth _ ; t } // ok",
-      q"val t3e: Any       = meth _                 // ok",
-      q"val t3f: Any       = meth() _               // error: _ must follow method",
-    )
-    val msgs2                          = List(
-      err(typeMismatch2("String", "p01.Test.Sam0S")), err(typeMismatch2("String", "p02.Test.Sam0J")),
-      warn(autoApp2("meth")), err(mustFollow("String")),
-    )
-    def msgs3mk(sev: Sev, exp: String) = (
-      Msg(sev, autoApp3("meth")) :: (if (sev == E) Nil else List(err(typeMismatch3("String", exp))))
-    )
-    def msgs30I(sev: Sev)              = (
-      msgs3mk(sev, "p01.Test.Sam0S") ::: msgs3mk(sev, "p02.Test.Sam0J") :::
-      List(Msg(sev, autoApp3("meth")), Msg(sev, onlyFuncs("String")))
-    )
-    def msgs31I(sev: Sev)              = List(
-      err(autoApp3("meth")), err(autoApp3("meth")), err(autoApp3("meth")),
-      Msg(sev, etaFunction), Msg(sev, etaFunction), Msg(sev, etaFunction),
-      Msg(sev, onlyFuncs("String")),
-    )
-    val msgs = List(msgs2, msgs2, msgs30I(W), msgs30I(E), msgs31I(W), msgs31I(E))
-    TestFile("EtaX.meth", TestContents(defns, stats, msgs))
+  val meth        = q"def meth() = ${Lit.String("")}"
+  val msgs_31_eta = multi3(_ => Nil, _ => Nil, sev => List(Msg(sev, etaFunction)))
+  val meth01      = mkTest(meth, q"val t3a: () => Any = meth                  ", noMsgs)
+  val meth04      = mkTest(meth, q"val t3b: Any       = { val t = meth; t }   ", autoApp(q"meth"))
+  val meth05      = mkTest(meth, q"val t3c: () => Any = meth _                ", msgs_31_eta)
+  val meth06      = mkTest(meth, q"val t3d: () => Any = { val t = meth _ ; t }", msgs_31_eta)
+  val meth07      = mkTest(meth, q"val t3e: Any       = meth _                ", msgs_31_eta)
+  val meth08      = {
+    val msgs3 = (sev: Sev) => List(Msg(sev, onlyFuncs("String")))
+    val msgs  = multi3(_ => List(Msg(E, mustFollow("String"))), msgs3, msgs3)
+    mkTest(meth, q"val t3f: Any = meth() _", msgs)
+  }
+  val methT       = mkFile("EtaX.meth", List(meth01, meth04, meth05, meth06, meth07, meth08))
+
+  def mkSam(stat: Stat, samDefn: Defn.Trait) = {
+    val pt = s"Test.${samDefn.name}"
+    val msgs = multi2 {
+      case (S2,   _) => List(err(typeMismatch2("String", pt)))
+      case (S3, sev) => mkAutoApp(q"meth")(S3, sev) match {
+        case autoAppMsg @ Msg(E, _) => List(autoAppMsg)
+        case autoAppMsg             => List(autoAppMsg, err(typeMismatch3("String", pt)))
+      }
+    }
+    TestContents(List(samDefn, meth), List(stat), msgs)
   }
 
+  val Sam0S    = q"                     trait Sam0S { def apply(): Any }"
+  val Sam0J    = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
+  val methSamS = TestFile("EtaX.methSamS", mkSam(q"val t3Sam0S: Sam0S = meth", Sam0S))
+  val methSamJ = TestFile("EtaX.methSamJ", mkSam(q"val t3Sam0J: Sam0J = meth", Sam0J))
+
   val meth1 = {
-    val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
-    val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
-    val defns = List(Sam1S, Sam1J, q"def meth1(x: Any) = ${Lit.String("")}")
-    val stats = List(
-      q"val t5a: Any => Any = meth1                   // ok",
-      q"val t5b: Sam1S      = meth1                   // ok, but warning",
-      q"val t5c: Sam1J      = meth1                   // ok",
-      q"val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0",
-      q"val t5e: Any => Any = { val t = meth1 _ ; t } // ok",
-    )
-    val msgs2             = List( err(missingArgs("meth1", "Test")))
-    val msgs3             = List(warn(stillEta("meth1", "p01.Test.Sam1S")))
-    def msgs31I(sev: Sev) = List(warn(stillEta("meth1", "p01.Test.Sam1S")), Msg(sev, etaFunction2))
-    val msgs              = List(msgs2, Nil, msgs3, msgs3, msgs31I(W), msgs31I(E))
+    val Sam1S   = q"                     trait Sam1S { def apply(x: Any): Any }"
+    val Sam1J   = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
+    val meth1   = q"def meth1(x: Any) = ${Lit.String("")}"
+    val defns   = List(Sam1S, Sam1J, meth1)
+    val stat1   = q"val t5a: Any => Any = meth1                   // ok"
+    val stat2   = q"val t5b: Sam1S      = meth1                   // ok, but warning"
+    val stat3   = q"val t5c: Sam1J      = meth1                   // ok"
+    val stat4   = q"val t5d: Any => Any = { val t = meth1   ; t } // error in 2.13, eta-expansion in 3.0"
+    val stat5   = q"val t5e: Any => Any = { val t = meth1 _ ; t } // ok"
+    val stats   = List(stat1, stat2, stat3, stat4, stat5)
+    val msg2_4  =  err(missingArgs("meth1", "Test"))
+    val msg3_2  = warn(stillEta("meth1", "p01.Test.Sam1S"))
+    val msgEta2 = (sev: Sev) => Msg(sev, etaFunction2)
+    val msgs2   = List(msg2_4)
+    val msgs3   = List(msg3_2)
+    val msgs31M = (sev: Sev) => List(msg3_2, msgEta2(sev))
+    val msgs    = List(msgs2, Nil, msgs3, msgs3, msgs31M(W), msgs31M(E))
     TestFile("EtaX.meth1", TestContents(defns, stats, msgs))
   }
 
@@ -102,14 +102,14 @@ object EtaX {
       err(     typeMismatch3("(t : String)", "() => Any")),
     )
 
-    val msgs  = multi4(msgs2, msgs30, msgs31)
+    val msgs  = multi3(msgs2, msgs30, msgs31)
     TestFile("EtaX.prop", TestContents(defns, stats, msgs))
   }
 
   val methF0 = {
     val defns     = List(q"def methF0() = () => ${Lit.String("")}")
     def testCase(stat: Stat, msgs2: List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
-      TestContents(defns, List(stat), multi4(const(msgs2), msgs30, msgs31))
+      TestContents(defns, List(stat), multi3(const(msgs2), msgs30, msgs31))
     val msgs1_2   = warn(  autoApp2("methF0"))
     val msgs1_30  = Msg(_, autoApp3("methF0"))
     val msgs1_31  = err(   autoApp3("methF0"))
@@ -133,7 +133,7 @@ object EtaX {
   val meth2 = {
     val defns = List(q"def meth2()() = ${Lit.String("")}")
     def testCase(stat: Stat, msgs: Sev => List[Msg]) =
-      TestContents(defns, List(stat), multi4(_ => Nil, _ => Nil, msgs))
+      TestContents(defns, List(stat), multi3(_ => Nil, _ => Nil, msgs))
     val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(Msg(_, etaFunction))) // eta-expansion, but lint warning
     val tc1   = testCase(q"val t4b: () => Any = meth2()",   mkNoMsgs)                  // ditto
     val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(Msg(_, etaFunction))) // ok
@@ -142,21 +142,17 @@ object EtaX {
   }
 
   val boom = {
-    val defns = List(q"class A { def boom(): Unit = () }")
-    val stat  = q"new A().boom // ?/?/err: apply, ()-insertion"
-    val msgss = multi3 {
-      case (S2, _)   => List(warn(     autoApp2("boom")))
-      case (S3, sev) => List( Msg(sev, autoApp3("boom")))
-    }
-    TestFile("EtaX.boom", TestContents(defns, List(stat), msgss))
+    val defn = q"class A { def boom(): Unit = () }"
+    val stat = q"new A().boom // ?/?/err: apply, ()-insertion"
+    TestFile("EtaX.boom", mkTest(defn, stat, autoApp(q"boom")))
   }
 
   // Errors
   def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"
   def etaFunction2 = "The syntax `<function> _` is no longer supported;\nyou can simply leave out the trailing ` _`"
 
-  def typeMismatch2(obt: String, exp: String) = s"type mismatch;\n found   : $obt\n required: $exp"
-  def typeMismatch3(obt: String, exp: String) = s"Found:    $obt\nRequired: $exp"
+  def typeMismatch2(tp: String, pt: String) = s"type mismatch;\n found   : $tp\n required: $pt"
+  def typeMismatch3(tp: String, pt: String) = s"Found:    $tp\nRequired: $pt"
 
   def missingArgs(meth: String, cls: String) =
     s"""missing argument list for method $meth in object $cls

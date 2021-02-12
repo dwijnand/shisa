@@ -30,10 +30,10 @@ import scala.meta._, contrib._
 // * generalise enclosing: method, nesting, constructors
 // * other settings
 object Call {
-  def tests: List[TestFile] = methP(q"foo") :: propM(q"bar") :: negValTests :: posValTests :: clsTests :: Nil
+  def tests: List[TestFile] = methP_Test :: propM_Test :: negValTests :: posValTests :: clsTests :: Nil
 
-  def methP(meth: Term.Name) = TestFile("Call.meth_p", mkTest(q"def $meth() = 1", q"$meth",   methPMsgs(meth)))
-  def propM(meth: Term.Name) = TestFile("Call.prop_m", mkTest(q"def $meth   = 2", q"$meth()", propMMsgs(meth)))
+  val methP_Test = TestFile("Call.meth_p", mkTest(q"def foo() = 1", q"foo",   autoApp(q"foo")))
+  val propM_Test = TestFile("Call.prop_m", mkTest(q"def foo   = 2", q"foo()", noParams("object Test", q"foo", tpnme.Int)))
 
   val cls1 = List(q"class  CR".withRunnable, q"class  CCR".withRunnable.toCaseClass)
   val cls2 = List(q"class VCR".toValueClass, q"class VCCR".toValueClass.toCaseClass)
@@ -42,16 +42,15 @@ object Call {
     val j = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "J")).addStat(q"override def ${nme.toString_}() = ${Lit.String("")}")
     List(cls, s, j)
   }
-  import tpnme._
   def mkV(name: Term.Name, tp: Type.Name) = q"val ${name.asPat}: $tp = ${Lit.String("")}"
-  val vals = List(mkV(q"any", Any), mkV(q"ref", AnyRef), mkV(q"obj", Object), mkV(q"str", String))
+  val vals = List(mkV(q"any", tpnme.Any), mkV(q"ref", tpnme.AnyRef), mkV(q"obj", tpnme.Object), mkV(q"str", tpnme.String))
 
   def nul(qual: Term, name: Term.Name): Term       = q"$qual.$name"
   def nil(qual: Term, name: Term.Name): Term       = q"$qual.$name()"
   def two(qual: Term, name: Term.Name): List[Term] = List(nul(qual, name), nil(qual, name))
 
   val negValTests = mkFile("Call.negVal",
-    for (x <- vals; stat  = nil(x.inst, nme.hashHash )) yield mkTest(x, stat, mkErrs("class Any", "##", "Int")),
+    for (x <- vals; stat  = nil(x.inst, nme.hashHash )) yield mkTest(x, stat, noParams("class Any", q"##", tpnme.Int)),
   )
 
   val posValTests = mkFile("Call.posVal", List(
@@ -66,13 +65,8 @@ object Call {
     for (x <- cls1; stat <- two(x.inst, nme.run      )) yield mkTest(x, stat, noMsgs),
   ).flatten)
 
-  def methPMsgs(meth: Term.Name) = multi3 {
-    case (S2,   _) => List(Msg(W,   autoApp2(meth.value)))
-    case (S3, sev) => List(Msg(sev, autoApp3(meth.value)))
+  def noParams(enc: String, meth: Term.Name, tp: Type.Name) = multi2 {
+    case (S2, _) => List(err(                 s"$tp does not take parameters"))
+    case (S3, _) => List(err(s"method $meth in $enc does not take parameters"))
   }
-  def propMMsgs(meth: Term.Name) = mkErrs("object Test", meth.value, "Int")
-
-  def mkErr2(tp: String)                = err(                 s"$tp does not take parameters")
-  def mkErr3(enc: String, meth: String) = err(s"method $meth in $enc does not take parameters")
-  def mkErrs(enc: String, meth: String, tp: String) = multi(mkErr2(tp), mkErr3(enc, meth))
 }

@@ -16,6 +16,7 @@ object Switch {
 
   sealed trait Switch; case object M2P extends Switch; case object P2M extends Switch
 
+  // TODO: test just override without calling
   def switchFile(switch: Switch, call: MethOrProp): TestFile = {
     val pref  = switch match { case M2P  => "M2P" case P2M  => "P2M" }
     val suff  = call   match { case Meth => "M"   case Prop => "P"   }
@@ -45,17 +46,14 @@ object Switch {
       case (P2M, S3, E) => Msg(sev, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp has incompatible type")
     }
 
-    def autoAppMsg(sv: SV, sev: Sev) = (call, switch, sv) match {
-      case (Meth,   _,  _) => None
-      case (Prop,   _, S2) => Some(Msg(  W, autoApp2(meth.value)))
-      case (Prop, M2P, S3) => None
-      case (Prop, P2M, S3) => Some(Msg(sev, autoApp3(meth.value)))
-    }
-
-    val msgs = multi3 { (sv, sev) =>
-      autoAppMsg(sv, sev) match {
-        case Some(msg @ Msg(E, _)) => List(msg)
-        case autoAppMsg            => overrideMsg(sv, sev) :: autoAppMsg.toList
+    val msgs = multi2 { (sv, sev) =>
+      (call, switch, sv) match {
+        case (Meth,   _,  _) => List(overrideMsg(sv, sev))
+        case (Prop, M2P, S3) => List(overrideMsg(sv, sev))
+        case _               => mkAutoApp(meth)(sv, sev) match {
+          case autoAppMsg @ Msg(E, _) => List(autoAppMsg)
+          case autoAppMsg             => List(autoAppMsg, overrideMsg(sv, sev))
+        }
       }
     }
 

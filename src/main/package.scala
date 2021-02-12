@@ -41,16 +41,19 @@ object `package` {
   def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(stat), msgs)
   def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents))
 
-  def multi(msg2: Msg, msg3: Msg) =
-    List(List(msg2), List(msg2), List(msg3), List(msg3), List(msg3), List(msg3))
-
-  def multi3(msgs: (SV, Sev) => List[Msg]) =
+  def multi2(msgs: (SV, Sev) => List[Msg]) =
     List(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E), msgs(S3, E), msgs(S3, E))
 
-  def multi4(msgs2: Sev => List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
+  def multi3(msgs2: Sev => List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
     List(msgs2(W), msgs2(E), msgs30(W), msgs30(E), msgs31(W), msgs31(E))
 
-  def autoApp(sv: SV, meth: String) = sv match { case S2 => autoApp2(meth) case S3 => autoApp3(meth) }
+  def autoApp(meth: Term.Name) = multi2((sv, sev) => List(mkAutoApp(meth)(sv, sev)))
+
+  def mkAutoApp(meth: Term.Name)(sv: SV, sev: Sev) = (sv, sev) match {
+    case (S2,   _) => Msg(  W, autoApp2(meth.value))
+    case (S3, sev) => Msg(sev, autoApp3(meth.value))
+  }
+
   def autoApp2(meth: String) =
     s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
@@ -126,6 +129,7 @@ object nme {
 object tpnme {
   val Any    = t"Any"
   val AnyRef = t"AnyRef"
+  val Int    = t"Int"
   val Object = t"Object"
   val String = t"String"
 }
