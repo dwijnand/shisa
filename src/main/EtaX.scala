@@ -1,27 +1,27 @@
 package shisa
 
-import scala.Function.const
-
 import scala.meta._, contrib._
 
 object EtaX {
-  def tests: List[TestFile] = List(boom, meth2, cloneEta, methF0,
-    prop1,
-    prop2,
-    prop3,
-    prop4,
-    prop5,
-    prop6,
-    prop7,
+  def tests: List[TestFile] = List(boom,
+    //meth2T,
+    meth21, meth22, meth23, meth24,
+    cloneEta,
+    //methF0T,
+    methF0_1, methF0_2, methF0_3, methF0_4, methF0_5,
+    prop1, prop2, prop3, prop4, prop5, prop6, prop7,
     meth1T, methSam1S, methSam1J, methT, methSam0S, methSam0J,
   )
 
-  val meth  = q"def meth()        = ${Lit.String("")}"
-  val meth1 = q"def meth1(x: Any) = ${Lit.String("")}"
-  val Sam0S = q"                     trait Sam0S { def apply(): Any }"
-  val Sam0J = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
-  val Sam1S = q"                     trait Sam1S { def apply(x: Any): Any }"
-  val Sam1J = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
+  val ns     = Lit.String("")
+  val meth   = q"def meth()        = $ns      "
+  val meth1  = q"def meth1(x: Any) = $ns      "
+  val methF0 = q"def methF0()      = () => $ns"
+  val meth2  = q"def meth2()()     = $ns      "
+  val Sam0S  = q"                     trait Sam0S { def apply(): Any }"
+  val Sam0J  = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
+  val Sam1S  = q"                     trait Sam1S { def apply(x: Any): Any }"
+  val Sam1J  = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
 
   def msgsFor31(f: Sev => Msg) = multi3(_ => Nil, _ => Nil, sev => List(f(sev)))
 
@@ -102,54 +102,33 @@ object EtaX {
     },
   )
 
-  val prop1 = TestFile("EtaX.prop1", mkTest(prop, q"val t2a: () => Any = prop                  ", msgsProp1))
-  val prop2 = TestFile("EtaX.prop2", mkTest(prop, q"val t2b: Any       = { val t = prop   ; t }", noMsgs))
-  val prop3 = TestFile("EtaX.prop3", mkTest(prop, q"val t2c: () => Any = prop()                ", msgsProp3))
-  val prop4 = TestFile("EtaX.prop4", mkTest(prop, q"val t2d: () => Any = prop _                ", msgsProp4))
-  val prop5 = TestFile("EtaX.prop5", mkTest(prop, q"val t2e: () => Any = { val t = prop _ ; t }", msgsProp5))
-  val prop6 = TestFile("EtaX.prop6", mkTest(prop, q"val t2f: Any       = prop _                ", msgsProp6))
-  val prop7 = TestFile("EtaX.prop7", mkTest(prop, q"val t2g: Any       = prop() _              ", msgsProp7))
+  val msgEtaF     = multi3(_ => Nil, _ => Nil, msgs(Msg(_, etaFunction)))
 
-  val methF0 = {
-    val defns     = List(q"def methF0() = () => ${Lit.String("")}")
-    def testCase(stat: Stat, msgs2: List[Msg], msgs30: Sev => List[Msg], msgs31: Sev => List[Msg]) =
-      TestContents(defns, List(stat), multi3(const(msgs2), msgs30, msgs31))
-    val msgs1_2   = warn(  autoApp2("methF0"))
-    val msgs1_30  = Msg(_, autoApp3("methF0"))
-    val msgs1_31  = err(   autoApp3("methF0"))
-    val msgs4_2   = err(   mustFollow("() => String"))
-    val msgs4_30  = Msg(_, onlyFuncs("() => String"))
-    val msgs4_31  = Msg(_, onlyFuncs("() => String"))
-    val testCase0 = testCase(q"val t1a: () => Any = methF0",                Nil,           mkNoMsgs,       mkNoMsgs)                  // ok, eta-expansion
-    val testCase1 = testCase(q"val t1b: () => Any = { val t = methF0; t }", List(msgs1_2), msgs(msgs1_30), msgs(const(msgs1_31)))     // `()`-insert b/c no expected type
-    val testCase2 = testCase(q"val t1c: () => Any = methF0 _",              Nil,           mkNoMsgs,       msgs(Msg(_, etaFunction))) // ok, explicit eta-expansion requested
-    val testCase3 = testCase(q"val t1d: Any       = methF0 _",              Nil,           mkNoMsgs,       msgs(Msg(_, etaFunction))) // ok, explicit eta-expansion requested
-    val testCase4 = testCase(q"val t1e: Any       = methF0() _",            List(msgs4_2), msgs(msgs4_30), msgs(msgs4_31))            // error: _ must follow method
-    val contents  = List(testCase0, testCase1, testCase2, testCase3, testCase4).reduce(_ ++ _)
-    TestFile("EtaX.methF0", contents)
-  }
+  val msgMethF0_2 = multi3(_ => List(Msg(W, autoApp2("methF0"))),      sev => List(Msg(sev, autoApp3("methF0"))),        sev => List(Msg(  E, autoApp3("methF0"))))
+  val msgMethF0_5 = multi3(_ => List(err(mustFollow("() => String"))), sev => List(Msg(sev, onlyFuncs("() => String"))), sev => List(Msg(sev, onlyFuncs("() => String"))))
 
-  val cloneEta = {
-    val stat = q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"
-    TestFile("EtaX.clone", TestContents(Nil, List(stat), noMsgs))
-  }
+  val prop1    = TestFile("EtaX.prop1",    mkTest(prop,   q"val t2a: () => Any = prop                  ", msgsProp1))
+  val prop2    = TestFile("EtaX.prop2",    mkTest(prop,   q"val t2b: Any       = { val t = prop   ; t }", noMsgs))
+  val prop3    = TestFile("EtaX.prop3",    mkTest(prop,   q"val t2c: () => Any = prop()                ", msgsProp3))
+  val prop4    = TestFile("EtaX.prop4",    mkTest(prop,   q"val t2d: () => Any = prop _                ", msgsProp4))
+  val prop5    = TestFile("EtaX.prop5",    mkTest(prop,   q"val t2e: () => Any = { val t = prop _ ; t }", msgsProp5))
+  val prop6    = TestFile("EtaX.prop6",    mkTest(prop,   q"val t2f: Any       = prop _                ", msgsProp6))
+  val prop7    = TestFile("EtaX.prop7",    mkTest(prop,   q"val t2g: Any       = prop() _              ", msgsProp7))
+  val methF0_1 = TestFile("EtaX.methF0_1", mkTest(methF0, q"val t1a: () => Any = methF0                ", noMsgs))
+  val methF0_2 = TestFile("EtaX.methF0_2", mkTest(methF0, q"val t1b: () => Any = { val t = methF0; t } ", msgMethF0_2))
+  val methF0_3 = TestFile("EtaX.methF0_3", mkTest(methF0, q"val t1c: () => Any = methF0 _              ", msgEtaF))
+  val methF0_4 = TestFile("EtaX.methF0_4", mkTest(methF0, q"val t1d: Any       = methF0 _              ", msgEtaF))
+  val methF0_5 = TestFile("EtaX.methF0_5", mkTest(methF0, q"val t1e: Any       = methF0() _            ", msgMethF0_5))
+  val meth21   = TestFile("EtaX.meth21",   mkTest(meth2,  q"val t4a: () => Any = meth2                 ", msgEtaF))
+  val meth22   = TestFile("EtaX.meth22",   mkTest(meth2,  q"val t4b: () => Any = meth2()               ", noMsgs))
+  val meth23   = TestFile("EtaX.meth23",   mkTest(meth2,  q"val t4c: () => Any = meth2 _               ", msgEtaF))
+  val meth24   = TestFile("EtaX.meth24",   mkTest(meth2,  q"val t4d: () => Any = meth2() _             ", msgEtaF))
 
-  val meth2 = {
-    val defns = List(q"def meth2()() = ${Lit.String("")}")
-    def testCase(stat: Stat, msgs: Sev => List[Msg]) =
-      TestContents(defns, List(stat), multi3(_ => Nil, _ => Nil, msgs))
-    val tc0   = testCase(q"val t4a: () => Any = meth2",     msgs(Msg(_, etaFunction))) // eta-expansion, but lint warning
-    val tc1   = testCase(q"val t4b: () => Any = meth2()",   mkNoMsgs)                  // ditto
-    val tc2   = testCase(q"val t4c: () => Any = meth2 _",   msgs(Msg(_, etaFunction))) // ok
-    val tc3   = testCase(q"val t4d: () => Any = meth2() _", msgs(Msg(_, etaFunction))) // ok
-    TestFile("EtaX.meth2", List(tc0, tc1, tc2, tc3).reduce(_ ++ _))
-  }
+  val boom     = TestFile("EtaX.boom",     mkTest(q"class A { def boom(): Unit = () }", q"new A().boom", autoApp(q"boom")))
+  val cloneEta = TestFile("EtaX.clone",    TestContents(Nil, List(q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"), noMsgs))
 
-  val boom = {
-    val defn = q"class A { def boom(): Unit = () }"
-    val stat = q"new A().boom // ?/?/err: apply, ()-insertion"
-    TestFile("EtaX.boom", mkTest(defn, stat, autoApp(q"boom")))
-  }
+//val methF0T  = mkFile("EtaX.methF0", List(methF0_1, methF0_2, methF0_3, methF0_4, methF0_5))
+//val meth2T   = mkFile("EtaX.meth2",  List(meth21, meth23, meth23, meth24))
 
   // Errors
   def etaFunction  = "The syntax `<function> _` is no longer supported;\nyou can use `(() => <function>())` instead"

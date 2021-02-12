@@ -39,7 +39,7 @@ object `package` {
 
   def toContents(tests: List[Test]): TestContents           = tests.foldLeft(NoTest)(combineTest)
   def mkTest(defn: Defn, stat: Stat, msgs: List[List[Msg]]) = TestContents(List(defn), List(stat), msgs)
-  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, ts.foldLeft(NoTest)(combineContents))
+  def mkFile(name: String, ts: List[TestContents])          = TestFile(name, toContents(ts))
 
   def multi2(msgs: (SV, Sev) => List[Msg]) =
     List(msgs(S2, W), msgs(S2, E), msgs(S3, W), msgs(S3, E), msgs(S3, E), msgs(S3, E))
