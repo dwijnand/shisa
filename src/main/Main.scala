@@ -90,26 +90,28 @@ object Main {
     for {
       ((expMsgs, obtMsgs), compilerId) <- msgsZipped
       lines = {
-        expMsgs.sorted.zipAll(obtMsgs.sorted, MissingExp, MissingObt).collect {
+        expMsgs.sorted.zipAll(obtMsgs.sorted, null, null).collect {
           case (exp, obt) if exp != obt => showObt(obt) + showExp(exp)
         }.mkString
       } if lines.nonEmpty
     } yield {
       //println(s"obt:" + obtMsgs.sorted.map(showObt(_)).mkString)
       //println(s"exp:" + expMsgs.sorted.map(showExp(_)).mkString)
-      TestFailure(name, s"$name: message mismatch ($compilerId) ($RED-obtained$RESET/$GREEN+expected$RESET):$lines")
+      TestFailure(name, s"$name: message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET):$lines")
     }
   }
 
   final case class TestFailure(name: String, msg: String)
 
   val LineStart         = "(?m)^".r
-  val MissingExp        = Msg(E, "missing exp msg")
-  val MissingObt        = Msg(E, "missing obt msg")
   def showObt(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), RED   + "  -") + RESET
   def showExp(msg: Msg) = "\n" + LineStart.replaceAllIn(showMsg(msg), GREEN + "  +") + RESET
-  def showMsg(msg: Msg) = s"${showSev(msg.sev)}: ${msg.text.replaceAll("\n", "\\\\n")}"
-  def showSev(sev: Sev) = sev match { case E => "  error" case W => "warning" }
+  def showMsg(msg: Msg) = msg match {
+    case null         => s"   ??? : <missing msg>"
+    case Msg(W, text) => s"warning: ${showText(text)}"
+    case Msg(E, text) => s"  error: ${showText(text)}"
+  }
+  def showText(text: String) = text.replaceAll("\n", "\\\\n")
 
   implicit def orderingMsg: Ordering[Msg] = Ordering.by((msg: Msg) => (msg.sev, msg.text))
   implicit def orderingSev: Ordering[Sev] = Ordering.by { case E => 1 case W => 2 }

@@ -67,6 +67,6 @@ object Call {
 
   def noParams(enc: String, meth: Term.Name, tp: Type.Name) = {
     val subj = s"method $meth in $enc"
-    msgs2or3(_ => err(s"$tp does not take parameters"), _ => err(s"$subj does not take parameters"))
+    msgsFor2(_ => err(s"$tp does not take parameters")) ::: msgsFor3(_ => err(s"$subj does not take parameters"))
   }
 }

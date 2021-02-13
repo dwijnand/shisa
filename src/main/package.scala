@@ -28,6 +28,11 @@ final case class Msgs(
   def toList = List(m2rg, m2nw, m30m, m30r, m31m, m31r)
 }
 
+final case class     OverrideMsg(sev: Sev, text: String) extends Msg
+final case class      AutoAppMsg(sev: Sev, text: String) extends Msg
+final case class TypeMismatchMsg(sev: Sev, text: String) extends Msg
+final case class   MissingArgMsg(sev: Sev, text: String) extends Msg
+
 object `package` {
   val noMsgs            = Msgs(Nil, Nil, Nil, Nil, Nil, Nil)
   def  err(str: String) = Msg(E, str)
@@ -50,19 +55,16 @@ object `package` {
   def mkTest(defn: Defn, stat: Stat, msgs: Msgs)   = TestContents(List(defn), List(stat), msgs)
   def mkFile(name: String, ts: List[TestContents]) = TestFile(name, toContents(ts))
 
-  def msgs2or3(m2: Sev => Msg, m3: Sev => Msg) = Msgs(List(m2(W)), List(m2(E)), List(m3(W)), List(m3(E)), List(m3(W)), List(m3(E)))
-
-  def msgsFor2R(m:        Msg) = Msgs(List(m), Nil, Nil, Nil, Nil, Nil)
-  def msgsFor3 (m:        Msg) = Msgs(Nil, Nil, List(m), List(m), List(m), List(m))
-  def msgsFor31(f: Sev => Msg) = Msgs(Nil, Nil, Nil, Nil, List(f(W)), List(f(E)))
+  def msgsFor2(f: Sev => Msg) = Msgs(List(f(W)), List(f(E)),        Nil,        Nil,        Nil,        Nil)
+  def msgsFor3(f: Sev => Msg) = Msgs(       Nil,        Nil, List(f(W)), List(f(E)), List(f(W)), List(f(E)))
 
   def autoApp(meth: Term.Name) = Msgs(
-    List(Msg(W, autoApp2(meth.value))),
-    List(Msg(W, autoApp2(meth.value))),
-    List(Msg(W, autoApp3(meth.value))),
-    List(Msg(E, autoApp3(meth.value))),
-    List(Msg(E, autoApp3(meth.value))),
-    List(Msg(E, autoApp3(meth.value))),
+    List(AutoAppMsg(W, autoApp2(meth.value))),
+    List(AutoAppMsg(W, autoApp2(meth.value))),
+    List(AutoAppMsg(W, autoApp3(meth.value))),
+    List(AutoAppMsg(E, autoApp3(meth.value))),
+    List(AutoAppMsg(E, autoApp3(meth.value))),
+    List(AutoAppMsg(E, autoApp3(meth.value))),
   )
 
   def autoApp2(meth: String) =
