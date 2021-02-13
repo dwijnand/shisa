@@ -27,80 +27,40 @@ object EtaX {
   val Sam1S  = q"                     trait Sam1S { def apply(x: Any): Any }"
   val Sam1J  = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
 
-  val prop1Msgs = msgsFor2(_ => typeMismatch2("String", "() => Any"))                     ::: msgsFor3(_ => typeMismatch3("String", "() => Any"))
-  val prop3Msgs = msgsFor2(_ =>   missingArg2("apply: (i: Int): Char", "StringOps", "i")) ::: msgsFor3(_ =>   missingArg3("apply: (i: Int): Char", "i"))
+  def onlyFuncs(tp: String)                  = msgsFor3(onlyFuncsText(_, tp))
+  def typeMismatches(tp: String, pt: String) = msgsFor2(_ => typeMismatch2(tp, pt)) ++ msgsFor3(_ => typeMismatch3(tp, pt))
+  def typeMismatch2(tp: String, pt: String)  = TypeMismatchMsg(E, s"type mismatch;\n found   : $tp\n required: $pt")
+  def typeMismatch3(tp: String, pt: String)  = TypeMismatchMsg(E, s"Found:    $tp\nRequired: $pt")
+  def mustFollow(tp: String)                 = err(s"_ must follow method; cannot follow $tp")
+  def onlyFuncsText(sev: Sev, tp: String)    = Msg(sev, s"Only function types can be followed by _ but the current expression has type $tp")
 
-  // TODO: S3: onlyFuncs before typeMismatch ... or not???
-  // TODO: S3: onlyFuncs beore missingArg3
-  val prop4Msgs = Msgs(
-    List(noEtaNullary(W)),
-    List(noEtaNullary(E)),
-    List(onlyFuncs(W, "String")),
-    List(onlyFuncs(E, "String")), // kills
-    List(onlyFuncs(W, "String"), typeMismatch3("String", "() => Any")),
-    List(onlyFuncs(E, "String")), // kills
+  val prop1Msgs = typeMismatches("String", "() => Any")
+  val prop3Msgs =   missingArgs("apply: (i: Int): Char", "StringOps", "i")
+
+  val prop4Msgs = noEtaNullary ++ Msgs(Nil, Nil,
+    List(onlyFuncsText(W, "String")), // type mismatch suppressed?
+    List(onlyFuncsText(E, "String")), // kills
+    onlyFuncsText(W, "String") :+ typeMismatch3("String", "() => Any"),
+    onlyFuncsText(E, "String") :+ typeMismatch3("String", "() => Any"),
   )
 
-  val prop5Msgs = Msgs(
-    List(noEtaNullary(W)),
-    List(noEtaNullary(E)),
-    List(onlyFuncs(W, "String")), // type mismatch suppressed?
-    List(onlyFuncs(E, "String"), typeMismatch3("(t : String)", "() => Any")),
-    List(onlyFuncs(W, "String"), typeMismatch3("(t : String)", "() => Any")),
-    List(onlyFuncs(E, "String"), typeMismatch3("(t : String)", "() => Any")),
+  val prop5Msgs = noEtaNullary ++ Msgs(Nil, Nil,
+    List(onlyFuncsText(W, "String")), // type mismatch suppressed?
+    List(onlyFuncsText(E, "String"), typeMismatch3("(t : String)", "() => Any")),
+    List(onlyFuncsText(W, "String"), typeMismatch3("(t : String)", "() => Any")),
+    List(onlyFuncsText(E, "String"), typeMismatch3("(t : String)", "() => Any")),
   )
 
-  val prop6Msgs = Msgs(
-    List(noEtaNullary(W)),
-    List(noEtaNullary(E)),
-    List(onlyFuncs(W, "String")),
-    List(onlyFuncs(E, "String")),
-    List(onlyFuncs(W, "String")),
-    List(onlyFuncs(E, "String")),
-  )
-
-  val prop7Msgs = Msgs(
-    List(missingArg2("apply: (i: Int): Char", "StringOps", "i")),
-    List(missingArg2("apply: (i: Int): Char", "StringOps", "i")),
-    List(onlyFuncs(W, "<error unspecified error>"),  missingArg3("apply: (i: Int): Char", "i")),
-    List(onlyFuncs(E, "<error unspecified error>")), // kills
-    List(onlyFuncs(W, "<error unspecified error>"),  missingArg3("apply: (i: Int): Char", "i")),
-    List(onlyFuncs(E, "<error unspecified error>")), // kills
-  )
-
-  def msgsForEtaX(simple: Boolean = false) = {
-    val solution = if (simple) "you can simply leave out the trailing ` _`" else "you can use `(() => <function>())` instead"
-    val text     = s"The syntax `<function> _` is no longer supported;\n$solution"
-    Msgs(Nil, Nil, Nil, Nil, List(Msg(W, text)), List(Msg(E, text)))
-  }
-
-  def noArgsList(meth: String, encl: String) = {
-    val msg = err(s"""missing argument list for method $meth in $encl
-                     |Unapplied methods are only converted to functions when a function type is expected.
-                     |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin)
-    Msgs(List(msg), Nil, Nil, Nil, Nil, Nil)
-  }
-
-  // TODO: in S2, typeMismatch then autoApp; in S3, autoApp then typeMismatch
-  def sam0Msgs(encl: String) = Msgs(
-    List(typeMismatch2("String", encl)),   // kills
-    List(typeMismatch2("String", encl)),   // kills
-    List(AutoAppMsg(W, autoApp3("meth")), typeMismatch3("String", encl)),
-    List(AutoAppMsg(E, autoApp3("meth"))), // kills
-    List(AutoAppMsg(E, autoApp3("meth"))), // kills
-    List(AutoAppMsg(E, autoApp3("meth"))), // kills
-  )
-
-  def stillEta(meth: String, encl: String) = {
-    msgsFor3(_ => Msg(W, s"method $meth is eta-expanded even though $encl does not have the @FunctionalInterface annotation."))
-  }
+  val prop6Msgs = noEtaNullary ++ onlyFuncs("String")
+  val prop7Msgs = onlyFuncs("<error unspecified error>") ++ missingArgs("apply: (i: Int): Char", "StringOps", "i")
 
   val meth01    =                  mkTest(meth,   q"val t3a: () => Any  = meth                   ", noMsgs)
   val meth02    =                  mkTest(meth,   q"val t3b: Any        = { val t = meth; t }    ", autoApp(q"meth"))
   val meth03    =                  mkTest(meth,   q"val t3c: () => Any  = meth _                 ", msgsForEtaX())
   val meth04    =                  mkTest(meth,   q"val t3d: () => Any  = { val t = meth _ ; t } ", msgsForEtaX())
   val meth05    =                  mkTest(meth,   q"val t3e: Any        = meth _                 ", msgsForEtaX())
-  val meth06    =                  mkTest(meth,   q"val t3f: Any        = meth() _               ", msgsFor2(_ => mustFollow("String")) ::: msgsFor3(onlyFuncs(_, "String")))
+  val meth06    =                  mkTest(meth,   q"val t3f: Any        = meth() _               ", msgsFor2(_ => mustFollow("String")) ++ onlyFuncs("String"))
+
   val meth11    =                  mkTest(meth1,  q"val t5a: Any => Any = meth1                  ", noMsgs)
   val meth12    =                  mkTest(meth1,  q"val t5d: Any => Any = { val t = meth1   ; t }", noArgsList("meth1", "object Test"))
   val meth13    =                  mkTest(meth1,  q"val t5e: Any => Any = { val t = meth1 _ ; t }", msgsForEtaX(simple = true))
@@ -119,7 +79,7 @@ object EtaX {
   val methF0_2  = mkF("methF0_2",  mkTest(methF0, q"val t1b: () => Any = { val t = methF0; t }   ", autoApp(q"methF0")))
   val methF0_3  = mkF("methF0_3",  mkTest(methF0, q"val t1c: () => Any = methF0 _                ", msgsForEtaX()))
   val methF0_4  = mkF("methF0_4",  mkTest(methF0, q"val t1d: Any       = methF0 _                ", msgsForEtaX()))
-  val methF0_5  = mkF("methF0_5",  mkTest(methF0, q"val t1e: Any       = methF0() _              ", msgsFor2(_ => mustFollow("() => String")) ::: msgsFor3(onlyFuncs(_, "() => String"))))
+  val methF0_5  = mkF("methF0_5",  mkTest(methF0, q"val t1e: Any       = methF0() _              ", msgsFor2(_ => mustFollow("() => String")) ++ onlyFuncs("() => String")))
   val meth21    = mkF("meth21",    mkTest(meth2,  q"val t4a: () => Any = meth2                   ", msgsForEtaX()))
   val meth22    = mkF("meth22",    mkTest(meth2,  q"val t4b: () => Any = meth2()                 ", noMsgs))
   val meth23    = mkF("meth23",    mkTest(meth2,  q"val t4c: () => Any = meth2 _                 ", msgsForEtaX()))
@@ -134,17 +94,34 @@ object EtaX {
   def mkSam0(stat: Stat, samDefn: Defn.Trait, msgs: Msgs) = TestContents(List(samDefn, meth ), List(stat), msgs)
   def mkSam1(stat: Stat, samDefn: Defn.Trait, msgs: Msgs) = TestContents(List(samDefn, meth1), List(stat), msgs)
 
-  def typeMismatch2(tp: String, pt: String) = TypeMismatchMsg(E, s"type mismatch;\n found   : $tp\n required: $pt")
-  def typeMismatch3(tp: String, pt: String) = TypeMismatchMsg(E, s"Found:    $tp\nRequired: $pt")
-
-  def mustFollow(tp: String)          = err(s"_ must follow method; cannot follow $tp")
-  def onlyFuncs(sev: Sev, tp: String) = Msg(sev, s"Only function types can be followed by _ but the current expression has type $tp")
-
-  def noEtaNullary(sev: Sev) = sev match {
-    case W => Msg(sev, "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead")
-    case E => Msg(sev, "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead")
+  def msgsForEtaX(simple: Boolean = false) = {
+    val solution = if (simple) "you can simply leave out the trailing ` _`" else "you can use `(() => <function>())` instead"
+    val text     = s"The syntax `<function> _` is no longer supported;\n$solution"
+    Msgs(Nil, Nil, Nil, Nil, List(Msg(W, text)), List(Msg(E, text)))
   }
 
-  def missingArg2(meth: String, cls: String, param: String) = MissingArgMsg(E, s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param.")
-  def missingArg3(meth: String, param: String)              = MissingArgMsg(E, s"missing argument for parameter $param of method $meth")
+  def noArgsList(meth: String, encl: String) = {
+    val msg = err(s"""missing argument list for method $meth in $encl
+                     |Unapplied methods are only converted to functions when a function type is expected.
+                     |You can make this conversion explicit by writing `$meth _` or `$meth(_)` instead of `$meth`.""".stripMargin)
+    Msgs(List(msg), Nil, Nil, Nil, Nil, Nil)
+  }
+
+  def sam0Msgs(encl: String) = {
+    typeMismatches("String", encl).for2 ++ autoApp(q"meth").for2 ++ // in S2, type mismatch errors trump auto-app messages
+    autoApp(q"meth").for3 ++ typeMismatches("String", encl).for3    // in S3, it's the reverse
+  }
+
+  def stillEta(meth: String, encl: String) = {
+    msgsFor3(_ => Msg(W, s"method $meth is eta-expanded even though $encl does not have the @FunctionalInterface annotation."))
+  }
+
+  def noEtaNullary = msgsFor2 {
+    case W => Msg(W, "Methods without a parameter list and by-name params can no longer be converted to functions as `m _`, write a function literal `() => m` instead")
+    case E => Msg(E, "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead")
+  }
+
+  def missingArgs(meth: String, cls: String, param: String) =
+    msgsFor2(_ => MissingArgMsg(E, s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param.")) ++
+    msgsFor3(_ => MissingArgMsg(E, s"missing argument for parameter $param of method $meth"))
 }

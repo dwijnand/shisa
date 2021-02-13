@@ -25,6 +25,14 @@ final case class Msgs(
   def :::(msgs: Msgs) = Msgs(m2rg ::: msgs.m2rg, m2nw ::: msgs.m2nw,
     m30m ::: msgs.m30m, m30r ::: msgs.m30r, m31m ::: msgs.m31m, m31r ::: msgs.m31r)
 
+  def ++(msgs: Msgs) = Msgs(add(m2rg, msgs.m2rg), add(m2nw, msgs.m2nw),
+    add(m30m, msgs.m30m), add(m30r, msgs.m30r), add(m31m, msgs.m31m), add(m31r, msgs.m31r))
+
+  private def add(a: List[Msg], b: List[Msg])  = if (a.exists(_.sev == E)) a else a ::: b
+
+  def for2: Msgs = Msgs(m2rg, m2nw, Nil, Nil, Nil, Nil)
+  def for3: Msgs = Msgs(Nil, Nil, m30m, m30r, m31m, m31r)
+
   def toList = List(m2rg, m2nw, m30m, m30r, m31m, m31r)
 }
 
@@ -34,6 +42,13 @@ final case class TypeMismatchMsg(sev: Sev, text: String) extends Msg
 final case class   MissingArgMsg(sev: Sev, text: String) extends Msg
 
 object `package` {
+  implicit class MsgOps(private val self: Msg) extends AnyVal {
+    def :+(msg: Msg): List[Msg] = self.sev match {
+      case W => List(self, msg)
+      case E => List(self)
+    }
+  }
+
   val noMsgs            = Msgs(Nil, Nil, Nil, Nil, Nil, Nil)
   def  err(str: String) = Msg(E, str)
   val NoTest            = TestContents(Nil, Nil, noMsgs)

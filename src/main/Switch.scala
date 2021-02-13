@@ -55,13 +55,13 @@ object Switch {
       case (P2M, S3, E) => OverrideMsg(E, p2m3e)
     }
 
-    // TODO: autoApp then override; in S3 m2p isn't autoApp, in both call=Meth isn't autoApp
     val msgs = {
       def go(f: (SV, Sev) => List[Msg]) =
         Msgs(f(S2, W), f(S2, E), f(S3, W), f(S3, E), f(S3, E), f(S3, E))
       go((sv, sev) => (call, switch, sv, sev) match {
         case (Meth,   _,  _, _) => List(                                     overrideMsg(sv, sev))
         case (   _, M2P, S3, _) => List(                                     overrideMsg(sv, sev))
+        // TODO: autoApp then override; in S3 m2p isn't autoApp, in both call=Meth isn't autoApp
         case (   _,   _, S2, _) => List(AutoAppMsg(W, autoApp2(meth.value)), overrideMsg(sv, sev))
         case (   _,   _,  _, W) => List(AutoAppMsg(W, autoApp3(meth.value)), overrideMsg(sv,   W))
         case _                  => List(AutoAppMsg(E, autoApp3(meth.value)))
