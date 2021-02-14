@@ -35,37 +35,38 @@ object Switch {
     val stat  = call   match { case Meth => q"$vname.$meth()" case Prop => q"$vname.$meth" }
     val encl  = s"trait $tname"
 
-    val m2p2b = s"method without a parameter list overrides a method with a single empty one"
-    val p2m2w = s"method with a single empty parameter list overrides method without any parameter list"
-    val p2m2e = s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)"
-    val m2p3w = s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp no longer has compatible type"
-    val m2p3e = s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp has incompatible type"
-    val p2m3w = s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp no longer has compatible type"
-    val p2m3e = s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp has incompatible type"
+    def overrideMsgM2P = mkOverrideMsgs(
+      OverrideMsg(W, "method without a parameter list overrides a method with a single empty one"),
+      OverrideMsg(E, "method without a parameter list overrides a method with a single empty one"),
+      overrideMsg3(W, s"(): $tp", s"=> $tp"),
+      overrideMsg3(E, s"(): $tp", s"=> $tp"),
+    )
 
-    def overrideMsg(sv: SV, sev: Sev) = (switch, sv, sev) match {
-      case (M2P, S2, W) => OverrideMsg(W, m2p2b)
-      case (M2P, S2, E) => OverrideMsg(E, m2p2b)
-      case (P2M, S2, W) => OverrideMsg(W, p2m2w)
-      case (P2M, S2, E) => OverrideMsg(E, p2m2e)
+    def overrideMsgP2M = mkOverrideMsgs(
+      OverrideMsg(W, s"method with a single empty parameter list overrides method without any parameter list"),
+      OverrideMsg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)"),
+      overrideMsg3(W, s"=> $tp", s"(): $tp"),
+      overrideMsg3(E, s"=> $tp", s"(): $tp"),
+    )
 
-      case (M2P, S3, W) => OverrideMsg(W, m2p3w)
-      case (M2P, S3, E) => OverrideMsg(E, m2p3e)
-      case (P2M, S3, W) => OverrideMsg(W, p2m3w)
-      case (P2M, S3, E) => OverrideMsg(E, p2m3e)
+    def overrideMsg3(sev: Sev, pt: String, tp: String) = sev match {
+      case W => OverrideMsg(W, s"error overriding method $meth in $encl of type $pt;\n  method $meth of type $tp no longer has compatible type")
+      case E => OverrideMsg(E, s"error overriding method $meth in $encl of type $pt;\n  method $meth of type $tp has incompatible type")
+    }
+
+    def mkOverrideMsgs(msg2w: Msg, msg2e: Msg, msg3w: Msg, msg3e: Msg) =
+      Msgs(List(msg2w), List(msg2e) List(msg3w), List(msg3e), List(msg3e), List(msg3e))
+
+    def switchAutoApp(switch: Switch, call: MethOrProp) = (switch, call) match {
+      case (_, Meth) => noMsgs // no auto-application if calling as meth, in either m2p or p2m
+      case (M2P, _)  => autoApp(meth).for2 // m2p_p is only auto-application for S2
+      case _         => autoApp(meth)
     }
 
     val msgs = {
-      def go(f: (SV, Sev) => List[Msg]) =
-        Msgs(f(S2, W), f(S2, E), f(S3, W), f(S3, E), f(S3, E), f(S3, E))
-      go((sv, sev) => (call, switch, sv, sev) match {
-        case (Meth,   _,  _, _) => List(                                     overrideMsg(sv, sev))
-        case (   _, M2P, S3, _) => List(                                     overrideMsg(sv, sev))
-        // TODO: autoApp then override; in S3 m2p isn't autoApp, in both call=Meth isn't autoApp
-        case (   _,   _, S2, _) => List(AutoAppMsg(W, autoApp2(meth.value)), overrideMsg(sv, sev))
-        case (   _,   _,  _, W) => List(AutoAppMsg(W, autoApp3(meth.value)), overrideMsg(sv,   W))
-        case _                  => List(AutoAppMsg(E, autoApp3(meth.value)))
-      })
+      val autoAppMsgs  = switchAutoApp(switch, call)
+      val overrideMsgs = switch match { case M2P => overrideMsgM2P case P2M => overrideMsgP2M }
+      autoAppMsgs ++ overrideMsgs // auto-app errors suppress override messages
     }
 
     TestFile(name, TestContents(List(tdefn, cdefn, vdefn), List(stat), msgs))
