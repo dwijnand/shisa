@@ -11,13 +11,13 @@ import scala.meta._, contrib._
 // * receiver name, super name
 // * method name/result type (hashCode, toString, getClass)
 object Switch {
-  def tests: List[TestFile] = List(TestFile("Switch", TestList(list1)))
-  def list1 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield switchFile(switch, call)
+  def tests: List[TestFile] = List(TestFile("Switch", TestList(list1)), TestFile("Switch.only", TestList(list0)))
+  def list1 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).switchAndCallTestFile()
+  def list0 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).justSwitchTestFile()
 
   sealed trait Switch; case object M2P extends Switch; case object P2M extends Switch
 
-  // TODO: test just override without calling
-  def switchFile(switch: Switch, call: MethOrProp): TestFile = {
+  class SwitchFile(switch: Switch, call: MethOrProp) {
     val pref  = switch match { case M2P  => "M2P" case P2M  => "P2M" }
     val suff  = call   match { case Meth => "M"   case Prop => "P"   }
     val name  = s"${pref}_$suff"
@@ -55,7 +55,7 @@ object Switch {
     }
 
     def mkOverrideMsgs(msg2w: Msg, msg2e: Msg, msg3w: Msg, msg3e: Msg) =
-      Msgs(List(msg2w), List(msg2e) List(msg3w), List(msg3e), List(msg3e), List(msg3e))
+      Msgs(List(msg2w), List(msg2e), List(msg3w), List(msg3e), List(msg3e), List(msg3e))
 
     def switchAutoApp(switch: Switch, call: MethOrProp) = (switch, call) match {
       case (_, Meth) => noMsgs // no auto-application if calling as meth, in either m2p or p2m
@@ -63,12 +63,14 @@ object Switch {
       case _         => autoApp(meth)
     }
 
-    val msgs = {
-      val autoAppMsgs  = switchAutoApp(switch, call)
-      val overrideMsgs = switch match { case M2P => overrideMsgM2P case P2M => overrideMsgP2M }
-      autoAppMsgs ++ overrideMsgs // auto-app errors suppress override messages
-    }
+    val autoAppMsgs  = switchAutoApp(switch, call)
+    val overrideMsgs = switch match { case M2P => overrideMsgM2P case P2M => overrideMsgP2M }
 
-    TestFile(name, TestContents(List(tdefn, cdefn, vdefn), List(stat), msgs))
+    def justSwitchTestFile() = TestFile(name, mkTest(tdefn, cdefn, overrideMsgs))
+
+    def switchAndCallTestFile() = {
+      val msgs = autoAppMsgs ++ overrideMsgs // auto-app errors suppress override messages
+      TestFile(name, TestContents(List(tdefn, cdefn, vdefn), List(stat), msgs))
+    }
   }
 }
