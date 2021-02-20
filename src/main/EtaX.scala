@@ -77,8 +77,8 @@ object EtaX {
   }
 
   def sam0Msgs(encl: String) = {
-    typeMismatches("String", encl).for2 ++ autoApp(q"meth").for2 ++ // in S2, type mismatch errors trump auto-app messages
-    autoApp(q"meth").for3 ++ typeMismatches("String", encl).for3    // in S3, it's the reverse
+    (typeMismatches("String", encl) ++ autoApp(q"meth")).for2 ++ // in S2, type mismatch errors trump auto-app messages
+    (autoApp(q"meth") ++ typeMismatches("String", encl)).for3    // in S3, it's the reverse
   }
 
   def stillEta(meth: String, encl: String) = {
