@@ -91,11 +91,11 @@ object EtaX {
   }
 
   def missingArgs(cls: String, meth: String, param: String, sig: String) =
-    msgsFor2(_ => MissingArgMsg(E, s"not enough arguments for method $meth: $sig in class $cls.\nUnspecified value parameter $param.")) ++
-    msgsFor3(_ => MissingArgMsg(E, s"missing argument for parameter $param of method $meth in class $cls: $sig"))
+    msgsFor2(_ => Msg(E, s"not enough arguments for method $meth: $sig in class $cls.\nUnspecified value parameter $param.")) ++
+    msgsFor3(_ => Msg(E, s"missing argument for parameter $param of method $meth in class $cls: $sig"))
 
-  def typeMismatch2(tp: String, pt: String)  = TypeMismatchMsg(E, s"type mismatch;\n found   : $tp\n required: $pt")
-  def typeMismatch3(tp: String, pt: String)  = TypeMismatchMsg(E, s"Found:    $tp\nRequired: $pt")
+  def typeMismatch2(tp: String, pt: String)  = Msg(E, s"type mismatch;\n found   : $tp\n required: $pt")
+  def typeMismatch3(tp: String, pt: String)  = Msg(E, s"Found:    $tp\nRequired: $pt")
   def typeMismatches(tp: String, pt: String) = msgsFor2(_ => typeMismatch2(tp, pt)) ++ msgsFor3(_ => typeMismatch3(tp, pt))
   def etaMismatch(tp: String, pt: String)    = Msgs(Nil, Nil, Nil, List(typeMismatch3(tp, pt)), List(typeMismatch3(tp, pt)), List(typeMismatch3(tp, pt)))
 }
