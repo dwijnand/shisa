@@ -22,7 +22,7 @@ object EtaX {
   val Sam1J  = q"@FunctionalInterface trait Sam1J { def apply(x: Any): Any }"
 
   val meth01    =                  mkTest(meth,   q"val t3a: () => Any  = meth                   ", noMsgs)
-  val meth02    =                  mkTest(meth,   q"val t3b: Any        = { val t = meth; t }    ", autoApp(q"meth"))
+  val meth02    =                  mkTest(meth,   q"val t3b: Any        = { val t = meth; t }    ", autoApp(q"object Test", q"meth"))
   val meth03    =                  mkTest(meth,   q"val t3c: () => Any  = meth _                 ", msgsForEtaX())
   val meth04    =                  mkTest(meth,   q"val t3d: () => Any  = { val t = meth _ ; t } ", msgsForEtaX())
   val meth05    =                  mkTest(meth,   q"val t3e: Any        = meth _                 ", msgsForEtaX())
@@ -36,24 +36,24 @@ object EtaX {
   val methSam1J = mkF("methSam1J", mkSam1(meth1,  q"val t5c: Sam1J     = meth1            ", Sam1J, noMsgs))
   val prop1     = mkF("prop1",     mkTest(prop,   q"val t2a: () => Any = prop                    ", typeMismatches("String", "() => Any")))
   val prop2     = mkF("prop2",     mkTest(prop,   q"val t2b: Any       = { val t = prop   ; t }  ", noMsgs))
-  val prop3     = mkF("prop3",     mkTest(prop,   q"val t2c: () => Any = prop()                  ", missingArgs("apply: (i: Int): Char", "StringOps", "i")))
+  val prop3     = mkF("prop3",     mkTest(prop,   q"val t2c: () => Any = prop()                  ", missingArgs("StringOps", "apply", "i", "(i: Int): Char")))
   val prop4     = mkF("prop4",     mkTest(prop,   q"val t2d: () => Any = prop _                  ", noEtaNullary ++ onlyFuncs("String") ++ etaMismatch("String", "() => Any")))
   val prop5     = mkF("prop5",     mkTest(prop,   q"val t2e: () => Any = { val t = prop _ ; t }  ", noEtaNullary ++ onlyFuncs("String") ::: etaMismatch("(t : String)", "() => Any")))
   val prop6     = mkF("prop6",     mkTest(prop,   q"val t2f: Any       = prop _                  ", noEtaNullary ++ onlyFuncs("String")))
-  val prop7     = mkF("prop7",     mkTest(prop,   q"val t2g: Any       = prop() _                ", onlyFuncs("<error unspecified error>") ++ missingArgs("apply: (i: Int): Char", "StringOps", "i")))
+  val prop7     = mkF("prop7",     mkTest(prop,   q"val t2g: Any       = prop() _                ", onlyFuncs("<error unspecified error>") ++ missingArgs("StringOps", "apply", "i", "(i: Int): Char")))
   val methF0_1  = mkF("methF0_1",  mkTest(methF0, q"val t1a: () => Any = methF0                  ", noMsgs))
-  val methF0_2  = mkF("methF0_2",  mkTest(methF0, q"val t1b: () => Any = { val t = methF0; t }   ", autoApp(q"methF0")))
+  val methF0_2  = mkF("methF0_2",  mkTest(methF0, q"val t1b: () => Any = { val t = methF0; t }   ", autoApp(q"object Test", q"methF0")))
   val methF0_3  = mkF("methF0_3",  mkTest(methF0, q"val t1c: () => Any = methF0 _                ", msgsForEtaX()))
   val methF0_4  = mkF("methF0_4",  mkTest(methF0, q"val t1d: Any       = methF0 _                ", msgsForEtaX()))
   val methF0_5  = mkF("methF0_5",  mkTest(methF0, q"val t1e: Any       = methF0() _              ", msgsFor2(_ => mustFollow("() => String")) ++ onlyFuncs("() => String")))
-  val meth21    = mkF("meth21",    mkTest(meth2,  q"val t4a: () => Any = meth2                   ", msgsForEtaX()))
+  val meth21    = mkF("meth21",    mkTest(meth2,  q"val t4a: () => Any = meth2                   ", autoApp(q"object Test", q"meth2").for3))
   val meth22    = mkF("meth22",    mkTest(meth2,  q"val t4b: () => Any = meth2()                 ", noMsgs))
-  val meth23    = mkF("meth23",    mkTest(meth2,  q"val t4c: () => Any = meth2 _                 ", msgsForEtaX()))
+  val meth23    = mkF("meth23",    mkTest(meth2,  q"val t4c: () => Any = meth2 _                 ", autoApp(q"object Test", q"meth2").for3))
   val meth24    = mkF("meth24",    mkTest(meth2,  q"val t4d: () => Any = meth2() _               ", msgsForEtaX()))
 
   val methT     = mkFile("EtaX.meth",  List(meth01, meth02, meth03, meth04, meth05, meth06))
   val meth1T    = mkFile("EtaX.meth1", List(meth11, meth12, meth13))
-  val boom      = mkF("boom",  mkTest(q"class A { def boom(): Unit = () }", q"new A().boom", autoApp(q"boom")))
+  val boom      = mkF("boom",  mkTest(q"class A { def boom(): Unit = () }", q"new A().boom", autoApp(q"class A", q"boom")))
   val cloneEta  = mkF("clone", TestContents(Nil, List(q"val ys = { val t = scala.collection.mutable.Map(1 -> 'a'); t.clone }"), noMsgs))
 
   def mkF(name: String, t: Test)                          = TestFile(s"EtaX.$name", t)
@@ -77,8 +77,8 @@ object EtaX {
   }
 
   def sam0Msgs(encl: String) = {
-    (typeMismatches("String", encl) ++ autoApp(q"meth")).for2 ++ // in S2, type mismatch errors trump auto-app messages
-    (autoApp(q"meth") ++ typeMismatches("String", encl)).for3    // in S3, it's the reverse
+    (typeMismatches("String", encl) ++ autoApp(q"object Test", q"meth")).for2 ++ // in S2, type mismatch errors trump auto-app messages
+    (autoApp(q"object Test", q"meth") ++ typeMismatches("String", encl)).for3    // in S3, it's the reverse
   }
 
   def stillEta(meth: String, encl: String) = {
@@ -90,9 +90,9 @@ object EtaX {
     case E => Msg(E, "Methods without a parameter list and by-name params can not be converted to functions as `m _`, write a function literal `() => m` instead")
   }
 
-  def missingArgs(meth: String, cls: String, param: String) =
-    msgsFor2(_ => MissingArgMsg(E, s"not enough arguments for method $meth in class $cls.\nUnspecified value parameter $param.")) ++
-    msgsFor3(_ => MissingArgMsg(E, s"missing argument for parameter $param of method $meth"))
+  def missingArgs(cls: String, meth: String, param: String, sig: String) =
+    msgsFor2(_ => MissingArgMsg(E, s"not enough arguments for method $meth: $sig in class $cls.\nUnspecified value parameter $param.")) ++
+    msgsFor3(_ => MissingArgMsg(E, s"missing argument for parameter $param of method $meth in class $cls: $sig"))
 
   def typeMismatch2(tp: String, pt: String)  = TypeMismatchMsg(E, s"type mismatch;\n found   : $tp\n required: $pt")
   def typeMismatch3(tp: String, pt: String)  = TypeMismatchMsg(E, s"Found:    $tp\nRequired: $pt")

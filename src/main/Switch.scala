@@ -59,8 +59,8 @@ object Switch {
 
     def switchAutoApp(switch: Switch, call: MethOrProp) = (switch, call) match {
       case (_, Meth) => noMsgs // no auto-application if calling as meth, in either m2p or p2m
-      case (M2P, _)  => autoApp(meth).for2 // m2p_p is only auto-application for S2
-      case _         => autoApp(meth)
+      case (M2P, _)  => autoApp(q"class $cname", meth).for2 // m2p_p is only auto-application for S2
+      case _         => autoApp(q"class $cname", meth)
     }
 
     val autoAppMsgs  = switchAutoApp(switch, call)

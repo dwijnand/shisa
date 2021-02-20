@@ -1,5 +1,5 @@
 val scalaV2 = "2.13.4"
-val scalaV3 = "3.0.0-M3"
+val scalaV3 = "3.0.0-RC1"
 
 inThisBuild(Def.settings(
      organization := "com.dwijnand",
@@ -39,11 +39,7 @@ val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
   libraryDependencies += scalaOrganization.value %% "scala3-compiler" % scalaVersion.value,
 )
 
-val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
-  buildInfoPackage := "shisa",
-  buildInfoKeys := Seq[BuildInfoKey](
-    classesDir(shisaScalac3, Compile).taskValue.named("scalac3Dir"),
-  ),
+val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3).settings(
   libraryDependencies ++= List(
     "org.typelevel"   %% "cats-core"         % "2.3.1",
     "io.get-coursier" %% "coursier"          % "2.0.2",
@@ -51,7 +47,7 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2).settings(
     "ch.epfl.scala"   %% "scalafix-rules"    % "0.9.25",
   //"ch.epfl.scala"   %  "scalafix-cli"      % "0.9.25" cross CrossVersion.full,
   )
-).enablePlugins(BuildInfoPlugin)
+)
 
 val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(
   Compile / unmanagedSourceDirectories := Nil,

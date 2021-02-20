@@ -32,7 +32,7 @@ import scala.meta._, contrib._
 object Call {
   def tests: List[TestFile] = methP_Test :: propM_Test :: negValTests :: posValTests :: clsTests :: Nil
 
-  val methP_Test = TestFile("Call.meth_p", mkTest(q"def foo() = 1", q"foo",   autoApp(q"foo")))
+  val methP_Test = TestFile("Call.meth_p", mkTest(q"def foo() = 1", q"foo",   autoApp(q"object Test", q"foo")))
   val propM_Test = TestFile("Call.prop_m", mkTest(q"def foo   = 2", q"foo()", noParams("object Test", q"foo", tpnme.Int)))
 
   val cls1 = List(q"class  CR".withRunnable, q"class  CCR".withRunnable.toCaseClass)

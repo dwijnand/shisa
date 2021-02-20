@@ -73,20 +73,19 @@ object `package` {
   def msgsFor2(f: Sev => Msg) = Msgs(List(f(W)), List(f(E)),        Nil,        Nil,        Nil,        Nil)
   def msgsFor3(f: Sev => Msg) = Msgs(       Nil,        Nil, List(f(W)), List(f(E)), List(f(W)), List(f(E)))
 
-  def autoApp(meth: Term.Name) = Msgs(
+  def autoApp(encl: Defn, meth: Term.Name) = Msgs(
     List(AutoAppMsg(W, autoApp2(meth.value))),
     List(AutoAppMsg(W, autoApp2(meth.value))),
-    List(AutoAppMsg(W, autoApp3(meth.value))),
-    List(AutoAppMsg(E, autoApp3(meth.value))),
-    List(AutoAppMsg(E, autoApp3(meth.value))),
-    List(AutoAppMsg(E, autoApp3(meth.value))),
+    List(AutoAppMsg(W, s"method $meth must be called with () argument")),
+    List(AutoAppMsg(E, s"method $meth in $encl must be called with () argument")),
+    List(AutoAppMsg(E, s"method $meth in $encl must be called with () argument")),
+    List(AutoAppMsg(E, s"method $meth in $encl must be called with () argument")),
   )
 
   def autoApp2(meth: String) =
     s"""Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method $meth,
        |or remove the empty argument list from its definition (Java-defined methods are exempt).
        |In Scala 3, an unapplied method like this will be eta-expanded into a function.""".stripMargin
-  def autoApp3(meth: String) = s"method $meth must be called with () argument"
 
   implicit class ListOps[T](private val xs: List[T]) extends AnyVal {
     def has[U](implicit classifier: Classifier[T, U]): Boolean = xs.exists( classifier(_))

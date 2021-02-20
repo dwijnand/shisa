@@ -9,7 +9,7 @@ object Deps {
   val scalaEaRepo            = mvn"https://scala-ci.typesafe.com/artifactory/scala-integration"
   val scalaPrRepo            = mvn"https://scala-ci.typesafe.com/artifactory/scala-pr-validation-snapshots"
   val scalac2Jars            = fetch(dep"org.scala-lang:scala-compiler:2.13.4")
-  val scalac3Jars            = fetch(dep"org.scala-lang:scala3-compiler_3.0.0-M3:3.0.0-M3")
+  val scalac3Jars            = fetch(dep"org.scala-lang:scala3-compiler_3.0.0-RC1:3.0.0-RC1")
   def fetch(dep: Dependency) = Fetch().addRepositories(scalaEaRepo, scalaPrRepo).addDependencies(dep).run()
   val shisaScalac3Classes    = new File(s"target/shisaScalac3/scala-3.0.0-M3/classes")
   val scalac3Cp              = (shisaScalac3Classes +: scalac3Jars).map(_.toURI.toURL)

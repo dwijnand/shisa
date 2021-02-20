@@ -27,8 +27,8 @@ object Main {
   val SC2N        = mkScalac2("2.13-new", "-Xsource:3")
   val SC3M        = mkScalac3("3.0-migr", "-source 3.0-migration")
   val SC3         = mkScalac3("3.0",      "-source 3.0")
-  val SC31M       = mkScalac3("3.1-migr", "-source 3.1-migration")
-  val SC31        = mkScalac3("3.1",      "-source 3.1")
+  val SC31M       = mkScalac3("3.f-migr", "-source future-migration")
+  val SC31        = mkScalac3("3.f",      "-source future")
   val mkCompilers = List(SC2, SC2N, SC3M, SC3, SC31M, SC31)
   val tests       = (Call.tests ::: Switch.tests ::: EtaX.tests).sortBy(_.name)
   val testsMap    = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, t1 ++ t2))
@@ -45,7 +45,7 @@ object Main {
 
   def runTests(tests: List[TestFile]): Unit = {
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
-    val futures = tests.map(test => pool.submit[List[TestFailure]](() => {
+    val futures = tests.sortBy(_.name).distinctBy(_.name).map(test => pool.submit[List[TestFailure]](() => {
       println(s"* ${test.name}")
       runTest(mkCompilers.map(_.mkCompiler), test.name, test.test)
     }))
@@ -57,7 +57,8 @@ object Main {
     val testFailures = futures.flatMap(_.get(0, NANOSECONDS))
     if (testFailures.nonEmpty) {
       System.err.println("Test failures:")
-      testFailures.foreach { case TestFailure(src, failures) => System.err.println(s"  $src $failures") }
+      testFailures.foreach { case TestFailure(name, msg) => System.err.println(s"  $name: $msg") }
+      System.err.println(s"${testFailures.size} failures.")
       System.err.println(s"> run ${testFailures.map(_.name).mkString(" ")}")
       throw new Exception("Test failures", null, false, false) {}
     }
@@ -97,7 +98,7 @@ object Main {
     } yield {
       //println(s"obt:" + obtMsgs.sorted.map(showObt(_)).mkString)
       //println(s"exp:" + expMsgs.sorted.map(showExp(_)).mkString)
-      TestFailure(name, s"$name: message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET):$lines")
+      TestFailure(name, s"message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET):$lines")
     }
   }
 
