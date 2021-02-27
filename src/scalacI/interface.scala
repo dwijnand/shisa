@@ -6,7 +6,12 @@ sealed trait Sev
 case object W extends Sev
 case object E extends Sev
 
-final case class Msg(sev: Sev, text: String)
+final case class Msg(sev: Sev, text: String) {
+  def :+(msg: Msg): List[Msg] = sev match {
+    case W => List(this, msg)
+    case E => List(this)
+  }
+}
 
 object Msg {
   val NoMsg = Msg(E, "<no message>")

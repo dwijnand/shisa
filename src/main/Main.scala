@@ -47,7 +47,7 @@ object Main {
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = tests.sortBy(_.name).distinctBy(_.name).map(test => pool.submit[List[TestFailure]](() => {
       println(s"* ${test.name}")
-      runTest(mkCompilers.map(_.mkCompiler), test.name, test.test)
+      prepAndRunTest(test)
     }))
     pool.shutdown()
 
@@ -62,6 +62,10 @@ object Main {
       System.err.println(s"> run ${testFailures.map(_.name).mkString(" ")}")
       throw new Exception("Test failures", null, false, false) {}
     }
+  }
+
+  def prepAndRunTest(test: TestFile): List[TestFailure] = {
+    runTest(mkCompilers.map(_.mkCompiler), test.name, test.test)
   }
 
   def runTest(compilers: List[Compiler], name: String, test: Test): List[TestFailure] = test match {

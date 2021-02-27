@@ -31,8 +31,8 @@ import scala.meta._, classifiers.{ Classifiable, Classifier }, contrib._
 object Call {
   def tests: List[TestFile] = methP_Test :: propM_Test :: negValTests :: posValTests :: clsTests :: Nil
 
-  val methP_Test = TestFile("Call.meth_p", mkTest(q"def foo() = 1", q"foo",   autoApp(q"object Test", q"foo")))
-  val propM_Test = TestFile("Call.prop_m", mkTest(q"def foo   = 2", q"foo()", noParams("object Test", q"foo", tpnme.Int)))
+  val methP_Test = TestFile("Call.meth_p", Test(q"def foo() = 1", q"foo",   autoApp(q"object Test", q"foo")))
+  val propM_Test = TestFile("Call.prop_m", Test(q"def foo   = 2", q"foo()", noParams("object Test", q"foo", tpnme.Int)))
 
   val   CR = q"class   CR".withRunnable
   val  CCR = q"class  CCR".withRunnable.toCaseClass
@@ -53,25 +53,25 @@ object Call {
   def nil(qual: Term, name: Term.Name): Term       = q"$qual.$name()"
   def two(qual: Term, name: Term.Name): List[Term] = List(nul(qual, name), nil(qual, name))
 
-  def mkNegTest(defn: Defn, inst: Term, meth: Term.Name) = mkTest(defn, nil(inst, meth), noParams("class Any", meth, tpnme.Int))
-  def mkPosTest(defn: Defn, inst: Term, meth: Term.Name) = for (stat <- two(inst, meth)) yield mkTest(defn, stat, noMsgs)
+  def mkNegTest(defn: Defn, inst: Term, meth: Term.Name) = Test(defn, nil(inst, meth), noParams("class Any", meth, tpnme.Int))
+  def mkPosTest(defn: Defn, inst: Term, meth: Term.Name) = for (stat <- two(inst, meth)) yield Test(defn, stat, Msgs())
 
-  val negValTests = mkFile("Call.negVal", for (x <- vals) yield mkNegTest(x, x.inst, nme.hashHash))
+  val negValTests = TestFile("Call.negVal", for (x <- vals) yield mkNegTest(x, x.inst, nme.hashHash))
 
-  val posValTests = mkFile("Call.posVal", List(
-    for (               val1 <- vals) yield mkTest(val1, nul(val1.inst, nme.hashHash), noMsgs),
+  val posValTests = TestFile("Call.posVal", List(
+    for (               val1 <- vals) yield Test(val1, nul(val1.inst, nme.hashHash), Msgs()),
     for (meth <- meths; val1 <- vals; test <- mkPosTest(val1, val1.inst, meth)) yield test,
   ).flatten)
 
-  val clsTests = mkFile("Call.cls", List(
+  val clsTests = TestFile("Call.cls", List(
     for (x <- clss; test <- mkPosTest(x, x.inst, nme.toString_)) yield test,
     for (x <- clsR; test <- mkPosTest(x, x.inst, nme.run      )) yield test,
   ).flatten)
 
-  def noParams(enc: String, meth: Term.Name, tp: Type.Name) = {
-    msgsFor2(_ => err(s"$tp does not take parameters")) :::
-      msgsFor3(_ => err(s"method $meth in $enc does not take parameters"))
-  }
+  def noParams(enc: String, meth: Term.Name, tp: Type.Name) = (
+        Msgs.for2(_ => Msg(E, s"$tp does not take parameters"))
+    ::: Msgs.for3(_ => Msg(E, s"method $meth in $enc does not take parameters"))
+  )
 
   implicit class DefnValOps(private val valDefn: Defn.Val) extends AnyVal {
     def inst = valDefn.pats match {
@@ -125,5 +125,21 @@ object Call {
 
     def  appendOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else xs :+ x
     def prependOnce[U](x: T)(implicit classifier: Classifier[T, U]) = if (xs.has[U]) xs else x :: xs
+  }
+
+  object nme {
+    val getClass_ = q"getClass"
+    val hashCode_ = q"hashCode"
+    val hashHash  = q"##"
+    val run       = q"run"
+    val toString_ = q"toString"
+  }
+
+  object tpnme {
+    val Any    = t"Any"
+    val AnyRef = t"AnyRef"
+    val Int    = t"Int"
+    val Object = t"Object"
+    val String = t"String"
   }
 }

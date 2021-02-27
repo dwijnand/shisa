@@ -15,14 +15,15 @@ object Switch {
   def list1 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).switchAndCallTestFile()
   def list0 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).justSwitchTestFile()
 
-  sealed trait Switch; case object M2P extends Switch; case object P2M extends Switch
+  sealed trait MethOrProp; case object Meth extends MethOrProp; case object Prop extends MethOrProp
+  sealed trait Switch;     case object M2P  extends Switch;     case object P2M  extends Switch
 
   class SwitchFile(switch: Switch, call: MethOrProp) {
     val pref  = switch match { case M2P  => "M2P" case P2M  => "P2M" }
     val suff  = call   match { case Meth => "M"   case Prop => "P"   }
     val name  = s"${pref}_$suff"
     val meth  = Term.Name(name.toLowerCase)
-    val tp    = tpnme.String
+    val tp    = t"String"
     val value = Lit.String("")
     val mdecl = switch match { case M2P  => q"def $meth(): $tp"   case P2M => q"def $meth: $tp" }
     val mdefn = switch match { case M2P  => q"def $meth = $value" case P2M => q"def $meth() = $value" }
@@ -58,7 +59,7 @@ object Switch {
       Msgs(List(msg2w), List(msg2e), List(msg3w), List(msg3e), List(msg3e), List(msg3e))
 
     def switchAutoApp(switch: Switch, call: MethOrProp) = (switch, call) match {
-      case (_, Meth) => noMsgs // no auto-application if calling as meth, in either m2p or p2m
+      case (_, Meth) => Msgs() // no auto-application if calling as meth, in either m2p or p2m
       case (M2P, _)  => autoApp(q"class $cname", meth).for2 // m2p_p is only auto-application for S2
       case _         => autoApp(q"class $cname", meth)
     }
@@ -66,7 +67,7 @@ object Switch {
     val autoAppMsgs  = switchAutoApp(switch, call)
     val overrideMsgs = switch match { case M2P => overrideMsgM2P case P2M => overrideMsgP2M }
 
-    def justSwitchTestFile() = TestFile(name, mkTest(tdefn, cdefn, overrideMsgs))
+    def justSwitchTestFile() = TestFile(name, Test(tdefn, cdefn, overrideMsgs))
 
     def switchAndCallTestFile() = {
       val msgs = autoAppMsgs ++ overrideMsgs // auto-app errors suppress override messages
