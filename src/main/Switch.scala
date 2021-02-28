@@ -36,36 +36,29 @@ object Switch {
     val stat  = call   match { case Meth => q"$vname.$meth()" case Prop => q"$vname.$meth" }
     val encl  = s"trait $tname"
 
-    def overrideMsgM2P = mkOverrideMsgs(
-      Msg(W, "method without a parameter list overrides a method with a single empty one"),
-      Msg(E, "method without a parameter list overrides a method with a single empty one"),
-      overrideMsg3(W, s"(): $tp", s"=> $tp"),
-      overrideMsg3(E, s"(): $tp", s"=> $tp"),
-    )
-
-    def overrideMsgP2M = mkOverrideMsgs(
-      Msg(W, s"method with a single empty parameter list overrides method without any parameter list"),
-      Msg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)"),
-      overrideMsg3(W, s"=> $tp", s"(): $tp"),
-      overrideMsg3(E, s"=> $tp", s"(): $tp"),
-    )
-
-    def overrideMsg3(sev: Sev, pt: String, tp: String) = sev match {
-      case W => Msg(W, s"error overriding method $meth in $encl of type $pt;\n  method $meth of type $tp no longer has compatible type")
-      case E => Msg(E, s"error overriding method $meth in $encl of type $pt;\n  method $meth of type $tp has incompatible type")
-    }
-
     def mkOverrideMsgs(msg2w: Msg, msg2e: Msg, msg3w: Msg, msg3e: Msg) =
       Msgs(List(msg2w), List(msg2e), List(msg3w), List(msg3e), List(msg3e), List(msg3e))
 
-    def switchAutoApp(switch: Switch, call: MethOrProp) = (switch, call) match {
+    val autoAppMsgs  = (switch, call) match {
       case (_, Meth) => Msgs() // no auto-application if calling as meth, in either m2p or p2m
       case (M2P, _)  => autoApp(q"class $cname", meth).for2 // m2p_p is only auto-application for S2
       case _         => autoApp(q"class $cname", meth)
     }
 
-    val autoAppMsgs  = switchAutoApp(switch, call)
-    val overrideMsgs = switch match { case M2P => overrideMsgM2P case P2M => overrideMsgP2M }
+    val overrideMsgs = switch match {
+      case M2P => mkOverrideMsgs(
+        Msg(W, "method without a parameter list overrides a method with a single empty one"),
+        Msg(E, "method without a parameter list overrides a method with a single empty one"),
+        Msg(W, s"error overriding method $meth in $encl of type (): $tp;\n        method $meth of type => $tp no longer has compatible type"),
+        Msg(E, s"error overriding method $meth in $encl of type (): $tp;\n        method $meth of type => $tp has incompatible type"),
+      )
+      case P2M => mkOverrideMsgs(
+        Msg(W, s"method with a single empty parameter list overrides method without any parameter list"),
+        Msg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)"),
+        Msg(W, s"error overriding method $meth in $encl of type => $tp;\n        method $meth of type (): $tp no longer has compatible type"),
+        Msg(E, s"error overriding method $meth in $encl of type => $tp;\n        method $meth of type (): $tp has incompatible type"),
+      )
+    }
 
     def justSwitchTestFile() = TestFile(name, Test(tdefn, cdefn, overrideMsgs))
 
