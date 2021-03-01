@@ -9,7 +9,7 @@ shisaRoot             baseDirectory                  -
 
 
 shisaMain             baseDirectory                  /src/main
-shisaMain             sourceDirectory                /src/main
+shisaMain             sourceDirectory                /src/main/src
 shisaMain  Compile    sourceDirectory                /src/main
 shisaMain  Compile    scalaSource                    /src/main
 shisaMain  Compile    javaSource                     /src/main

@@ -10,7 +10,6 @@ inThisBuild(Def.settings(
     scalacOptions += "-language:_",
     scalacOptions += "-Wunused:-imports",
     sourcesInBase := false,
-  sourceDirectory := baseDirectory.value / "src",
            target := baseDirectory.value / "target",
       historyPath := Some(target.value / ".history"),
 ))
@@ -18,13 +17,13 @@ inThisBuild(Def.settings(
 val shisa = proj1(project).in(file(".")).settings(sourceDirectory := target.value / "src")
 aggregateProjects(shisaScalacI, shisaScalac2, shisaScalac3, shisaMain, shisaTests)
 
-Compile / console      := (shisaMain / Compile / console).value
+Compile / console      := (shisaMain / Compile / console     ).value
 Compile / consoleQuick := (shisaMain / Compile / consoleQuick).value
-Compile / run          := (shisaMain / Compile / run).evaluated
-Compile / runMain      := (shisaMain / Compile / runMain).evaluated
-   Test / test         := (shisaTests / Test / test).value
-   Test / testOnly     := (shisaTests / Test / testOnly).evaluated
-   Test / testQuick    := (shisaTests / Test / testQuick).evaluated
+Compile / run          := (shisaMain / Compile / run         ).evaluated
+Compile / runMain      := (shisaMain / Compile / runMain     ).evaluated
+   Test / test         := (shisaTests / Test / test          ).value
+   Test / testOnly     := (shisaTests / Test / testOnly      ).evaluated
+   Test / testQuick    := (shisaTests / Test / testQuick     ).evaluated
 
 val shisaScalacI = proj(project)
 
@@ -50,13 +49,11 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3
 )
 
 val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(
-  Compile / unmanagedSourceDirectories := Nil,
-     Test / unmanagedSourceDirectories += (Test / sourceDirectory).value,
-     Test / sourceDirectory            := sourceDirectory.value,
-                   libraryDependencies += "org.scalameta" %% "munit"        % "0.7.13" % Test,
-                   libraryDependencies += "qa.hedgehog"   %% "hedgehog-sbt" % "0.5.1"  % Test,
-                        testFrameworks += TestFramework("munit.Framework"),
-                        testFrameworks += TestFramework("hedgehog.sbt.Framework"),
+  Test / sourceDirectory := baseDirectory.value,
+     libraryDependencies += "org.scalameta" %% "munit"        % "0.7.13" % Test,
+     libraryDependencies += "qa.hedgehog"   %% "hedgehog-sbt" % "0.5.1"  % Test,
+          testFrameworks += TestFramework("munit.Framework"),
+          testFrameworks += TestFramework("hedgehog.sbt.Framework"),
 )
 
 def proj1(p: Project) = p.settings(
@@ -65,23 +62,19 @@ def proj1(p: Project) = p.settings(
 )
 def proj(p: Project) = proj1(p).in(file("src") / uncapitalize(p.id.stripPrefix("shisa"))).settings(
   name := "shisa-" + baseDirectory.value.getName, // src/foo => shisa-foo
-
-  // IntelliJ's project import works better when these are set correctly.
+  // Setting the *{Source,Resource}Directories makes IJ's project import work better
   Seq(Compile, Test).flatMap(inConfig(_)(Seq(
+                 sourceDirectory := baseDirectory.value,
+                     scalaSource := sourceDirectory.value,
+                      javaSource := sourceDirectory.value,
+               resourceDirectory := sourceDirectory.value,
+      unmanagedSourceDirectories := List(scalaSource.value, javaSource.value).distinct,
+    unmanagedResourceDirectories := List(resourceDirectory.value),
         managedSourceDirectories := Nil,
-      unmanagedSourceDirectories := Nil,
       managedResourceDirectories := Nil,
-    unmanagedResourceDirectories := Nil,
+    unmanagedResources / excludeFilter := "*.scala" || "*.java",
   ))),
-
-            sourceDirectory            := baseDirectory.value,
-  Compile / sourceDirectory            := sourceDirectory.value,
-  Compile / scalaSource                := (Compile / sourceDirectory).value,
-  Compile / javaSource                 := (Compile / sourceDirectory).value,
-  Compile / unmanagedSourceDirectories += (Compile / sourceDirectory).value,
-
-  Compile / resourceDirectory := target.value / "src/main/resources",
-     Test / sourceDirectory   := target.value / "src/test",
+  Test / sourceDirectory := target.value / "src/test",
 )
 
 def uncapitalize(s: String) = {
@@ -96,5 +89,3 @@ def uncapitalize(s: String) = {
 }
 
 def classesDir(r: Reference, c: ConfigKey) = (r / c / classDirectory).toTask.dependsOn(r / c / compile)
-
-Global / excludeLintKeys ++= Set(javaSource, resourceDirectory, scalaSource)
