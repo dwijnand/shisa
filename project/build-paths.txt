@@ -1,0 +1,40 @@
+Global                sourcesInBase                  false
+Global                crossPaths                     true
+Global                baseDirectory                  -
+ThisBuild             baseDirectory                  /
+
+
+shisaRoot             baseDirectory                  /target/shisaRoot
+shisaRoot             target                         /target/shisaRoot
+shisaRoot             sourceDirectory                /target/shisaRoot/src{,/main,/test}
+shisaRoot             scalaSource                    /target/shisaRoot/src/{main,test}/scala
+shisaRoot             javaSource                     /target/shisaRoot/src/{main,test}/java
+shisaRoot             resourceDirectory              /target/shisaRoot/src/{main,test}/resources
+shisaRoot             crossTarget                    /target/shisaRoot/scala-2.13
+shisaRoot             classDirectory                 /target/shisaRoot/scala-2.13/{,test-}classes
+shisaRoot             sourceManaged                  /target/shisaRoot/scala-2.13/src_managed{,/main,/test}
+shisaRoot             resourceManaged                /target/shisaRoot/scala-2.13/resource_managed{,/main,/test}
+shisaRoot             cleanKeepFiles                 Vector()
+shisaRoot             cleanKeepGlobs                 List(/target/shisaRoot/.history)
+
+
+shisaMain             baseDirectory                  /src/main
+shisaMain             sourceDirectory                /src/main
+shisaMain  Compile    sourceDirectory                /src/main
+shisaMain  Compile    scalaSource                    /src/main
+shisaMain             sourceDirectories              List(/src/main, /src/scala2) / Nil
+shisaMain             unmanagedSourceDirectories     List(/src/main, /src/scala2) / Nil
+shisaMain             managedSourceDirectories       Nil / Nil
+shisaMain             {,un,man}ResourceDirectories   Nil / Nil
+
+shisaMain             target                         /target/shisaMain
+shisaMain  Test       sourceDirectory                /target/shisaMain/src/test
+shisaMain  Test       scalaSource                    /target/shisaMain/src/test/scala
+shisaMain             javaSource                     /target/shisaMain/src/{main,test}/java
+shisaMain             resourceDirectory              /target/shisaMain/src/{main,test}/resources
+shisaMain             crossTarget                    /target/shisaMain/scala-2.13
+shisaMain             classDirectory                 /target/shisaMain/scala-2.13/{,test-}classes
+shisaMain             sourceManaged                  /target/shisaMain/scala-2.13/src_managed{,/main,/test}
+shisaMain             resourceManaged                /target/shisaMain/scala-2.13/resource_managed{,/main,/test}
+shisaMain             cleanKeepFiles                 Vector()
+shisaMain             cleanKeepGlobs                 List(/target/shisaMain/.history)
