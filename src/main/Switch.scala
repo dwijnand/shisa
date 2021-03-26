@@ -11,14 +11,14 @@ import scala.meta._, contrib._
 // * receiver name, super name
 // * method name/result type (hashCode, toString, getClass)
 object Switch {
+  import Call.{ Call, Meth, Prop }
+  sealed trait Switch; case object M2P extends Switch; case object P2M extends Switch
+
   def tests: List[TestFile] = List(TestFile("Switch", TestList(list1)), TestFile("Switch.only", TestList(list0)))
   def list1 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).switchAndCallTestFile()
   def list0 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).justSwitchTestFile()
 
-  sealed trait MethOrProp; case object Meth extends MethOrProp; case object Prop extends MethOrProp
-  sealed trait Switch;     case object M2P  extends Switch;     case object P2M  extends Switch
-
-  class SwitchFile(switch: Switch, call: MethOrProp) {
+  class SwitchFile(switch: Switch, call: Call) {
     val pref  = switch match { case M2P  => "M2P" case P2M  => "P2M" }
     val suff  = call   match { case Meth => "M"   case Prop => "P"   }
     val name  = s"${pref}_$suff"

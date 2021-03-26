@@ -4,8 +4,25 @@ package tests
 import munit._
 
 class TestFileSourceTest extends FunSuite {
-  test("Call_negTests toSource")(compareToSource(Call.negTests, Call_negTests_expected))
   test("Call_posTests toSource")(compareToSource(Call.posTests, Call_posTests_expected))
+  test("Call_negTests toSource")(compareToSource(Call.negTests, Call_negTests_expected))
+
+  def Call_posTests_expected =
+    """object Test {
+      |  val str = ""
+      |  class CS { override def toString = "" }
+      |  val cs = new CS()
+      |  class CJ { override def toString() = "" }
+      |  val cj = new CJ()
+      |  str.toString
+      |  str.toString()
+      |  str.##
+      |  cs.toString
+      |  cs.toString()
+      |  cj.toString
+      |  cj.toString()
+      |}
+      |""".stripMargin
 
   def Call_negTests_expected =
     """object Test {
@@ -15,24 +32,6 @@ class TestFileSourceTest extends FunSuite {
       |  str.##()
       |  m1
       |  m2()
-      |}
-      |""".stripMargin
-
-  def Call_posTests_expected =
-    """object Test {
-      |  val str = ""
-      |  class CR
-      |  class CS { override def toString = "" }
-      |  class CJ { override def toString() = "" }
-      |  str.toString
-      |  str.toString()
-      |  new CR().toString
-      |  new CR().toString()
-      |  new CS().toString
-      |  new CS().toString()
-      |  new CJ().toString
-      |  new CJ().toString()
-      |  str.##
       |}
       |""".stripMargin
 

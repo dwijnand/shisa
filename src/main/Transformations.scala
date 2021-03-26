@@ -73,6 +73,7 @@ object Modify {
 object nme {
   val hashHash  = q"##"
   val toString_ = q"toString"
+  val Null      = Lit.Null()
 }
 
 object tpnme {

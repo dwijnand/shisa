@@ -22,46 +22,54 @@ import nme._, tpnme._
 // * the enclosing: method, nesting, constructors
 // * other compiler settings
 object Call {
-  val str = q"str"
-  val m1  = q"m1"; val m2 = q"m2"
-  val CR  = t"CR"; val CS = t"CS"; val CJ = t"CJ"
+  sealed trait Call; case object Meth extends Call; case object Prop extends Call
 
-  val strD  = q"val str = ${Lit.String("")}"
-  val m1D   = q"def $m1() = 1"
-  val m2D   = q"def $m2   = 2"
-  val CRD   = q"class CR"
-  val CSD   = CRD.copy(name = CS).append[Stat](q"""override def $toString_   = "" """)
-  val CJD   = CRD.copy(name = CJ).append[Stat](q"""override def $toString_() = "" """)
-  val AnyD  = q"class Any"
-  val TestD = q"object Test"
+  sealed trait MethKind
+  final case class OldMeth(encl: Defn, meth: Term.Name) extends MethKind
+  final case class NewMeth(defn: Defn.Def)              extends MethKind
 
-  val posShows = List(
-    mkNulTest(Pos, strD,     q"$str.$toString_",   toString_, AnyD),
-    mkNilTest(Pos, strD,     q"$str.$toString_()", toString_, AnyD),
-    mkNulTest(Pos, CRD, q"new $CR().$toString_",   toString_, AnyD),
-    mkNilTest(Pos, CRD, q"new $CR().$toString_()", toString_, AnyD),
-    mkNulTest(Pos, CSD, q"new $CS().$toString_",   toString_, AnyD),
-    mkNilTest(Pos, CSD, q"new $CS().$toString_()", toString_, AnyD),
-    mkNulTest(Pos, CJD, q"new $CJ().$toString_",   toString_, AnyD),
-    mkNilTest(Pos, CJD, q"new $CJ().$toString_()", toString_, AnyD),
+  final case class QualDefns(qual: Term, defns: List[Defn])
+
+  val str = QualDefns(q"str", List(                                                           q"""val str = ""      """))
+  val cs  = QualDefns(q"cs",  List(q"""class CS { override def ${nme.toString_}   = "" }""", q"""val cs  = new CS()"""))
+  val cj  = QualDefns(q"cj",  List(q"""class CJ { override def ${nme.toString_}() = "" }""", q"""val cj  = new CJ()"""))
+  val nul = QualDefns(Null,   Nil)
+
+  val allTests = List(
+    mkTest(str, OldMeth(q"class  Any", nme.toString_), Prop)(Pos),
+    mkTest(str, OldMeth(q"class  Any", nme.toString_), Meth)(Pos),
+    mkTest(str, OldMeth(q"class  Any", nme.hashHash),  Prop)(Pos),
+    mkTest(str, OldMeth(q"class  Any", nme.hashHash),  Meth)(Neg),
+    mkTest(cs,  OldMeth(q"class  Any", nme.toString_), Prop)(Pos),
+    mkTest(cs,  OldMeth(q"class  Any", nme.toString_), Meth)(Pos),
+    mkTest(cj,  OldMeth(q"class  Any", nme.toString_), Prop)(Pos),
+    mkTest(cj,  OldMeth(q"class  Any", nme.toString_), Meth)(Pos),
+    mkTest(nul, NewMeth(q"def m1() = 1"),              Prop)(Neg),
+    mkTest(nul, NewMeth(q"def m2   = 2"),              Meth)(Neg),
   )
-  val posHashP = mkNulTest(Pos, strD, q"$str.$hashHash",   hashHash, AnyD)
-  val negHashM = mkNilTest(Neg, strD, q"$str.$hashHash()", hashHash, AnyD)
-  val negMethP = mkNulTest(Neg,  m1D,    m1,               m1,       TestD)
-  val negPropM = mkNilTest(Neg,  m2D, q"$m2()",            m2,       TestD)
 
-  def mkNulTest(res: Res, defn: Defn, stat: Term,       meth: Term.Name, encl: Defn) = test(res, defn, stat,  autoApp(encl, meth))
-  def mkNilTest(res: Res, defn: Defn, stat: Term.Apply, meth: Term.Name, encl: Defn) = test(res, defn, stat, noParams(encl, meth, Int))
-
-  def test(res: Res, defn: Defn, stat: Stat, msgs: Msgs) = Test(defn, stat, ifMsgs(res)(msgs))
-  def ifMsgs(res: Res)(msgs: Msgs) = res match { case Pos => Msgs() case Neg => msgs }
+  def mkTest(qualDefns: QualDefns, methKind: MethKind, call: Call)(res: Res) = {
+    val QualDefns(qual, defns0) = qualDefns
+    val (encl, meth) = methKind match {
+      case OldMeth(encl, meth) => (encl, meth)
+      case NewMeth(defn)       => (q"object Test", defn.name)
+    }
+    val defns = methKind match {
+      case OldMeth(_, _) => defns0
+      case NewMeth(defn) => defns0 :+ defn
+    }
+    val term  = qual match { case Null => meth                case _    => Term.Select(qual, meth)   }
+    val stat  = call match { case Meth => q"$term()"          case Prop => q"$term"                  }
+    val msg0  = call match { case Meth => autoApp(encl, meth) case Prop => noParams(encl, meth, Int) }
+    val msgs  = res  match { case Pos  => Msgs()              case Neg  => msg0                      }
+    TestContents(defns, List(stat), msgs)
+  }
 
   def noParams(encl: Defn, meth: Term.Name, tp: Type.Name) = (
         Msgs.for2(_ => Msg(E, s"$tp does not take parameters"))
     ::: Msgs.for3(_ => Msg(E, s"method $meth in $encl does not take parameters"))
   )
 
-  val posTests = posShows ::: posHashP :: Nil
-  val negTests = negHashM  :: negMethP :: negPropM :: Nil
-  val tests    = List(TestFile("Call.pos", posTests), TestFile("Call.neg", negTests))
+  val (posTests, negTests) = allTests.partition(_.msgs.isEmpty)
+  val tests                = List(TestFile("Call.pos", posTests), TestFile("Call.neg", negTests))
 }
