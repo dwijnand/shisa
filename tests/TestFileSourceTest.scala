@@ -1,8 +1,6 @@
 package shisa
 package tests
 
-import scala.annotation.tailrec
-
 import munit._
 
 class TestFileSourceTest extends FunSuite {
@@ -11,12 +9,12 @@ class TestFileSourceTest extends FunSuite {
 
   def Call_negTests_expected =
     """object Test {
+      |  val str = ""
       |  def m1() = 1
       |  def m2 = 2
-      |  val str = ""
+      |  str.##()
       |  m1
       |  m2()
-      |  str.##()
       |}
       |""".stripMargin
 
@@ -26,7 +24,6 @@ class TestFileSourceTest extends FunSuite {
       |  class CR
       |  class CS { override def toString = "" }
       |  class CJ { override def toString() = "" }
-      |  str.##
       |  str.toString
       |  str.toString()
       |  new CR().toString
@@ -35,6 +32,7 @@ class TestFileSourceTest extends FunSuite {
       |  new CS().toString()
       |  new CJ().toString
       |  new CJ().toString()
+      |  str.##
       |}
       |""".stripMargin
 

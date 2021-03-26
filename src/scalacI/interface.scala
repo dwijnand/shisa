@@ -6,6 +6,10 @@ sealed trait Sev
 case object W extends Sev
 case object E extends Sev
 
+sealed trait Res
+case object Pos extends Res
+case object Neg extends Res
+
 final case class Msg(sev: Sev, text: String) {
   def :+(msg: Msg): List[Msg] = sev match {
     case W => List(this, msg)
