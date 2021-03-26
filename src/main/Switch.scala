@@ -49,14 +49,14 @@ object Switch {
       case M2P => mkOverrideMsgs(
         Msg(W, "method without a parameter list overrides a method with a single empty one"),
         Msg(E, "method without a parameter list overrides a method with a single empty one"),
-        Msg(W, s"error overriding method $meth in $encl of type (): $tp;\n        method $meth of type => $tp no longer has compatible type"),
-        Msg(E, s"error overriding method $meth in $encl of type (): $tp;\n        method $meth of type => $tp has incompatible type"),
+        Msg(W, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp no longer has compatible type"),
+        Msg(E, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp has incompatible type"),
       )
       case P2M => mkOverrideMsgs(
         Msg(W, s"method with a single empty parameter list overrides method without any parameter list"),
         Msg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)"),
-        Msg(W, s"error overriding method $meth in $encl of type => $tp;\n        method $meth of type (): $tp no longer has compatible type"),
-        Msg(E, s"error overriding method $meth in $encl of type => $tp;\n        method $meth of type (): $tp has incompatible type"),
+        Msg(W, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp no longer has compatible type"),
+        Msg(E, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp has incompatible type"),
       )
     }
 

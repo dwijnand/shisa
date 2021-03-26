@@ -6,11 +6,10 @@ import scala.annotation.tailrec
 import munit._
 
 class TestFileSourceTest extends FunSuite {
-  test("Call_negValTests toSource")(compareToSource(Call.negValTests, Call_negValTests_expected))
-  test("Call_posValTests toSource")(compareToSource(Call.posValTests, Call_posValTests_expected))
-  test("Call_clsTests    toSource")(compareToSource(Call.clsTests,    Call_clsTests_expected))
+  test("Call_negTests toSource")(compareToSource(Call.negTests, Call_negTests_expected))
+  test("Call_posTests toSource")(compareToSource(Call.posTests, Call_posTests_expected))
 
-  def Call_negValTests_expected =
+  def Call_negTests_expected =
     """object Test {
       |  val any: Any = ""
       |  val ref: AnyRef = ""
@@ -23,12 +22,36 @@ class TestFileSourceTest extends FunSuite {
       |}
       |""".stripMargin
 
-  def Call_posValTests_expected =
+  def Call_posTests_expected =
     """object Test {
       |  val any: Any = ""
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
       |  val str: String = ""
+      |  class CR extends Runnable { def run() = () }
+      |  class CS extends Runnable {
+      |    def run() = ()
+      |    override def toString = ""
+      |  }
+      |  class CJ extends Runnable {
+      |    def run() = ()
+      |    override def toString() = ""
+      |  }
+      |  case class CCR() extends Runnable { def run() = () }
+      |  case class CCS() extends Runnable {
+      |    def run() = ()
+      |    override def toString = ""
+      |  }
+      |  case class CCJ() extends Runnable {
+      |    def run() = ()
+      |    override def toString() = ""
+      |  }
+      |  class VCR(val x: String) extends AnyVal
+      |  class VCS(val x: String) extends AnyVal { override def toString = "" }
+      |  class VCJ(val x: String) extends AnyVal { override def toString() = "" }
+      |  case class VCCR(x: String) extends AnyVal
+      |  case class VCCS(x: String) extends AnyVal { override def toString = "" }
+      |  case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
       |  any.##
       |  ref.##
       |  obj.##
@@ -57,35 +80,6 @@ class TestFileSourceTest extends FunSuite {
       |  obj.hashCode()
       |  str.hashCode
       |  str.hashCode()
-      |}
-      |""".stripMargin
-
-  def Call_clsTests_expected =
-    """object Test {
-      |  class CR extends Runnable { def run() = () }
-      |  class CS extends Runnable {
-      |    def run() = ()
-      |    override def toString = ""
-      |  }
-      |  class CJ extends Runnable {
-      |    def run() = ()
-      |    override def toString() = ""
-      |  }
-      |  case class CCR() extends Runnable { def run() = () }
-      |  case class CCS() extends Runnable {
-      |    def run() = ()
-      |    override def toString = ""
-      |  }
-      |  case class CCJ() extends Runnable {
-      |    def run() = ()
-      |    override def toString() = ""
-      |  }
-      |  class VCR(val x: String) extends AnyVal
-      |  class VCS(val x: String) extends AnyVal { override def toString = "" }
-      |  class VCJ(val x: String) extends AnyVal { override def toString() = "" }
-      |  case class VCCR(x: String) extends AnyVal
-      |  case class VCCS(x: String) extends AnyVal { override def toString = "" }
-      |  case class VCCJ(x: String) extends AnyVal { override def toString() = "" }
       |  new CR().toString
       |  new CR().toString()
       |  new CS().toString
