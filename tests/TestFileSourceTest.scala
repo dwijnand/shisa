@@ -11,10 +11,14 @@ class TestFileSourceTest extends FunSuite {
 
   def Call_negTests_expected =
     """object Test {
+      |  def m1() = 1
+      |  def m2 = 2
       |  val any: Any = ""
       |  val ref: AnyRef = ""
       |  val obj: Object = ""
       |  val str: String = ""
+      |  m1
+      |  m2()
       |  any.##()
       |  ref.##()
       |  obj.##()

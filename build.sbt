@@ -45,7 +45,8 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3
     "org.scalameta"   %% "scalameta"         % "4.4.8",
     "ch.epfl.scala"   %% "scalafix-rules"    % "0.9.25",
   //"ch.epfl.scala"   %  "scalafix-cli"      % "0.9.25" cross CrossVersion.full,
-  )
+  ),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.3" cross CrossVersion.full),
 )
 
 val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(
