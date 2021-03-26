@@ -10,37 +10,36 @@ import nme._, tpnme._
 // * defined as nullary vs nilary
 // * receiver type (Any, AnyRef, Object, String)
 // * with receiver vs on implied `this` receiver
-// * value class
-// * case class
+// * value class, case class
 // * method name (hashCode, toString, getClass)
 // * method result tpe (hashCode, toString, getClass)
+// * java-defined (run)
 // todo matter?
 // * defined as enriched method
 // todo don't matter:
 // * defn + call in separate vs joint compilation
-// * java-defined
 // * the enclosing: method, nesting, constructors
 // * other compiler settings
 object Call {
-  def tests: List[TestFile] = negTests :: posTests :: Nil
+  def tests: List[TestFile] = TestFile("Call.neg", negTests) :: TestFile("Call.pos", posTests) :: Nil
 
-  def negTests = TestFile("Call.neg", List(
+  def negTests = List(
     List(                    mkNegNulTest(q"def m1() = 1", q"m1",          q"object Test")),
     List(                    mkNegNilTest(q"def m2   = 2", q"m2()", q"m2", q"object Test")),
     for (defn <- vals) yield mkNegNilTest(defn, q"${defn.inst}.$hashHash()", hashHash, q"class Any"),
-  ).flatten)
-  def posTests = TestFile("Call.pos", List(
+  ).flatten
+  def posTests = List(
     for (               defn <- vals) yield mkPosNulTest(defn, defn.inst, hashHash),
     for (meth <- meths; defn <- vals; test <- mkPosTests(defn, defn.inst, meth     )) yield test,
     for (defn <- clss;                test <- mkPosTests(defn, defn.inst, toString_)) yield test,
     for (defn <- clsR;                test <- mkPosTests(defn, defn.inst, run      )) yield test,
-  ).flatten)
+  ).flatten
 
-  def mkPosTests  (defn: Defn, inst: Term,       meth: Term.Name            ) = List(mkPosNulTest(defn, inst, meth), mkPosNilTest(defn, inst, meth))
-  def mkPosNulTest(defn: Defn, inst: Term,       meth: Term.Name            ) = Test(defn, nul(inst, meth), Msgs())
-  def mkPosNilTest(defn: Defn, inst: Term,       meth: Term.Name            ) = Test(defn, nil(inst, meth), Msgs())
   def mkNegNulTest(defn: Defn,                   meth: Term.Name, encl: Defn) = Test(defn,            meth, autoApp(q"object Test", meth))
   def mkNegNilTest(defn: Defn, stat: Term.Apply, meth: Term.Name, encl: Defn) = Test(defn,            stat, noParams(encl, meth, Int))
+  def mkPosNulTest(defn: Defn, inst: Term,       meth: Term.Name            ) = Test(defn, nul(inst, meth), Msgs())
+  def mkPosNilTest(defn: Defn, inst: Term,       meth: Term.Name            ) = Test(defn, nil(inst, meth), Msgs())
+  def mkPosTests  (defn: Defn, inst: Term,       meth: Term.Name            ) = List(mkPosNulTest(defn, inst, meth), mkPosNilTest(defn, inst, meth))
 
   def   CR = q"class   CR".withRunnable
   def  CCR = q"class  CCR".withRunnable.toCaseClass
