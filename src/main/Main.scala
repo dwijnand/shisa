@@ -21,6 +21,9 @@ import scala.meta._
 //* object -> class
 //* trait  -> abstract class
 //* implemented method -> abstract method
+//--
+//* saying TypeError1 and RefCheckError1 can go together: wrong immediately
+//* saying TypeError1 and TypeError2     must be separate: wrong eventually when randomly tested together and finding both
 object Main {
   import Deps._
   val SC2         = mkScalac2("2.13")

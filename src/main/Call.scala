@@ -2,32 +2,23 @@ package shisa
 
 import scala.meta._, classifiers.{ Classifiable, Classifier }, contrib._
 
-// * receiver type: scala-defined, java-defined/String, * value class, * case class + Any, AnyRef, Object
-// * method defn: nullary/nilary, * java-defined + hashCode, ##, toString, getClass
-// * invoked nullary/nilary
-// in order:
-// * define method as meth, call as prop
-// * define method as prop, call as method
-// * Any/AnyRef/Object/String value, call ##() -> neg
-// * Any/AnyRef/Object/String value, call ##   -> pos
-// * Any/AnyRef/Object/String value, call toString/() + getClass + hashCode
-// * class/case class/value class/value case class, call toString/()
-// * class/case class, call run/()
 // things that matter:
-// * `##` vs rest
+// * call `##` as a nilary method (`x.##()`)
 // things that don't matter:
-// * scala/java-defined
+// * defined as nullary vs nilary
 // * receiver type (Any, AnyRef, Object, String)
-// * receiver vs no receiver (this receiver)
-// * value class or case class
-// * method name or method result tpe (hashCode, toString, getClass)
+// * with receiver vs on implied `this` receiver
+// * value class
+// * case class
+// * method name (hashCode, toString, getClass)
+// * method result tpe (hashCode, toString, getClass)
 // todo matter?
 // * defined as enriched method
 // todo don't matter:
-// * separate/joint compilation
+// * defn + call in separate vs joint compilation
 // * java-defined
-// * generalise enclosing: method, nesting, constructors
-// * other settings
+// * the enclosing: method, nesting, constructors
+// * other compiler settings
 object Call {
   def tests: List[TestFile] = methP_Test :: propM_Test :: negValTests :: posValTests :: clsTests :: Nil
 
