@@ -71,10 +71,7 @@ object Modify {
 }
 
 object nme {
-  val getClass_ = q"getClass"
-  val hashCode_ = q"hashCode"
   val hashHash  = q"##"
-  val run       = q"run"
   val toString_ = q"toString"
 }
 

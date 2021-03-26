@@ -7,12 +7,13 @@ import nme._, tpnme._
 // * call `##` as a nilary method (`x.##()`)
 // * switch calling
 // things that don't matter:
-// * defined as nullary vs nilary
+// * defined as nullary vs nilary (when called as such)
+// things that don't matter (removed):
 // * receiver type (Any, AnyRef, Object, String)
 // * with receiver vs on implied `this` receiver
 // * value class, case class
-// * method name (hashCode, toString, getClass)
-// * method result tpe (hashCode, toString, getClass)
+// * method name (hashCode, getClass, run)
+// * method result tpe (int, Class[?], void)
 // * java-defined (run)
 // todo matter?
 // * defined as enriched method
@@ -24,15 +25,14 @@ object Call {
   def tests: List[TestFile] = TestFile("Call.neg", negTests) :: TestFile("Call.pos", posTests) :: Nil
 
   def negTests = List(
-    List(                    mkNegNulTest(q"def m1() = 1", q"m1",          q"object Test")),
-    List(                    mkNegNilTest(q"def m2   = 2", q"m2()", q"m2", q"object Test")),
-    for (defn <- vals) yield mkNegNilTest(defn, q"${defn.inst}.$hashHash()", hashHash, q"class Any"),
-  ).flatten
+    mkNegNulTest(q"def m1() = 1", q"m1",          q"object Test"),
+    mkNegNilTest(q"def m2   = 2", q"m2()", q"m2", q"object Test"),
+    mkNegNilTest(val1, q"${val1.inst}.$hashHash()", hashHash, q"class Any"),
+  )
   def posTests = List(
-    for (               defn <- vals) yield mkPosNulTest(defn, defn.inst, hashHash),
-    for (meth <- meths; defn <- vals; test <- mkPosTests(defn, defn.inst, meth     )) yield test,
-    for (defn <- clss;                test <- mkPosTests(defn, defn.inst, toString_)) yield test,
-    for (defn <- clsR;                test <- mkPosTests(defn, defn.inst, run      )) yield test,
+    List(                   mkPosNulTest (val1, val1.inst, hashHash)),
+                               mkPosTests(val1, val1.inst, toString_),
+    for (defn <- clss; test <- mkPosTests(defn, defn.inst, toString_)) yield test
   ).flatten
 
   def mkNegNulTest(defn: Defn,                   meth: Term.Name, encl: Defn) = Test(defn,            meth, autoApp(q"object Test", meth))
@@ -41,20 +41,13 @@ object Call {
   def mkPosNilTest(defn: Defn, inst: Term,       meth: Term.Name            ) = Test(defn, nil(inst, meth), Msgs())
   def mkPosTests  (defn: Defn, inst: Term,       meth: Term.Name            ) = List(mkPosNulTest(defn, inst, meth), mkPosNilTest(defn, inst, meth))
 
-  def   CR = q"class   CR".withRunnable
-  def  CCR = q"class  CCR".withRunnable.toCaseClass
-  def  VCR = q"class  VCR".toValueClass(param"val x: String")
-  def VCCR = q"class VCCR".toValueClass(param"val x: String").toCaseClass
-
-  def clsR = List(CR, CCR)
-  def clss = (clsR ::: List(VCR, VCCR)).flatMap { cls =>
-    val s = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "S")).append[Stat](q"override def $toString_   = ${Lit.String("")}")
-    val j = cls.copy(name = Type.Name(cls.name.value.stripSuffix("R") + "J")).append[Stat](q"override def $toString_() = ${Lit.String("")}")
-    List(cls, s, j)
+  def val1 = q"val str = ${Lit.String("")}"
+  def clss = {
+    val c = q"class CR"
+    val s = c.copy(name = Type.Name(c.name.value.stripSuffix("R") + "S")).append[Stat](q"override def $toString_   = ${Lit.String("")}")
+    val j = c.copy(name = Type.Name(c.name.value.stripSuffix("R") + "J")).append[Stat](q"override def $toString_() = ${Lit.String("")}")
+    List(c, s, j)
   }
-  def mkV(name: Term.Name, tp: Type.Name) = q"val ${name.asPat}: $tp = ${Lit.String("")}"
-  def vals  = List(mkV(q"any", Any), mkV(q"ref", AnyRef), mkV(q"obj", Object), mkV(q"str", String))
-  def meths = List(toString_, getClass_, hashCode_)
 
   def nul(qual: Term, name: Term.Name): Term        = qual match { case Lit.Null() => q"$name"   case _ => q"$qual.$name"   }
   def nil(qual: Term, name: Term.Name): Term.Apply  = qual match { case Lit.Null() => q"$name()" case _ => q"$qual.$name()" }
@@ -72,11 +65,6 @@ object Call {
   }
 
   implicit class myDefnClassOps(private val cls: Defn.Class) extends AnyVal {
-    def withRunnable = cls.addInit(init"Runnable").withStats(List(q"def run() = ()"))
-
-    def inst: Term = {
-      val args = if (cls.isValueClass) List(Lit.String("")) else Nil
-      if (cls.isCaseClass) q"${cls.name.asTerm}(..$args)" else q"new ${cls.name}(..$args)"
-    }
+    def inst: Term = q"new ${cls.name}()"
   }
 }
