@@ -24,20 +24,20 @@ import nme._, tpnme._
 object Call {
   sealed trait Call; case object Meth extends Call; case object Prop extends Call
 
-  final case class QualDefns(qual: Term, defns: List[Defn])
-  val str = QualDefns(q"str", List(                                                          q"""val str = ""      """))
-  val cs  = QualDefns(q"cs",  List(q"""class CS { override def ${nme.toString_}   = "" }""", q"""val cs  = new CS()"""))
-  val cj  = QualDefns(q"cj",  List(q"""class CJ { override def ${nme.toString_}() = "" }""", q"""val cj  = new CJ()"""))
-  val nul = QualDefns(Null,   Nil)
+  val str = List(                                                    q"""val str = ""      """)
+  val cs  = List(q"""class CS { override def $toString_   = "" }""", q"""val cs  = new CS()""")
+  val cj  = List(q"""class CJ { override def $toString_() = "" }""", q"""val cj  = new CJ()""")
 
   sealed trait MethKind
   final case class OldMeth(encl: Defn, meth: Term.Name) extends MethKind
-  final case class NewMeth(defn: Defn.Def)              extends MethKind
+  final case class NewMeth(encl: Defn, defn: Defn.Def)  extends MethKind
 
-  val toStr = OldMeth(q"class Any", nme.toString_)
-  val hashH = OldMeth(q"class Any", nme.hashHash)
-  val meth1 = NewMeth(q"def m() = 1")
-  val prop1 = NewMeth(q"def p   = 2")
+  val clsAny = q"class Any"
+  val objTest= q"object Test"
+  val toStr = OldMeth(clsAny,  toString_)
+  val hashH = OldMeth(clsAny,  hashHash)
+  val meth1 = NewMeth(objTest, q"def m() = 1")
+  val prop1 = NewMeth(objTest, q"def p   = 2")
 
   val allTests = List(
     mkTest(str, toStr, Prop)(Pos),
@@ -48,19 +48,19 @@ object Call {
     mkTest(cs,  toStr, Meth)(Pos),
     mkTest(cj,  toStr, Prop)(Pos),
     mkTest(cj,  toStr, Meth)(Pos),
-    mkTest(nul, meth1, Prop)(Neg),
-    mkTest(nul, prop1, Meth)(Neg),
+    mkTest(Nil, meth1, Prop)(Neg),
+    mkTest(Nil, prop1, Meth)(Neg),
   )
 
-  def mkTest(qualDefns: QualDefns, methKind: MethKind, call: Call)(res: Res) = {
-    val QualDefns(qual, defns0) = qualDefns
-    val defns = methKind match { case OldMeth(_, _)    => defns0              case NewMeth(defn) => defns0 :+ defn            }
-    val encl  = methKind match { case OldMeth(encl, _) => encl                case NewMeth(_)    => q"object Test"            }
-    val meth  = methKind match { case OldMeth(_, meth) => meth                case NewMeth(defn) => defn.name                 }
-    val term  = qual     match { case Null             => meth                case _             => Term.Select(qual, meth)   }
-    val stat  = call     match { case Prop             => q"$term"            case Meth          => q"$term()"                }
-    val msg0  = call     match { case Prop             => autoApp(encl, meth) case Meth          => noParams(encl, meth, Int) }
-    val msgs  = res      match { case Pos              => Msgs()              case Neg           => msg0                      }
+  def mkTest(defns0: List[Defn], methK: MethKind, call: Call)(res: Res) = {
+    val qual  = defns0.lastOption.collect { case Defn.Val(_, List(Pat.Var(name)), _, _) => name }.getOrElse(Null)
+    val defns = methK match { case OldMeth(_, _)    => defns0              case NewMeth(_, defn) => defns0 :+ defn            }
+    val encl  = methK match { case OldMeth(encl, _) => encl                case NewMeth(encl, _) => encl                      }
+    val meth  = methK match { case OldMeth(_, meth) => meth                case NewMeth(_, defn) => defn.name                 }
+    val term  = qual  match { case Null             => meth                case _                => Term.Select(qual, meth)   }
+    val stat  = call  match { case Prop             => q"$term"            case Meth             => q"$term()"                }
+    val msg0  = call  match { case Prop             => autoApp(encl, meth) case Meth             => noParams(encl, meth, Int) }
+    val msgs  = res   match { case Pos              => Msgs()              case Neg              => msg0                      }
     TestContents(defns, List(stat), msgs)
   }
 
