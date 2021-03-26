@@ -27,11 +27,11 @@ class TestFileSourceTest extends FunSuite {
   def Call_negTests_expected =
     """object Test {
       |  val str = ""
-      |  def m1() = 1
-      |  def m2 = 2
+      |  def m() = 1
+      |  def p = 2
       |  str.##()
-      |  m1
-      |  m2()
+      |  m
+      |  p()
       |}
       |""".stripMargin
 

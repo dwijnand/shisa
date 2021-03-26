@@ -32,7 +32,7 @@ object Main {
   val SC3         = mkScalac3("3.0",      "-source 3.0")
   val SC31M       = mkScalac3("3.f-migr", "-source future-migration")
   val SC31        = mkScalac3("3.f",      "-source future")
-  val mkCompilers = List(SC2, SC2N, SC3M, SC3, SC31M, SC31)
+  val mkCompilers = List(SC2) // , SC2N, SC3M, SC3, SC31M, SC31)
   val tests       = (Call.tests ::: Switch.tests ::: EtaX.tests).sortBy(_.name)
   val testsMap    = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, Test.combine(t1, t2)))
 
@@ -78,22 +78,23 @@ object Main {
   }
 
   def runTest1(compilers: List[Compiler], name: String, test: TestContents): List[TestFailure] = {
-    val srcFiles = if (test.stats.sizeIs > 1) {
+    val srcSyntax = toObject(test).syntax + "\n"
+    val srcFiles  = if (test.stats.sizeIs > 1) {
       test.stats.zipWithIndex.map { case (stats, idx) =>
         val obj    = toObject(test.copy(stats = List(stats)))
         val suffix = if (idx < 0) "" else if (idx < 10) s"0$idx" else s"$idx"
         val stat   = if (suffix == "") obj else Pkg(Term.Name(s"p$suffix"), List(obj))
         SrcFile(name + suffix, stat.syntax + "\n")
       }
-    } else List(SrcFile(name, toObject(test).syntax + "\n"))
+    } else List(SrcFile(name, srcSyntax))
     val msgsss = srcFiles.map(srcFile => compilers.map(_.compile1(srcFile)))
     val msgs   = msgsss.reduce(_.zip(_).map { case (a, b) => a ::: b })
-    compareMsgs(name, test.msgs, msgs)
+    compareMsgs(name, test.msgs, msgs, srcSyntax)
   }
 
   def toObject(test: TestContents): Defn.Object = q"object Test { ..${test.defns ::: test.stats} }"
 
-  def compareMsgs(name: String, expMsgs: Msgs, obtMsgs: List[List[Msg]]): List[TestFailure] = {
+  def compareMsgs(name: String, expMsgs: Msgs, obtMsgs: List[List[Msg]], srcSyntax: String): List[TestFailure] = {
     val msgsZipped = expMsgs.toList.zipAll(obtMsgs, Nil, Nil).zipAll(mkCompilers.map(_.id), (Nil, Nil), "<unknown-compiler>")
     for {
       ((expMsgs, obtMsgs), compilerId) <- msgsZipped
@@ -105,7 +106,7 @@ object Main {
     } yield {
       //println(s"obt:" + obtMsgs.sorted.map(showObt(_)).mkString)
       //println(s"exp:" + expMsgs.sorted.map(showExp(_)).mkString)
-      TestFailure(name, s"message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET):$lines")
+      TestFailure(name, s"message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET)") // :$lines\nsource:\n$srcSyntax")
     }
   }
 

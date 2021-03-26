@@ -25,6 +25,6 @@ final case class Msgs(
   def for2: Msgs = Msgs(m2rg, m2nw, Nil, Nil, Nil, Nil)
   def for3: Msgs = Msgs(Nil, Nil, m30m, m30r, m31m, m31r)
 
-  def toList  = List(m2rg, m2nw, m30m, m30r, m31m, m31r)
+  def toList  = List(m2rg) // , m2nw, m30m, m30r, m31m, m31r)
   def isEmpty = this == Msgs()
 }
