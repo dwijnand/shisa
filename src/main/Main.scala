@@ -34,7 +34,7 @@ object Main {
   val SC31        = mkScalac3("3.f",      "-source future")
   val mkCompilers = List(SC2, SC2N, SC3M, SC3, SC31M, SC31)
   val tests       = (Call.tests ::: Switch.tests ::: EtaX.tests).sortBy(_.name)
-  val testsMap    = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, t1 ++ t2))
+  val testsMap    = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, Test.combine(t1, t2)))
 
   def main(args: Array[String]): Unit = args.toList match {
     case Nil  =>

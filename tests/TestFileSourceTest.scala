@@ -1,6 +1,8 @@
 package shisa
 package tests
 
+import scala.annotation.tailrec
+
 import munit._
 
 class TestFileSourceTest extends FunSuite {
@@ -116,6 +118,12 @@ class TestFileSourceTest extends FunSuite {
       |""".stripMargin
 
   def compareToSource(tf: TestFile, expected: String) = {
-    assertEquals(Main.toObject(tf.toContents).syntax + "\n", expected)
+    assertEquals(Main.toObject(toContents(tf)).syntax + "\n", expected)
+  }
+
+  @tailrec final def toContents(test: shisa.Test): TestContents = test match {
+    case x @ TestContents(_, _, _) => x
+    case TestList(tests)           => Test.toContents(tests)
+    case TestFile(_, test)         => toContents(test)
   }
 }
