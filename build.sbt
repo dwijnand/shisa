@@ -49,11 +49,12 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3
 )
 
 val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(
-  Test / sourceDirectory := baseDirectory.value,
-     libraryDependencies += "org.scalameta" %% "munit"        % "0.7.13" % Test,
-     libraryDependencies += "qa.hedgehog"   %% "hedgehog-sbt" % "0.5.1"  % Test,
-          testFrameworks += TestFramework("munit.Framework"),
-          testFrameworks += TestFramework("hedgehog.sbt.Framework"),
+  Compile / sourceDirectory := target.value / "src",
+     Test / sourceDirectory := baseDirectory.value,
+        libraryDependencies += "org.scalameta" %% "munit"        % "0.7.13" % Test,
+        libraryDependencies += "qa.hedgehog"   %% "hedgehog-sbt" % "0.5.1"  % Test,
+             testFrameworks += TestFramework("munit.Framework"),
+             testFrameworks += TestFramework("hedgehog.sbt.Framework"),
 )
 
 def proj1(p: Project) = p.settings(
@@ -61,20 +62,18 @@ def proj1(p: Project) = p.settings(
   historyPath := (ThisBuild / historyPath).value, // all projects share the same history file
 )
 def proj(p: Project) = proj1(p).in(file("src") / uncapitalize(p.id.stripPrefix("shisa"))).settings(
-  name := "shisa-" + baseDirectory.value.getName, // src/foo => shisa-foo
+                            name := "shisa-" + baseDirectory.value.getName, // src/foo => shisa-foo
+       Compile / sourceDirectory := baseDirectory.value,
+          Test / sourceDirectory := target.value / "test",
   // Setting the *{Source,Resource}Directories makes IJ's project import work better
   Seq(Compile, Test).flatMap(inConfig(_)(Seq(
-                 sourceDirectory := baseDirectory.value,
-                     scalaSource := sourceDirectory.value,
-                      javaSource := sourceDirectory.value,
                resourceDirectory := sourceDirectory.value,
-      unmanagedSourceDirectories := List(scalaSource.value, javaSource.value).distinct,
+      unmanagedSourceDirectories := List(sourceDirectory.value),
     unmanagedResourceDirectories := List(resourceDirectory.value),
         managedSourceDirectories := Nil,
       managedResourceDirectories := Nil,
     unmanagedResources / excludeFilter := "*.scala" || "*.java",
   ))),
-  Test / sourceDirectory := target.value / "src/test",
 )
 
 def uncapitalize(s: String) = {
