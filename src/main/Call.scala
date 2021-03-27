@@ -24,50 +24,51 @@ import nme._, tpnme._
 object Call {
   sealed trait Call; case object Meth extends Call; case object Prop extends Call
 
-  val str = List(                                                    q"""val str = ""      """)
-  val cs  = List(q"""class CS { override def $toString_   = "" }""", q"""val cs  = new CS()""")
-  val cj  = List(q"""class CJ { override def $toString_() = "" }""", q"""val cj  = new CJ()""")
-
-  sealed trait MethKind
-  final case class OldMeth(encl: Defn, meth: Term.Name) extends MethKind
-  final case class NewMeth(encl: Defn, defn: Defn.Def)  extends MethKind
-
-  val clsAny = q"class Any"
-  val objTest= q"object Test"
-  val toStr = OldMeth(clsAny,  toString_)
-  val hashH = OldMeth(clsAny,  hashHash)
-  val meth1 = NewMeth(objTest, q"def m() = 1")
-  val prop1 = NewMeth(objTest, q"def p   = 2")
+  val a = List(q"class A { def m() = 1 ; def p = 2 }",         q"val a = new A()")
+  val s = List(q"class S { override def $toString_   = $NS }", q"val s = new S()")
+  val j = List(q"class J { override def $toString_() = $NS }", q"val j = new J()")
 
   val allTests = List(
-    mkTest(str, toStr, Prop)(Pos),
-    mkTest(str, toStr, Meth)(Pos),
-    mkTest(str, hashH, Prop)(Pos),
-    mkTest(str, hashH, Meth)(Neg),
-    mkTest(cs,  toStr, Prop)(Pos),
-    mkTest(cs,  toStr, Meth)(Pos),
-    mkTest(cj,  toStr, Prop)(Pos),
-    mkTest(cj,  toStr, Meth)(Pos),
-    mkTest(Nil, meth1, Prop)(Neg),
-    mkTest(Nil, prop1, Meth)(Neg),
+    mkTest(a, q"class A",   q"m",      Prop)(Neg),
+    mkTest(a, q"class A",   q"p",      Meth)(Neg),
+    mkTest(a, q"class Any", toString_, Prop)(Pos),
+    mkTest(a, q"class Any", hashHash,  Meth)(Neg),
+    mkTest(s, q"class Any", toString_, Prop)(Pos),
+    mkTest(s, q"class Any", toString_, Meth)(Pos),
+    mkTest(j, q"class Any", toString_, Prop)(Pos),
   )
 
-  def mkTest(defns0: List[Defn], methK: MethKind, call: Call)(res: Res) = {
-    val qual  = defns0.lastOption.collect { case Defn.Val(_, List(Pat.Var(name)), _, _) => name }.getOrElse(Null)
-    val defns = methK match { case OldMeth(_, _)    => defns0              case NewMeth(_, defn) => defns0 :+ defn            }
-    val encl  = methK match { case OldMeth(encl, _) => encl                case NewMeth(encl, _) => encl                      }
-    val meth  = methK match { case OldMeth(_, meth) => meth                case NewMeth(_, defn) => defn.name                 }
-    val term  = qual  match { case Null             => meth                case _                => Term.Select(qual, meth)   }
-    val stat  = call  match { case Prop             => q"$term"            case Meth             => q"$term()"                }
-    val msg0  = call  match { case Prop             => autoApp(encl, meth) case Meth             => noParams(encl, meth, Int) }
-    val msgs  = res   match { case Pos              => Msgs()              case Neg              => msg0                      }
+  def mkTest(defns: List[Defn], encl: Defn, meth: Term.Name, call: Call)(res: Res) = {
+    val qual  = defns.lastOption.map(valName).getOrElse(Null)
+    val stat  = call  match { case Prop => q"$qual.$meth"      case Meth => q"$qual.$meth()"          }
+    val msg0  = call  match { case Prop => autoApp(encl, meth) case Meth => noParams(encl, meth, Int) }
+    val msgs  = res   match { case Pos  => Msgs()              case Neg  => msg0                      }
     TestContents(defns, List(stat), msgs)
   }
 
-  def termName(term: Term): Term.Name = term match {
+  def termName(term: Term.Ref): Term.Name = term match {
     case Term.Select(_, name) => name
     case t @ Term.Name(_)     => t
-    case _                    => throw new IllegalArgumentException(s"No name in $term")
+    case _                    => Term.Name("<N/A>")
+  }
+
+  def valName(defn: Defn): Term = defn match {
+    case Defn.Val(_, List(Pat.Var(name)), _, _) => name
+    case _                                      => Null
+  }
+
+  def defnName(defn: Defn): Tree = defn match {
+    case defn: Member.Type                      => defnTypeName(defn)
+    case _                                      => defnTermName(defn)
+  }
+  def defnTypeName(defn: Defn with Member.Type): Type.Name = defn.name
+  def defnTermName(defn: Defn): Term = defn match {
+    case Defn.Val(_, List(Pat.Var(name)), _, _) => name
+    case Defn.Var(_, List(Pat.Var(name)), _, _) => name
+    case Defn.Given(_, name, _, _, _)           => name.asTerm
+    case Defn.GivenAlias(_, name, _, _, _, _)   => name.asTerm
+    case defn: Member.Term                      => defn.name
+    case _                                      => Null
   }
 
   def noParams(encl: Defn, meth: Term.Name, tp: Type.Name) = (

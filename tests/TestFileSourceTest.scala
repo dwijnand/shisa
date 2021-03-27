@@ -9,29 +9,32 @@ class TestFileSourceTest extends FunSuite {
 
   def Call_posTests_expected =
     """object Test {
-      |  val str = ""
-      |  class CS { override def toString = "" }
-      |  val cs = new CS()
-      |  class CJ { override def toString() = "" }
-      |  val cj = new CJ()
-      |  str.toString
-      |  str.toString()
-      |  str.##
-      |  cs.toString
-      |  cs.toString()
-      |  cj.toString
-      |  cj.toString()
+      |  class A {
+      |    def m() = 1
+      |    def p = 2
+      |  }
+      |  val a = new A()
+      |  class S { override def toString = "" }
+      |  val s = new S()
+      |  class J { override def toString() = "" }
+      |  val j = new J()
+      |  a.toString
+      |  s.toString
+      |  s.toString()
+      |  j.toString
       |}
       |""".stripMargin
 
   def Call_negTests_expected =
     """object Test {
-      |  val str = ""
-      |  def m() = 1
-      |  def p = 2
-      |  str.##()
-      |  m
-      |  p()
+      |  class A {
+      |    def m() = 1
+      |    def p = 2
+      |  }
+      |  val a = new A()
+      |  a.m
+      |  a.p()
+      |  a.##()
       |}
       |""".stripMargin
 
