@@ -106,7 +106,7 @@ object Main {
     } yield {
       //println(s"obt:" + obtMsgs.sorted.map(showObt(_)).mkString)
       //println(s"exp:" + expMsgs.sorted.map(showExp(_)).mkString)
-      TestFailure(name, s"message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET)") // :$lines\nsource:\n$srcSyntax")
+      TestFailure(name, s"message mismatch ($compilerId) ($RED- obtained$RESET/$GREEN+ expected$RESET):$lines") // \nsource:\n$srcSyntax")
     }
   }
 

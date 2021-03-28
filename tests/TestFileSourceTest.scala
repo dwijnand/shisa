@@ -9,10 +9,7 @@ class TestFileSourceTest extends FunSuite {
 
   def Call_posTests_expected =
     """object Test {
-      |  class A {
-      |    def m() = 1
-      |    def p = 2
-      |  }
+      |  class A
       |  val a = new A()
       |  class S { override def toString = "" }
       |  val s = new S()
@@ -27,13 +24,14 @@ class TestFileSourceTest extends FunSuite {
 
   def Call_negTests_expected =
     """object Test {
-      |  class A {
-      |    def m() = 1
-      |    def p = 2
-      |  }
+      |  class M { def m() = 1 }
+      |  val m = new M()
+      |  class P { def p = 1 }
+      |  val p = new P()
+      |  class A
       |  val a = new A()
-      |  a.m
-      |  a.p()
+      |  m.m
+      |  p.p()
       |  a.##()
       |}
       |""".stripMargin

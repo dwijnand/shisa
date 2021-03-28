@@ -1,6 +1,7 @@
 package shisa
 
 import scala.meta._, contrib._
+import nme._, tpnme._
 
 // in order:
 // override method switching from meth to prop, and call both ways
@@ -14,30 +15,21 @@ object Switch {
   import Call.{ Call, Meth, Prop }
   sealed trait Switch; case object M2P extends Switch; case object P2M extends Switch
 
-  def tests: List[TestFile] = List(TestFile("Switch", TestList(list1)), TestFile("Switch.only", TestList(list0)))
-  def list1 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).switchAndCallTestFile()
-  def list0 = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call).justSwitchTestFile()
-
   class SwitchFile(switch: Switch, call: Call) {
     val pref  = switch match { case M2P  => "M2P" case P2M  => "P2M" }
     val suff  = call   match { case Meth => "M"   case Prop => "P"   }
     val name  = s"${pref}_$suff"
     val meth  = Term.Name(name.toLowerCase)
-    val tp    = t"String"
-    val value = Lit.String("")
-    val mdecl = switch match { case M2P  => q"def $meth(): $tp"   case P2M => q"def $meth: $tp" }
-    val mdefn = switch match { case M2P  => q"def $meth = $value" case P2M => q"def $meth() = $value" }
     val tname = Type.Name(s"Foo_$name")
     val cname = Type.Name(s"Bar_$name")
     val vname = Term.Name(s"qux_$meth")
+    val mdecl = switch match { case M2P  => q"def $meth(): $String" case P2M  => q"def $meth: $String" }
+    val mdefn = switch match { case M2P  => q"def $meth = $NS"      case P2M  => q"def $meth() = $NS"  }
+    val stat  = call   match { case Meth => q"$vname.$meth()"       case Prop => q"$vname.$meth"      }
     val tdefn = q"trait $tname extends Any { $mdecl }"
     val cdefn = q"class $cname(val x: String) extends $tname() { $mdefn }"
-    val vdefn = q"val ${vname.asPat} = new $cname(${Lit.String("")})"
-    val stat  = call   match { case Meth => q"$vname.$meth()" case Prop => q"$vname.$meth" }
+    val vdefn = q"val ${vname.asPat} = new $cname($NS)"
     val encl  = s"trait $tname"
-
-    def mkOverrideMsgs(msg2w: Msg, msg2e: Msg, msg3w: Msg, msg3e: Msg) =
-      Msgs(List(msg2w), List(msg2e), List(msg3w), List(msg3e), List(msg3e), List(msg3e))
 
     val autoAppMsgs  = (switch, call) match {
       case (_, Meth) => Msgs() // no auto-application if calling as meth, in either m2p or p2m
@@ -49,22 +41,29 @@ object Switch {
       case M2P => mkOverrideMsgs(
         Msg(W, "method without a parameter list overrides a method with a single empty one"),
         Msg(E, "method without a parameter list overrides a method with a single empty one"),
-        Msg(W, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp no longer has compatible type"),
-        Msg(E, s"error overriding method $meth in $encl of type (): $tp;\n  method $meth of type => $tp has incompatible type"),
+        Msg(W, s"error overriding method $meth in $encl of type (): $String;\n  method $meth of type => $String no longer has compatible type"),
+        Msg(E, s"error overriding method $meth in $encl of type (): $String;\n  method $meth of type => $String has incompatible type"),
       )
       case P2M => mkOverrideMsgs(
         Msg(W, s"method with a single empty parameter list overrides method without any parameter list"),
-        Msg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $tp (defined in $encl)"),
-        Msg(W, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp no longer has compatible type"),
-        Msg(E, s"error overriding method $meth in $encl of type => $tp;\n  method $meth of type (): $tp has incompatible type"),
+        Msg(E, s"method with a single empty parameter list overrides method without any parameter list\ndef $meth: $String (defined in $encl)"),
+        Msg(W, s"error overriding method $meth in $encl of type => $String;\n  method $meth of type (): $String no longer has compatible type"),
+        Msg(E, s"error overriding method $meth in $encl of type => $String;\n  method $meth of type (): $String has incompatible type"),
       )
     }
 
-    def justSwitchTestFile() = TestFile(name, Test(tdefn, cdefn, overrideMsgs))
+    def mkOverrideMsgs(msg2w: Msg, msg2e: Msg, msg3w: Msg, msg3e: Msg) =
+      Msgs(List(msg2w), List(msg2e), List(msg3w), List(msg3e), List(msg3e), List(msg3e))
 
-    def switchAndCallTestFile() = {
-      val msgs = autoAppMsgs ++ overrideMsgs // auto-app errors suppress override messages
-      TestFile(name, TestContents(List(tdefn, cdefn, vdefn), List(stat), msgs))
-    }
+    val switchAndCallMsgs = autoAppMsgs ++ overrideMsgs // auto-app errors suppress override messages
+
+    val    justSwitch = TestContents(List(tdefn),               List(cdefn),     overrideMsgs)
+    val switchAndCall = TestContents(List(tdefn, cdefn, vdefn), List(stat), switchAndCallMsgs)
   }
+
+  val files = for (switch <- List(M2P, P2M); call <- List(Meth, Prop)) yield new SwitchFile(switch, call)
+  val tests = List(
+    TestFile("Switch.only", TestList(for (f <- files) yield TestFile(f.name, f.justSwitch))),
+    TestFile("Switch",      TestList(for (f <- files) yield TestFile(f.name, f.switchAndCall))),
+  )
 }

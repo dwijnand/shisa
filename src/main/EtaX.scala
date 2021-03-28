@@ -1,6 +1,7 @@
 package shisa
 
 import scala.meta._, contrib._
+import nme._, tpnme._
 
 object EtaX {
   def tests: List[TestFile] = List(boom, cloneEta,
@@ -11,11 +12,11 @@ object EtaX {
     methT, methSam0S, methSam0J,
   )
 
-  val meth   = q"def meth()        = ${Lit.String("")}"
-  val meth1  = q"def meth1(x: Any) = ${Lit.String("")}"
-  val methF0 = q"def methF0()      = () => ${Lit.String("")}"
-  val meth2  = q"def meth2()()     = ${Lit.String("")}"
-  val prop   = q"def prop = ${Lit.String("")}"
+  val meth   = q"def meth()        = $NS"
+  val meth1  = q"def meth1(x: Any) = $NS"
+  val methF0 = q"def methF0()      = () => $NS"
+  val meth2  = q"def meth2()()     = $NS"
+  val prop   = q"def prop          = $NS"
   val Sam0S  = q"                     trait Sam0S { def apply(): Any }"
   val Sam0J  = q"@FunctionalInterface trait Sam0J { def apply(): Any }"
   val Sam1S  = q"                     trait Sam1S { def apply(x: Any): Any }"
