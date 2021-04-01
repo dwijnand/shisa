@@ -2,6 +2,7 @@ package shisa
 
 import scala.meta._, contrib._
 import nme._, tpnme._
+import MsgsImport._
 
 // in order:
 // override method switching from meth to prop, and call both ways

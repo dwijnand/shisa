@@ -3,6 +3,7 @@ package shisa
 import scala.annotation.tailrec
 
 import scala.meta._, contrib._
+import MsgsImport._
 
 object Test {
   def apply(defn: Defn, stat: Stat, msgs: Msgs)    = TestContents(List(defn), List(stat), msgs)

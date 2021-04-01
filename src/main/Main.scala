@@ -10,6 +10,7 @@ import scala.util.chaining._
 import scala.Console.{ GREEN, RED, RESET }
 
 import scala.meta._
+import MsgsImport._
 
 //3 levels of tests:
 //* template tests (top level classes/objects, Defns)
@@ -32,7 +33,7 @@ object Main {
   val SC3         = mkScalac3("3.0",      "-source 3.0")
   val SC31M       = mkScalac3("3.f-migr", "-source future-migration")
   val SC31        = mkScalac3("3.f",      "-source future")
-  val mkCompilers = List(SC2) // , SC2N, SC3M, SC3, SC31M, SC31)
+  val mkCompilers = List(SC2, SC2N, SC3M, SC3, SC31M, SC31)
   val tests       = (Call.tests ::: Switch.tests ::: EtaX.tests).sortBy(_.name)
   val testsMap    = tests.groupMapReduce(_.name)(tf => tf)((t1, t2) => TestFile(t1.name, Test.combine(t1, t2)))
 

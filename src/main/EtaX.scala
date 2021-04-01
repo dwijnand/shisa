@@ -2,6 +2,7 @@ package shisa
 
 import scala.meta._, contrib._
 import nme._, tpnme._
+import MsgsImport._
 
 object EtaX {
   def tests: List[TestFile] = List(boom, cloneEta,
