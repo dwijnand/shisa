@@ -19,7 +19,7 @@ final case class FreshCompiler3(id: String, scalaJars: Seq[File], cmd: String) e
     ctx.setSetting(ctx.settings.explain, true)
     ctx.setSetting(ctx.settings.outputDir, new VirtualDirectory("", /* maybeContainer = */ None))
     ctx.setSetting(ctx.settings.YdropComments, true) // "Trying to pickle comments, but there's no `docCtx`."
-    val settings = ctx.settings.processArguments(CommandLineParser.tokenize(cmd), /* processAll = */ true) match {
+    val settings = ctx.settings.processArguments(CommandLineParser.tokenize(cmd), processAll = true, ctx.settingsState) match {
       case ArgsSummary(settings, _, Nil, _)    => settings
       case ArgsSummary(_, _, errors, warnings) => sys.error(s"FreshCompiler3 id=$id failed errors=$errors warnings=$warnings")
     }

@@ -42,7 +42,7 @@ object EtaX {
   val prop4     = mkF("prop4",     Test(prop,    q"val t2d: () => Any = prop _                  ", noEtaNullary ++ onlyFuncs("String") ++ etaMismatch("String", "() => Any")))
   val prop5     = mkF("prop5",     Test(prop,    q"val t2e: () => Any = { val t = prop _ ; t }  ", noEtaNullary ++ onlyFuncs("String") ::: etaMismatch("(t : String)", "() => Any")))
   val prop6     = mkF("prop6",     Test(prop,    q"val t2f: Any       = prop _                  ", noEtaNullary ++ onlyFuncs("String")))
-  val prop7     = mkF("prop7",     Test(prop,    q"val t2g: Any       = prop() _                ", onlyFuncs("<error unspecified error>") ++ missingArgs("StringOps", "apply", "i", "(i: Int): Char")))
+  val prop7     = mkF("prop7",     Test(prop,    q"val t2g: Any       = prop() _                ", onlyFuncs0("<error unspecified error>") ++ missingArgs("StringOps", "apply", "i", "(i: Int): Char")))
   val methF0_1  = mkF("methF0_1",  Test(methF0,  q"val t1a: () => Any = methF0                  ", Msgs()))
   val methF0_2  = mkF("methF0_2",  Test(methF0,  q"val t1b: () => Any = { val t = methF0; t }   ", autoApp(q"object Test", q"methF0")))
   val methF0_3  = mkF("methF0_3",  Test(methF0,  q"val t1c: () => Any = methF0 _                ", msgsForEtaX()))
@@ -69,7 +69,8 @@ object EtaX {
   }
 
   def mustFollow(tp: String) = Msg(E, s"_ must follow method; cannot follow $tp")
-  def onlyFuncs(tp: String)  = Msgs.for3(Msg(_, s"Only function types can be followed by _ but the current expression has type $tp"))
+  def onlyFuncs(tp: String)  = Msgs.for3F(Msg(_, s"Only function types can be followed by _ but the current expression has type $tp"))
+  def onlyFuncs0(tp: String) = Msgs.for30(Msg(_, s"Only function types can be followed by _ but the current expression has type $tp"))
 
   def noArgsList(meth: String, encl: String) = {
     val msg = Msg(E, s"""missing argument list for method $meth in $encl
@@ -80,7 +81,7 @@ object EtaX {
 
   def sam0Msgs(encl: String) = {
     (typeMismatches("String", encl) ++ autoApp(q"object Test", q"meth")).for2 ++ // in S2, type mismatch errors trump auto-app messages
-    (autoApp(q"object Test", q"meth") ++ typeMismatches("String", encl)).for3    // in S3, it's the reverse
+    (autoApp.alt(q"object Test", q"meth") ++ typeMismatches("String", encl)).for3    // in S3, auto-app messages trump type mismatch errors
   }
 
   def stillEta(meth: String, encl: String) = {

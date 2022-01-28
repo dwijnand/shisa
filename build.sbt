@@ -1,5 +1,5 @@
-val scalaV2 = "2.13.4"
-val scalaV3 = "3.0.0-RC1"
+val scalaV2 = "2.13.8"
+val scalaV3 = "3.1.2-RC1"
 
 inThisBuild(Def.settings(
      organization := "com.dwijnand",
@@ -35,7 +35,7 @@ val shisaScalac3 = proj(project).dependsOn(shisaScalacI).settings(
          scalaVersion := scalaV3,
         scalacOptions -= "-Xlint",
         scalacOptions -= "-Wunused:-imports",
-  libraryDependencies += scalaOrganization.value %% "scala3-compiler" % scalaVersion.value,
+  libraryDependencies += scalaOrganization.value % "scala3-compiler_3" % scalaVersion.value,
 )
 
 val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3).settings(
@@ -46,7 +46,7 @@ val shisaMain = proj(project).dependsOn(shisaScalacI, shisaScalac2, shisaScalac3
     "ch.epfl.scala"   %% "scalafix-rules"    % "0.9.25",
   //"ch.epfl.scala"   %  "scalafix-cli"      % "0.9.25" cross CrossVersion.full,
   ),
-  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.3" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
 )
 
 val shisaTests = proj(project).in(file("tests")).dependsOn(shisaMain).settings(

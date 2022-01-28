@@ -50,7 +50,7 @@ object Main {
   def runTests(tests: List[TestFile]): Unit = {
     val pool    = Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     val futures = tests.sortBy(_.name).distinctBy(_.name).map(test => pool.submit[List[TestFailure]](() => {
-      println(s"* ${test.name}")
+      //println(s"* ${test.name}")
       prepAndRunTest(test)
     }))
     pool.shutdown()

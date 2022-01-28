@@ -66,15 +66,13 @@ object ShowPathsPlugin extends AutoPlugin {
 
     val configs = List(Zero, Select[ConfigKey](Compile), Select[ConfigKey](Test))
 
-    val allScopes = GlobalScope +: (for {
-      ref  <- List(ThisBuild, shisaRoot, shisaMain)
-      conf <- configs
-    } yield Global.in(ref).copy(config = conf))
+    val allScopes = GlobalScope +: (
+      for (ref  <- List(ThisBuild, shisaRoot, shisaMain); conf <- configs)
+        yield Global.copy(project = Select(ref), config = conf))
 
-    val projScopes = (for {
-      ref  <- List(shisaRoot, shisaMain)
-      conf <- configs
-    } yield Global.in(ref).copy(config = conf))
+    val projScopes =
+      for (ref  <- List(shisaRoot, shisaMain); conf <- configs)
+        yield Global.copy(project = Select(ref), config = conf)
 
     val x = Project.extract(s)
 

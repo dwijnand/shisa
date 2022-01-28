@@ -41,8 +41,10 @@ object Msgs {
       m30m: List[Msg], m30r: List[Msg], m31m: List[Msg], m31r: List[Msg],
   ): Msgs = Variants(m2rg, m2nw, m30m, m30r, m31m, m31r)
 
-  def for2(f: Sev => Msg) = Msgs(List(f(W)), List(f(E)),        Nil,        Nil,        Nil,        Nil)
-  def for3(f: Sev => Msg) = Msgs(       Nil,        Nil, List(f(W)), List(f(E)), List(f(W)), List(f(E)))
+  def for2(f: Sev => Msg)  = Msgs(List(f(W)), List(f(E)),        Nil,        Nil,        Nil,        Nil)
+  def for3(f: Sev => Msg)  = Msgs(       Nil,        Nil, List(f(W)), List(f(E)), List(f(W)), List(f(E)))
+  def for30(f: Sev => Msg) = Msgs(       Nil,        Nil,        Nil, List(f(E)), List(f(E)), List(f(E)))
+  def for3F(f: Sev => Msg) = Msgs(       Nil,        Nil, List(f(W)), List(f(E)), List(f(E)), List(f(E)))
 
   implicit class MsgsOps(private val msgs: Msgs) extends AnyVal {
     import msgs._

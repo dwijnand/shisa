@@ -16,4 +16,6 @@ object autoApp {
       List(Msg(E, s"method $meth in $encl must be called with () argument")),
     )
   }
+
+  def alt(encl: Defn, meth: Term.Name) = apply(encl, meth).copy(a30m = Nil)
 }
