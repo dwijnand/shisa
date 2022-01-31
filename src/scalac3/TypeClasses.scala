@@ -43,3 +43,18 @@ trait Alternative[F[_]] extends Applicative[F]:
     def <|>(f2: => F[A]): F[A]
   def empty[A]: F[A]
 
+trait FlatMap[F[_]] extends Apply[F]:
+  extension [A](fa: F[A])
+    def flatMap[B](f: A => F[B]): F[B]
+
+  extension [A, B](ff: F[A => B])
+    def <*>(fa: F[A]): F[B] = ff.flatMap(f => fa.map(f))
+
+  extension [A](ffa: F[F[A]])
+    def flatten: F[A] = ffa.flatMap(identity)
+
+trait Monad[F[_]] extends FlatMap[F], Applicative[F]:
+  extension [A](fa: F[A])
+    def map[B](f: A => B): F[B] = fa.flatMap(f.andThen(pure))
+
+extension (i: Int) private def ^^ (j: Int) = math.pow(i, j).toInt

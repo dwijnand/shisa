@@ -1,14 +1,74 @@
 package shisa
 package neat
 
+/** This module provides the 'Enumerable' class, which has a simple purpose: provide any enumeration for any instance type.
+ * The prerequisite is that the enumeration data type is a Sized functor with the enumerated type as the type parameter.
+ * The general idea is that the size of a value is the number of constructor applications it contains.
+ *
+ * Because Sized functors often rely of memoization, sharing is important.
+ * Since class dictionaries are not always shared, a mechanism is added that guarantees optimal sharing
+ * (it never creates two separate instance members for the same type).
+ * This is why the type of 'enumerate' is `Shared[F, A]` instead of simply `F[A]`.
+ * The technicalities of this memoization are not important,
+ * but it means there are two modes for accessing an enumeration: 'local' and 'global'.
+ * The former means sharing is guaranteed within this value, but subsequent calls to local may recreate dictionaries.
+ * The latter guarantees optimal sharing even between calls.
+ * It also means the enumeration will never be garbage collected,
+ * so use with care in programs that run for extended periods of time and contains many (especially non-regular) types.
+ *
+ * Once a type has an instance, it can be enumerated in several ways (by instantiating 'global' to different types).
+ * For instance `global: Enumerable.Count[Option[Boolean]]` would only count the number of lists of Option[Boolean] of each size.
+ * `global: Values[Option[Boolean]]` would give the actual values for all sizes as lists.
+ *
+ * Instances can be constructed in three ways:
+ *
+ * 1: Manually by passing 'datatype' a list where each element is an application of the constructor functions 'c0', 'c1' etc,
+ * so a data type like Maybe would have `enumerate = datatype [c0 Nothing, c1 Just]`.
+ * This assumes all field types of all constructors are enumerable (recursive constructors work fine).
+ * The functions passed to `cX` do not have to be constructors, but should be injective functions
+ * (if they are not injective the enumeration will contain duplicates).
+ * So "smart constructors" can be used, for instance the `Rational` datatype is defined by an injection from the natural numbers.
+ *
+ * 2: Automatically with Template Haskell ('deriveEnumerable').
+ * A top level declaration like `@deriveEnumerable ''Maybe` would derive an instance for the `Maybe` data type.
+ *
+ * 3: Manually using the operations of a Sized functor to build a `Shareable f a` value, then apply 'share' to it.
+ * To use other instances of 'Enumerable' use 'access'. */
+trait Enumerable[A: Typeable]:
+  def enumerate[F[_]: Sized](using Typeable[F[Any]]): Shared[F, A]
+
+given [F[_]](using F: Alternative[[A] =>> Shareable[F, A]], S: Sized[F]): Sized[[A] =>> Shareable[F, A]] with
+  extension [A](fa: Shareable[F, A])
+    def map[B](f: A => B): Shareable[F, B]           = fa.run(_).map(f)
+    def <|>(f2: => Shareable[F, A]): Shareable[F, A] = r => fa(r) <|> f2(r)
+  extension [A, B](ff: Shareable[F, A => B])
+    def <*> (fa: Shareable[F, A]): Shareable[F, B] = r => ff(r) <*> fa(r)
+  def pure[A](a: A): Shareable[F, A] = _ => S.pure(a)
+  def empty[A]: Shareable[F, A]      = _ => S.empty[A]
+  extension [A] (fa: Shareable[F, A])
+    def pay: Shareable[F, A]                                           = r => fa.run(r).pay
+    override def product[B](fb: Shareable[F, B]): Shareable[F, (A, B)] = r => fa.run(r).product(fb.run(r))
+  override def fin(n: Int): Shareable[F, Int]                          = _ => S.fin(n)
+  override def finSized(i: Int): Shareable[F, Int]                     = _ => S.finSized(i)
+  override def naturals: Shareable[F, Int]                             = _ => S.naturals
+
+/** A sized functor is an applicative functor extended with a notion of cost/size of contained values.
+ * This is useful for any type of bounded recursion over infinite sets, most notably for various kind of enumerations.
+ *
+ * The intention is that every sized functor definition models a (usually) infinite set (technically a bag)
+ * with a finite number of values of any given size.
+ * As long as every cyclic (recursive) definition has at least one application of pay, this invariant is guaranteed.
+ *
+ * The module "Control.Enumerable" provides sized functor definitions for a lot of data types,
+ * such that the size of a value is the number of constructor applications it contains.
+ * It also allows deriving these functors for any user defined data type. */
 trait Sized[F[_]] extends Alternative[F]:
   extension [A] (fa: F[A])
     def pay: F[A]
-    def pair[B](fb: F[B]): F[(A, B)] = fa.product(fb)
   def aconcat[A](xs: List[F[A]]): F[A] = xs.foldLeft(empty[A])(_ <|> _)
-  def fin(n: Int): F[Int]      = aconcat(List.tabulate(n)(pure))
-  def finSized(i: Int): F[Int] = stdFinBits[F](i)(using this)
-  def naturals: F[Int]         = stdNaturals[F](using this)
+  def fin(n: Int): F[Int]              = aconcat(List.tabulate(n)(pure))
+  def finSized(i: Int): F[Int]         = stdFinBits[F](i)(using this)
+  def naturals: F[Int]                 = stdNaturals[F](using this)
 
 def stdNaturals[F[_]](using F: Sized[F]): F[Int] =
   def go(n: Int): F[Int] = (F.fin(2 ^^ n).map(2 ^^ n + _) <|> go(n + 1)).pay
@@ -28,4 +88,76 @@ def stdFinBits[F[_]](i: Int)(using F: Sized[F]): F[Int] =
 
 def kbits[F[_]](k: Int)(using F: Sized[F]): F[Int] = F.finSized(2 ^^ k)
 
-extension (i: Int) private def ^^ (j: Int) = math.pow(i, j).toInt
+type Ref = IORef[DynMap]
+
+opaque type Shared[F[_], A] = Shareable[F, A]
+object Shared:
+  def apply[F[_], A](x: Shareable[F, A]): Shared[F, A] = x
+extension [F[_], A] (x: Shared[F, A])
+  def runShared(ref: Ref): F[A] = x.run(ref)
+
+  /** Should only be used to access class members.
+   *  A safe wrapper should be defined for every shared class member.
+   *  Direct access can lead to overriding class member definitions. */
+  def unsafeAccess: Shareable[F, A] = x
+
+opaque type Shareable[F[_], A] = Ref => F[A]
+object Shareable:
+  def apply[F[_], A](x: Ref => F[A]): Shareable[F, A] = x
+extension [F[_], A] (x: Shareable[F, A])
+  def run(ref: Ref): F[A] = x(ref)
+
+  /** Share/memoize a class member of type `F[A]` */
+  def share(s: Shareable[F, A])(using FA: Typeable[F[A]]): Shared[F, A] =
+    def memo[X: Typeable](x: X, r: Ref) = x.protect(r).unsafeRun
+    Shared(r => memo(s.run(r), r))
+
+def unsafeNewRef: () => Ref = () => newRef.unsafeRun
+
+def newRef: IO[Ref] = newIORef(DynMap.empty)
+
+extension [A: Typeable] (a: A)
+  def protect(ref: Ref): IO[A] =
+    for
+      m <- ref.readIORef
+      r <- m.lookup[A] match
+        case Some(y) => IO.pure(y)
+        case None    => ref.writeIORef(m.insert(a)) *> IO.pure(a)
+    yield r
+
+opaque type DynMap = Map[TypeRep, Dynamic]
+extension (m: DynMap)
+  def insert[A: Typeable](a: A): DynMap = m.updated(a.typeOf, a.toDyn)
+  def lookup[A: Typeable]: Option[A]    = m.get(typeRep[A]).flatMap(Typeable.fromDynamic)
+
+object DynMap:
+  def empty: DynMap = Map.empty
+
+final case class IORef[A](var value: A)
+def newIORef[A](x: A): IO[IORef[A]] = IO.pure(IORef[A](x))
+extension [A] (x: IORef[A])
+  def readIORef: IO[A]        = () => x.value
+  def writeIORef(a: A): IO[A] = () => { x.value = a; a }
+
+opaque type IO[A] = () => A
+object IO:
+  def pure[A](a: A): IO[A] = () => a
+extension [A] (x: IO[A])
+  def unsafeRun: A = x()
+
+given Monad[IO] with
+  def pure[A](a: A): IO[A] = IO.pure(a)
+  extension [A](fa: IO[A])
+    def flatMap[B](f: A => IO[B]): IO[B] = f(fa())
+
+opaque type TypeRep     = Class[_]
+opaque type Dynamic     = (TypeRep, Any)
+opaque type Typeable[A] = scala.reflect.ClassTag[A]
+def typeRep[A](using T: Typeable[A]): TypeRep = T.runtimeClass.asInstanceOf
+extension [A](using T: Typeable[A]) (x: A)
+  def typeOf: TypeRep = typeRep[A]
+  def toDyn: Dynamic  = x.asInstanceOf[Dynamic]
+object Typeable:
+  def fromDynamic[A: Typeable](d: Dynamic): Option[A] = d match
+    case (t, v) if t == typeRep[A] => Some(v.asInstanceOf[A])
+    case _                         => None
