@@ -1,6 +1,11 @@
 package shisa
 package neat
 
+import DynMaps.*
+import IOs.*
+import Shareds.*, Shareables.*
+import Typeables.*
+
 /** This module provides the 'Enumerable' class, which has a simple purpose: provide any enumeration for any instance type.
  * The prerequisite is that the enumeration data type is a Sized functor with the enumerated type as the type parameter.
  * The general idea is that the size of a value is the number of constructor applications it contains.
@@ -86,6 +91,7 @@ trait Sized[F[_]] extends Alternative[F]:
   def fin(n: Int): F[Int]              = aconcat(List.tabulate(n)(pure))
   def finSized(i: Int): F[Int]         = Sized.finBits[F](i)(using this)
   def naturals: F[Int]                 = Sized.naturals[F](using this)
+end Sized
 
 object Sized:
   def apply[F[_]](using z: Sized[F]) = z
@@ -107,46 +113,55 @@ object Sized:
     if i <= 0 then F.empty else F.pure(0) <|> go(1)
 
   def kbits[F[_]](k: Int)(using F: Sized[F]): F[Int] = F.finSized(2 ^^ k)
-
-given [F[_]: Sized]: Sized[[A] =>> Shareable[F, A]] with
-  extension [A](fa: Shareable[F, A])
-    def map[B](f: A => B): Shareable[F, B]           = fa.run(_).map(f)
-    def <|>(f2: => Shareable[F, A]): Shareable[F, A] = r => fa(r) <|> f2(r)
-  extension [A, B](ff: Shareable[F, A => B])
-    def <*> (fa: Shareable[F, A]): Shareable[F, B] = r => ff(r) <*> fa(r)
-  def pure[A](a: A): Shareable[F, A] = _ => Sized[F].pure(a)
-  def empty[A]: Shareable[F, A]      = _ => Sized[F].empty[A]
-  extension [A] (fa: Shareable[F, A])
-    def pay: Shareable[F, A]                                           = r => fa.run(r).pay
-    override def product[B](fb: Shareable[F, B]): Shareable[F, (A, B)] = r => fa.run(r).product(fb.run(r))
-  override def fin(n: Int): Shareable[F, Int]                          = _ => Sized[F].fin(n)
-  override def finSized(i: Int): Shareable[F, Int]                     = _ => Sized[F].finSized(i)
-  override def naturals: Shareable[F, Int]                             = _ => Sized[F].naturals
+end Sized
 
 type Ref = IORef[DynMap]
 object Ref:
   def unsafeNewRef(): Ref = newRef.unsafeRun
   def newRef: IO[Ref]     = IORef.newIORef(DynMap.empty)
 
-opaque type Shared[F[_], A] = Shareable[F, A]
-object Shared:
-  def apply[F[_], A](x: Shareable[F, A]): Shared[F, A] = x
-extension [F[_], A] (x: Shared[F, A])
-  /** Should only be used to access class members.
-   *  A safe wrapper should be defined for every shared class member.
-   *  Direct access can lead to overriding class member definitions. */
-  def unsafeAccess: Shareable[F, A] = x
+object Shareds:
+  opaque type Shared[F[_], A] = Shareable[F, A]
 
-opaque type Shareable[F[_], A] = Ref => F[A]
-object Shareable:
-  def apply[F[_], A](x: Ref => F[A]): Shareable[F, A] = x
-extension [F[_], A] (x: Shareable[F, A])
-  def run(ref: Ref): F[A] = x(ref)
+  object Shared:
+    def apply[F[_], A](x: Shareable[F, A]): Shared[F, A] = x
 
-  /** Share/memoize a class member of type `F[A]` */
-  def share(using FA: Typeable[F[A]]): Shared[F, A] =
-    def memo[X: Typeable](x: X, r: Ref) = x.protect(r).unsafeRun
-    Shared(r => memo(x.run(r), r))
+  extension [F[_], A] (x: Shared[F, A])
+    /** Should only be used to access class members.
+     *  A safe wrapper should be defined for every shared class member.
+     *  Direct access can lead to overriding class member definitions. */
+    def unsafeAccess: Shareable[F, A] = x
+end Shareds
+
+object Shareables:
+  opaque type Shareable[F[_], A] = Ref => F[A]
+
+  object Shareable:
+    def apply[F[_], A](x: Ref => F[A]): Shareable[F, A] = x
+
+  extension [F[_], A] (x: Shareable[F, A])
+    def run(ref: Ref): F[A] = x(ref)
+
+    /** Share/memoize a class member of type `F[A]` */
+    def share(using FA: Typeable[F[A]]): Shared[F, A] =
+      def memo[X: Typeable](x: X, r: Ref) = x.protect(r).unsafeRun
+      Shared(r => memo(x.run(r), r))
+
+  given [F[_]: Sized]: Sized[[A] =>> Shareable[F, A]] with
+    extension [A](fa: Shareable[F, A])
+      def map[B](f: A => B): Shareable[F, B]           = Shareable(fa.run(_).map(f))
+      def <|>(f2: => Shareable[F, A]): Shareable[F, A] = Shareable(r => fa.run(r) <|> f2.run(r))
+    extension [A, B](ff: Shareable[F, A => B])
+      def <*> (fa: Shareable[F, A]): Shareable[F, B] = Shareable(r => ff.run(r) <*> fa.run(r))
+    def pure[A](a: A): Shareable[F, A] = Shareable(_ => Sized[F].pure(a))
+    def empty[A]: Shareable[F, A]      = Shareable(_ => Sized[F].empty[A])
+    extension [A] (fa: Shareable[F, A])
+      def pay: Shareable[F, A]                                           = Shareable(r => fa.run(r).pay)
+      override def product[B](fb: Shareable[F, B]): Shareable[F, (A, B)] = Shareable(r => fa.run(r).product(fb.run(r)))
+    override def fin(n: Int): Shareable[F, Int]                          = Shareable(_ => Sized[F].fin(n))
+    override def finSized(i: Int): Shareable[F, Int]                     = Shareable(_ => Sized[F].finSized(i))
+    override def naturals: Shareable[F, Int]                             = Shareable(_ => Sized[F].naturals)
+end Shareables
 
 extension [A: Typeable] (a: A)
   def protect(ref: Ref): IO[A] =
@@ -156,45 +171,61 @@ extension [A: Typeable] (a: A)
         case Some(y) => IO.pure(y)
         case None    => ref.writeIORef(m.insert(a)) *> IO.pure(a)
     yield r
+end extension
 
-opaque type DynMap = Map[TypeRep, Dynamic]
-extension (m: DynMap)
-  def insert[A: Typeable](a: A): DynMap = m.updated(a.typeOf, a.toDyn)
-  def lookup[A: Typeable]: Option[A]    = m.get(TypeRep.of[A]).flatMap(Typeable.fromDynamic)
+object DynMaps:
+  opaque type DynMap = Map[TypeRep, Dynamic]
 
-object DynMap:
-  def empty: DynMap = Map.empty
+  object DynMap:
+    def empty: DynMap = Map.empty
+
+  extension (m: DynMap)
+    def insert[A: Typeable](a: A): DynMap = m.updated(a.typeOf, a.toDyn)
+    def lookup[A: Typeable]: Option[A]    = m.get(TypeRep.of[A]).flatMap(Typeable.fromDynamic)
+end DynMaps
 
 final case class IORef[A](var value: A)
+
 object IORef:
   def newIORef[A](x: A): IO[IORef[A]] = IO.pure(IORef[A](x))
+
 extension [A] (x: IORef[A])
-  def readIORef: IO[A]        = () => x.value
-  def writeIORef(a: A): IO[A] = () => { x.value = a; a }
+  def readIORef: IO[A]        = IO(x.value)
+  def writeIORef(a: A): IO[A] = IO { x.value = a; a }
 
-opaque type IO[A] = () => A
-object IO:
-  def pure[A](a: A): IO[A] = () => a
-extension [A] (x: IO[A])
-  def unsafeRun: A = x()
+object IOs:
+  opaque type IO[A] = () => A
 
-given Monad[IO] with
-  def pure[A](a: A): IO[A] = IO.pure(a)
-  extension [A](fa: IO[A])
-    def flatMap[B](f: A => IO[B]): IO[B] = f(fa())
+  object IO:
+    def apply[A](a: => A): IO[A] = () => a
+    def pure[A](a: A): IO[A]     = () => a
 
-opaque type TypeRep         = Class[_]
-opaque type Dynamic         = (TypeRep, Any)
-opaque type Typeable[A]     = scala.reflect.ClassTag[A]
-       type TypeableK[A[_]] = Typeable[A[Any]]
-object TypeRep:
-  def of[A: Typeable]: TypeRep = (Typeable[A]: scala.reflect.ClassTag[A]).runtimeClass.asInstanceOf
-extension [A: Typeable] (x: A)
-  def typeOf: TypeRep = TypeRep.of[A]
-  def toDyn: Dynamic  = x.asInstanceOf[Dynamic]
-object Typeable:
-  def apply[A](using z: Typeable[A]) = z
-  def fromDynamic[A: Typeable](d: Dynamic): Option[A] = d match
-    case (t, v) if t == TypeRep.of[A] => Some(v.asInstanceOf[A])
-    case _                            => None
-  given [T](using ctag: scala.reflect.ClassTag[T]): Typeable[T] = ctag
+    given Monad[IO] with
+      def pure[A](a: A): IO[A] = IO.pure(a)
+      extension [A](fa: IO[A])
+        def flatMap[B](f: A => IO[B]): IO[B] = f(fa())
+
+  extension [A] (x: IO[A])
+    def unsafeRun: A = x()
+end IOs
+
+object Typeables:
+  opaque type TypeRep         = Class[_]
+  opaque type Dynamic         = (TypeRep, Any)
+  opaque type Typeable[A]     = scala.reflect.ClassTag[A]
+         type TypeableK[A[_]] = Typeable[A[Any]]
+
+  object TypeRep:
+    def of[A: Typeable]: TypeRep = (Typeable[A]: scala.reflect.ClassTag[A]).runtimeClass.asInstanceOf
+
+  extension [A: Typeable] (x: A)
+    def typeOf: TypeRep = TypeRep.of[A]
+    def toDyn: Dynamic  = x.asInstanceOf[Dynamic]
+
+  object Typeable:
+    def apply[A](using z: Typeable[A]) = z
+    def fromDynamic[A: Typeable](d: Dynamic): Option[A] = d match
+      case (t, v) if t == TypeRep.of[A] => Some(v.asInstanceOf[A])
+      case _                            => None
+    given [T](using ctag: scala.reflect.ClassTag[T]): Typeable[T] = ctag
+end Typeables

@@ -46,6 +46,9 @@ trait Alternative[F[_]] extends Applicative[F]:
     def <|>(f2: => F[A]): F[A]
   def empty[A]: F[A]
 
+object Alternative:
+  def apply[F[_]](using z: Alternative[F]) = z
+
 trait FlatMap[F[_]] extends Apply[F]:
   extension [A](fa: F[A])
     def flatMap[B](f: A => F[B]): F[B]
