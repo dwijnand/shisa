@@ -61,9 +61,9 @@ object Enumerable:
   def global[F[_]: TypeableK: Sized, A: Enumerable]: F[A] = access[A, F].run(gref)
 
   def datatype[A: Typeable, F[_]: Sized: TypeableK](ctors: List[Shareable[F, A]]): Shared[F, A] =
-    Sized[[A] =>> Shareable[F, A]].aconcat(ctors).pay.share
+    S.aconcat(ctors).pay.share
 
-  def c0[F[_]: Sized, A](a: A): Shareable[F, A] = Applicative[[A] =>> Shareable[F, A]].pure(a)
+  def c0[F[_]: Sized, A](a: A): Shareable[F, A] = S.pure(a)
 
   def c1[F[_]: Sized: TypeableK, A: Enumerable, X](f: A => X): Shareable[F, X] = access[A, F].map(f)
 
@@ -72,6 +72,20 @@ object Enumerable:
 
   def c3[F[_]: Sized: TypeableK, A: Enumerable, B: Enumerable, C: Enumerable, X](f: (A, B, C) => X): Shareable[F, X] =
     c2[F, A, (B, C), X] { case (a, (b, c)) => f(a, b, c) }
+
+  given Enumerable[Boolean] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, Boolean] = datatype(List(S.pure(false), S.pure(true)))
+
+  given [A: Enumerable, B: Enumerable]: Enumerable[Either[A, B]] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, Either[A, B]] = datatype(List(c1(Left(_: A): Either[A, B]), c1(Right(_: B): Either[A, B])))
+
+  given [A: Enumerable]: Enumerable[List[A]] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, List[A]] = datatype(List(S.pure(List.empty[A]), c2((a: A, as: List[A]) => a :: as)))
+
+  given [A: Enumerable]: Enumerable[Option[A]] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, Option[A]] = datatype(List(S.pure(None: Option[A]), c1((a: A) => Some(a))))
+
+  private inline def S[F[_]: Sized]: Sized[[A] =>> Shareable[F, A]] = Sized[[A] =>> Shareable[F, A]]
 end Enumerable
 
 /** A sized functor is an applicative functor extended with a notion of cost/size of contained values.
