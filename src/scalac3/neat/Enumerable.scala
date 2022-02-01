@@ -40,6 +40,21 @@ import Typeables.*
 trait Enumerable[A: Typeable]:
   def enumerate[F[_]: Sized: TypeableK]: Shared[F, A]
 
+given [F[_]: Sized]: Sized[[A] =>> Shareable[F, A]] with
+  extension [A](fa: Shareable[F, A])
+    def map[B](f: A => B): Shareable[F, B]           = Shareable(fa.run(_).map(f))
+    def <|>(f2: => Shareable[F, A]): Shareable[F, A] = Shareable(r => fa.run(r) <|> f2.run(r))
+  extension [A, B](ff: Shareable[F, A => B])
+    def <*> (fa: Shareable[F, A]): Shareable[F, B] = Shareable(r => ff.run(r) <*> fa.run(r))
+  def pure[A](a: A): Shareable[F, A] = Shareable(_ => Sized[F].pure(a))
+  def empty[A]: Shareable[F, A]      = Shareable(_ => Sized[F].empty[A])
+  extension [A] (fa: Shareable[F, A])
+    def pay: Shareable[F, A]                                           = Shareable(r => fa.run(r).pay)
+    override def product[B](fb: Shareable[F, B]): Shareable[F, (A, B)] = Shareable(r => fa.run(r).product(fb.run(r)))
+  override def fin(n: Int): Shareable[F, Int]                          = Shareable(_ => Sized[F].fin(n))
+  override def finSized(i: Int): Shareable[F, Int]                     = Shareable(_ => Sized[F].finSized(i))
+  override def naturals: Shareable[F, Int]                             = Shareable(_ => Sized[F].naturals)
+
 object Enumerable:
   def apply[A](using z: Enumerable[A]) = z
 
