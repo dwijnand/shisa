@@ -38,6 +38,9 @@ trait Applicative[F[_]] extends Apply[F]:
   def pure[A](a: A): F[A]
   def unit: F[Unit] = pure(())
 
+object Applicative:
+  def apply[F[_]](using z: Applicative[F]) = z
+
 trait Alternative[F[_]] extends Applicative[F]:
   extension [A] (f: F[A])
     def <|>(f2: => F[A]): F[A]

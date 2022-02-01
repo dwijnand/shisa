@@ -35,22 +35,39 @@ package neat
  * 3: Manually using the operations of a Sized functor to build a `Shareable f a` value, then apply 'share' to it.
  * To use other instances of 'Enumerable' use 'access'. */
 trait Enumerable[A: Typeable]:
-  def enumerate[F[_]: Sized](using Typeable[F[Any]]): Shared[F, A]
+  def enumerate[F[_]: Sized: TypeableK]: Shared[F, A]
 
-given [F[_]](using F: Alternative[[A] =>> Shareable[F, A]], S: Sized[F]): Sized[[A] =>> Shareable[F, A]] with
-  extension [A](fa: Shareable[F, A])
-    def map[B](f: A => B): Shareable[F, B]           = fa.run(_).map(f)
-    def <|>(f2: => Shareable[F, A]): Shareable[F, A] = r => fa(r) <|> f2(r)
-  extension [A, B](ff: Shareable[F, A => B])
-    def <*> (fa: Shareable[F, A]): Shareable[F, B] = r => ff(r) <*> fa(r)
-  def pure[A](a: A): Shareable[F, A] = _ => S.pure(a)
-  def empty[A]: Shareable[F, A]      = _ => S.empty[A]
-  extension [A] (fa: Shareable[F, A])
-    def pay: Shareable[F, A]                                           = r => fa.run(r).pay
-    override def product[B](fb: Shareable[F, B]): Shareable[F, (A, B)] = r => fa.run(r).product(fb.run(r))
-  override def fin(n: Int): Shareable[F, Int]                          = _ => S.fin(n)
-  override def finSized(i: Int): Shareable[F, Int]                     = _ => S.finSized(i)
-  override def naturals: Shareable[F, Int]                             = _ => S.naturals
+object Enumerable:
+  def apply[A](using z: Enumerable[A]) = z
+
+  given Enumerable[Unit] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, Unit] = Applicative[[A] =>> Shareable[F, A]].pure(()).share
+
+  given [A: Enumerable, B: Enumerable]: Enumerable[(A, B)] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, (A, B)] = access[A, F].product(access[B, F]).share
+  given [A: Enumerable, B: Enumerable, C: Enumerable]: Enumerable[(A, B, C)] with
+    def enumerate[F[_]: Sized: TypeableK]: Shared[F, (A, B, C)] = c1[F, (A, (B, C)), (A, B, C)] { case (a, (b, c)) => (a, b, c) }.share
+
+  def access[A: Enumerable, F[_]: Sized: TypeableK]: Shareable[F, A] = Enumerable[A].enumerate[F].unsafeAccess
+
+  val gref: Ref = Ref.unsafeNewRef()
+
+  def local [F[_]: TypeableK: Sized, A: Enumerable]: F[A] = access[A, F].run(Ref.unsafeNewRef())
+  def global[F[_]: TypeableK: Sized, A: Enumerable]: F[A] = access[A, F].run(gref)
+
+  def datatype[A: Typeable, F[_]: Sized: TypeableK](ctors: List[Shareable[F, A]]): Shared[F, A] =
+    Sized[[A] =>> Shareable[F, A]].aconcat(ctors).pay.share
+
+  def c0[F[_]: Sized, A](a: A): Shareable[F, A] = Applicative[[A] =>> Shareable[F, A]].pure(a)
+
+  def c1[F[_]: Sized: TypeableK, A: Enumerable, X](f: A => X): Shareable[F, X] = access[A, F].map(f)
+
+  def c2[F[_]: Sized: TypeableK, A: Enumerable, B: Enumerable, X](f: (A, B) => X): Shareable[F, X] =
+    c1[F, (A, B), X] { case (a, b) => f(a, b) }
+
+  def c3[F[_]: Sized: TypeableK, A: Enumerable, B: Enumerable, C: Enumerable, X](f: (A, B, C) => X): Shareable[F, X] =
+    c2[F, A, (B, C), X] { case (a, (b, c)) => f(a, b, c) }
+end Enumerable
 
 /** A sized functor is an applicative functor extended with a notion of cost/size of contained values.
  * This is useful for any type of bounded recursion over infinite sets, most notably for various kind of enumerations.
@@ -67,35 +84,54 @@ trait Sized[F[_]] extends Alternative[F]:
     def pay: F[A]
   def aconcat[A](xs: List[F[A]]): F[A] = xs.foldLeft(empty[A])(_ <|> _)
   def fin(n: Int): F[Int]              = aconcat(List.tabulate(n)(pure))
-  def finSized(i: Int): F[Int]         = stdFinBits[F](i)(using this)
-  def naturals: F[Int]                 = stdNaturals[F](using this)
+  def finSized(i: Int): F[Int]         = Sized.finBits[F](i)(using this)
+  def naturals: F[Int]                 = Sized.naturals[F](using this)
 
-def stdNaturals[F[_]](using F: Sized[F]): F[Int] =
-  def go(n: Int): F[Int] = (F.fin(2 ^^ n).map(2 ^^ n + _) <|> go(n + 1)).pay
-  F.pure(0) <|> go(1)
+object Sized:
+  def apply[F[_]](using z: Sized[F]) = z
 
-def stdNaturals2[F[_]](using F: Sized[F]): F[Int] =
-  def go(n: Int): F[Int] = (F.fin(n).map(n + _) <|> go(2 * n)).pay
-  F.pure(0) <|> go(1)
+  def naturals[F[_]](using F: Sized[F]): F[Int] =
+    def go(n: Int): F[Int] = (F.fin(2 ^^ n).map(2 ^^ n + _) <|> go(n + 1)).pay
+    F.pure(0) <|> go(1)
 
-def stdFinBits[F[_]](i: Int)(using F: Sized[F]): F[Int] =
-  def go(n: Int): F[Int] =
-    if      n <= lim then (F.fin(n).map(n + _) <|> go(2 * n)).pay
-    else if n >= i   then F.empty
-    else F.fin(i - n).map(n + _).pay
-  def lim = i / 2
-  if i <= 0 then F.empty else F.pure(0) <|> go(1)
+  def naturals2[F[_]](using F: Sized[F]): F[Int] =
+    def go(n: Int): F[Int] = (F.fin(n).map(n + _) <|> go(2 * n)).pay
+    F.pure(0) <|> go(1)
 
-def kbits[F[_]](k: Int)(using F: Sized[F]): F[Int] = F.finSized(2 ^^ k)
+  def finBits[F[_]](i: Int)(using F: Sized[F]): F[Int] =
+    def go(n: Int): F[Int] =
+      if      n <= lim then (F.fin(n).map(n + _) <|> go(2 * n)).pay
+      else if n >= i   then F.empty
+      else F.fin(i - n).map(n + _).pay
+    def lim = i / 2
+    if i <= 0 then F.empty else F.pure(0) <|> go(1)
+
+  def kbits[F[_]](k: Int)(using F: Sized[F]): F[Int] = F.finSized(2 ^^ k)
+
+given [F[_]: Sized]: Sized[[A] =>> Shareable[F, A]] with
+  extension [A](fa: Shareable[F, A])
+    def map[B](f: A => B): Shareable[F, B]           = fa.run(_).map(f)
+    def <|>(f2: => Shareable[F, A]): Shareable[F, A] = r => fa(r) <|> f2(r)
+  extension [A, B](ff: Shareable[F, A => B])
+    def <*> (fa: Shareable[F, A]): Shareable[F, B] = r => ff(r) <*> fa(r)
+  def pure[A](a: A): Shareable[F, A] = _ => Sized[F].pure(a)
+  def empty[A]: Shareable[F, A]      = _ => Sized[F].empty[A]
+  extension [A] (fa: Shareable[F, A])
+    def pay: Shareable[F, A]                                           = r => fa.run(r).pay
+    override def product[B](fb: Shareable[F, B]): Shareable[F, (A, B)] = r => fa.run(r).product(fb.run(r))
+  override def fin(n: Int): Shareable[F, Int]                          = _ => Sized[F].fin(n)
+  override def finSized(i: Int): Shareable[F, Int]                     = _ => Sized[F].finSized(i)
+  override def naturals: Shareable[F, Int]                             = _ => Sized[F].naturals
 
 type Ref = IORef[DynMap]
+object Ref:
+  def unsafeNewRef(): Ref = newRef.unsafeRun
+  def newRef: IO[Ref]     = IORef.newIORef(DynMap.empty)
 
 opaque type Shared[F[_], A] = Shareable[F, A]
 object Shared:
   def apply[F[_], A](x: Shareable[F, A]): Shared[F, A] = x
 extension [F[_], A] (x: Shared[F, A])
-  def runShared(ref: Ref): F[A] = x.run(ref)
-
   /** Should only be used to access class members.
    *  A safe wrapper should be defined for every shared class member.
    *  Direct access can lead to overriding class member definitions. */
@@ -108,13 +144,9 @@ extension [F[_], A] (x: Shareable[F, A])
   def run(ref: Ref): F[A] = x(ref)
 
   /** Share/memoize a class member of type `F[A]` */
-  def share(s: Shareable[F, A])(using FA: Typeable[F[A]]): Shared[F, A] =
+  def share(using FA: Typeable[F[A]]): Shared[F, A] =
     def memo[X: Typeable](x: X, r: Ref) = x.protect(r).unsafeRun
-    Shared(r => memo(s.run(r), r))
-
-def unsafeNewRef: () => Ref = () => newRef.unsafeRun
-
-def newRef: IO[Ref] = newIORef(DynMap.empty)
+    Shared(r => memo(x.run(r), r))
 
 extension [A: Typeable] (a: A)
   def protect(ref: Ref): IO[A] =
@@ -128,13 +160,14 @@ extension [A: Typeable] (a: A)
 opaque type DynMap = Map[TypeRep, Dynamic]
 extension (m: DynMap)
   def insert[A: Typeable](a: A): DynMap = m.updated(a.typeOf, a.toDyn)
-  def lookup[A: Typeable]: Option[A]    = m.get(typeRep[A]).flatMap(Typeable.fromDynamic)
+  def lookup[A: Typeable]: Option[A]    = m.get(TypeRep.of[A]).flatMap(Typeable.fromDynamic)
 
 object DynMap:
   def empty: DynMap = Map.empty
 
 final case class IORef[A](var value: A)
-def newIORef[A](x: A): IO[IORef[A]] = IO.pure(IORef[A](x))
+object IORef:
+  def newIORef[A](x: A): IO[IORef[A]] = IO.pure(IORef[A](x))
 extension [A] (x: IORef[A])
   def readIORef: IO[A]        = () => x.value
   def writeIORef(a: A): IO[A] = () => { x.value = a; a }
@@ -150,14 +183,18 @@ given Monad[IO] with
   extension [A](fa: IO[A])
     def flatMap[B](f: A => IO[B]): IO[B] = f(fa())
 
-opaque type TypeRep     = Class[_]
-opaque type Dynamic     = (TypeRep, Any)
-opaque type Typeable[A] = scala.reflect.ClassTag[A]
-def typeRep[A](using T: Typeable[A]): TypeRep = T.runtimeClass.asInstanceOf
-extension [A](using T: Typeable[A]) (x: A)
-  def typeOf: TypeRep = typeRep[A]
+opaque type TypeRep         = Class[_]
+opaque type Dynamic         = (TypeRep, Any)
+opaque type Typeable[A]     = scala.reflect.ClassTag[A]
+       type TypeableK[A[_]] = Typeable[A[Any]]
+object TypeRep:
+  def of[A: Typeable]: TypeRep = (Typeable[A]: scala.reflect.ClassTag[A]).runtimeClass.asInstanceOf
+extension [A: Typeable] (x: A)
+  def typeOf: TypeRep = TypeRep.of[A]
   def toDyn: Dynamic  = x.asInstanceOf[Dynamic]
 object Typeable:
+  def apply[A](using z: Typeable[A]) = z
   def fromDynamic[A: Typeable](d: Dynamic): Option[A] = d match
-    case (t, v) if t == typeRep[A] => Some(v.asInstanceOf[A])
-    case _                         => None
+    case (t, v) if t == TypeRep.of[A] => Some(v.asInstanceOf[A])
+    case _                            => None
+  given [T](using ctag: scala.reflect.ClassTag[T]): Typeable[T] = ctag
