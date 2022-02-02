@@ -98,5 +98,13 @@ object Enumerable:
   given [A: Enumerable]: Enumerable[Option[A]] with
     def enumerate[F[_]: Sized: TypeableK]: Shared[F, Option[A]] = datatype(List(S.pure(None: Option[A]), c1((a: A) => Some(a))))
 
+  def natPeano[F[_]: Sized]: F[Int] = Sized[F].pure(0) <|> natPeano.map(1 + _).pay
+
+  def natBin[F[_]: Sized]: F[Int] =
+    def positive: F[Int] = Sized[F].pure(1) <|> positive.map(shift0) <|> positive.map(shift1)
+    def shift1(x: Int) = x * 2 + 1
+    def shift0(x: Int) = x * 2
+    Sized[F].pure(0) <|> positive
+
   private inline def S[F[_]: Sized]: Sized[[A] =>> Shareable[F, A]] = Sized[[A] =>> Shareable[F, A]]
 end Enumerable

@@ -10,7 +10,19 @@ package neat
  *
  * The module "Control.Enumerable" provides sized functor definitions for a lot of data types,
  * such that the size of a value is the number of constructor applications it contains.
- * It also allows deriving these functors for any user defined data type. */
+ * It also allows deriving these functors for any user defined data type.
+ *
+ * Distributivity of pay over `<|>` and `product`:
+ *   * `(a product b).pay ≡ a.pay product b     ≡ a product b.pay`
+ *   * `(a   <|>   b).pay ≡ a.pay   ⟨|⟩   b.pay`
+ *
+ * Valid:
+ *   * `val e1: Sized[F[Int]] = (0 ⟨|⟩ e1.map(_ + 1)).pay`
+ *   * `val e2: Sized[F[Int]] =  0 ⟨|⟩ e2.pay.map(_ + 1)`
+ *   * `val e3: Sized[F[Int]] = e3.pay`
+ * Invalid:
+ *   * `val e = 0.pay <|> e.map(_ + 1)`
+ */
 trait Sized[F[_]] extends Alternative[F]:
   extension [A] (fa: F[A])
     def pay: F[A]
